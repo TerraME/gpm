@@ -20,10 +20,13 @@ return {
 				else
 					return d / 2
 				end
+			end,
+			outside = function(distance, cell)
+				return distance * 2
 			end
 		}
 
 		unitTest:assertType(network, "Network")
 	end
-
 }
+

@@ -65,5 +65,15 @@ return {
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("weight", "function", 2))
+
+		error_func = function()
+			local network = Network{
+				lines = roads,
+				target = communities,
+				weight = function() end,
+				outside = 2
+			}
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg("outside", "function", 2))
 	end
 }
