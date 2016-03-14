@@ -13,10 +13,9 @@ return {
 
 		local network = Network{
 			lines = roads,
-			strategy = "open", -- default, this should be removed
 			target = communities,
-			weight = function(distance, id)
-				if roads:get(id).CD_PAVIMEN == "pavimentada" then
+			weight = function(distance, cell)
+				if cell.CD_PAVIMEN == "pavimentada" then
 					return d / 5
 				else
 					return d / 2
