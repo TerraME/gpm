@@ -56,5 +56,14 @@ return {
 			}
 		end
 		unitTest:assertError(error_func, defaultValueMsg("strategy", "open"))
+
+		error_func = function()
+			local network = Network{
+				lines = roads,
+				target = communities,
+				weight = 2
+			}
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg("weight", "function", 2))
 	end
 }
