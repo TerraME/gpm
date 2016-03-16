@@ -82,5 +82,8 @@ return {
 
 		gpm:save("farms.gal")
 		unitTest:assertFile("farms.gal")
+
+		gpm:save("farms.gwt")
+		unitTest:assertFile("farms.gwt")
 }
 
