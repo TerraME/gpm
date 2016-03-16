@@ -13,7 +13,7 @@ return {
 
 		local network = Network{
 			lines = roads,
-			target = communities,
+			destination = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
 					return d / 5

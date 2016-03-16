@@ -14,7 +14,7 @@ return {
 		error_func = function()
 			local network = Network{
 				lines = 2,
-				target = communities,
+				destination = communities,
 				weight = function() end
 			}
 		end
@@ -23,7 +23,7 @@ return {
 		error_func = function()
 			local network = Network{
 				lines = communities,
-				target = communities,
+				destination = communities,
 				weight = function() end
 			}
 		end
@@ -32,26 +32,26 @@ return {
 		error_func = function()
 			local network = Network{
 				lines = roads,
-				target = roads,
+				destination = roads,
 				weight = function() end
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'target' should be composed by points, got lines.")
+		unitTest:assertError(error_func, "Argument 'destination' should be composed by points, got lines.")
 
 		error_func = function()
 			local network = Network{
 				lines = roads,
-				target = 2,
+				destination = 2,
 				weight = function() end
 			}
 		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("target", "CellularSpace", 2))
+		unitTest:assertError(error_func, incompatibleTypeMsg("destination", "CellularSpace", 2))
 
 		error_func = function()
 			local network = Network{
 				lines = roads,
 				strategy = "open",
-				target = communities,
+				destination = communities,
 				weight = function() end
 			}
 		end
@@ -60,7 +60,7 @@ return {
 		error_func = function()
 			local network = Network{
 				lines = roads,
-				target = communities,
+				destination = communities,
 				weight = 2
 			}
 		end
@@ -69,7 +69,7 @@ return {
 		error_func = function()
 			local network = Network{
 				lines = roads,
-				target = communities,
+				destination = communities,
 				weight = function() end,
 				outside = 2
 			}
