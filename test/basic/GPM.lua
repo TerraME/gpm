@@ -80,6 +80,14 @@ return {
 			destination = farms
 		}
 
+		gpm:save("farms.gpm")
+
+		farms:loadNeighborhood{
+			source = "farms.gpm"
+		}
+
+		unitTest:assertFile("farms.gpm")
+
 		gpm:save("farms.gal")
 		unitTest:assertFile("farms.gal")
 
