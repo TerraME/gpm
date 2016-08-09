@@ -54,7 +54,7 @@ data{
 		"City of the region",
 		"Atendiment in the region",
 		"Number of population",
-		"UCS invoice",
+		"?",
 		"Fed communities",
 		"?",
 		"?"
@@ -82,7 +82,7 @@ data{
 		"City of the region",
 		"Atendiment in the region",
 		"Number of population",
-		"UCS invoice",
+		"?",
 		"Fed communities",
 		"?",
 		"?"
@@ -132,8 +132,8 @@ data{
 		"?",
 		"?",
 		"?",
-		"number of highway",
-		"number of acronyms",
+		"Number of highway",
+		"Number of acronyms",
 		"Identifier project",
 		"?",
 		"?",
@@ -148,7 +148,7 @@ data{
 	attributes = { 
 		"SPRPERIMET", 
 		"SPRCLASSE",
-		"objet_id_5",
+		"objet_id_5"
 	},
 	description = {
 		"?",
@@ -234,8 +234,8 @@ data{
 		"?",
 		"?",
 		"?",
-		"number of highway",
-		"number of acronyms",
+		"Number of highway",
+		"Number of acronyms",
 		"Identifier project",
 		"?",
 		"?",
