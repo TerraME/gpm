@@ -2,18 +2,18 @@
 return {
 	Network = function(unitTest)
 		local roads = CellularSpace{
-			source = filePath("roads.shp", "gpm"),
+			file = filePath("roads.shp", "gpm"),
 			geometry = true
 		}
 
 		local communities = CellularSpace{
-			source = filePath("communities.shp", "gpm"),
+			file = filePath("communities.shp", "gpm"),
 			geometry = true
 		}
 
 		local network = Network{
 			lines = roads,
-			destination = communities,
+			target = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
 					return d / 5

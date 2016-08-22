@@ -2,19 +2,19 @@
 return {
 	Network = function(unitTest)
 		local roads = CellularSpace{
-			source = filePath("roads.shp", "gpm"),
+			file = filePath("roads.shp", "gpm"),
 			geometry = true
 		}
 
 		local communities = CellularSpace{
-			source = filePath("communities.shp", "gpm"),
+			file = filePath("communities.shp", "gpm"),
 			geometry = true
 		}
 
-		error_func = function()
+		local error_func = function()
 			local network = Network{
 				lines = 2,
-				destination = communities,
+				target = communities,
 				weight = function() end
 			}
 		end
@@ -23,35 +23,35 @@ return {
 		error_func = function()
 			local network = Network{
 				lines = communities,
-				destination = communities,
+				target = communities,
 				weight = function() end
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'lines' should be composed by lines, got points.")
+		unitTest:assertError(error_func, "Argument 'lines' should be composed by lines, got 'MultiPoint'.")
 
 		error_func = function()
 			local network = Network{
 				lines = roads,
-				destination = roads,
+				target = roads,
 				weight = function() end
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'destination' should be composed by points, got lines.")
+		unitTest:assertError(error_func, "Argument 'target' should be composed by points, got 'MultiLineString'.")
 
 		error_func = function()
 			local network = Network{
 				lines = roads,
-				destination = 2,
+				target = 2,
 				weight = function() end
 			}
 		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("destination", "CellularSpace", 2))
+		unitTest:assertError(error_func, incompatibleTypeMsg("target", "CellularSpace", 2))
 
 		error_func = function()
 			local network = Network{
 				lines = roads,
 				strategy = "open",
-				destination = communities,
+				target = communities,
 				weight = function() end
 			}
 		end
@@ -60,7 +60,7 @@ return {
 		error_func = function()
 			local network = Network{
 				lines = roads,
-				destination = communities,
+				target = communities,
 				weight = 2
 			}
 		end
@@ -69,7 +69,7 @@ return {
 		error_func = function()
 			local network = Network{
 				lines = roads,
-				destination = communities,
+				target = communities,
 				weight = function() end,
 				outside = 2
 			}
