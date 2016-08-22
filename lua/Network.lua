@@ -151,7 +151,8 @@ metaTableNetwork_ = {
 -- and geometry boolean argument, indicating whether the project has a geometry.
 -- @arg data.strategy Strategy to be used in the network (optional).
 -- @arg data.weight User defined function to change the network distance (optional).
--- @arg data.outside Function to set distance (optional).
+-- @arg data.outside User-defined function that computes the distance based on an
+-- Euclidean to enter and to leave the Network (optional).
 -- @output a network based on the geometry.
 -- @usage local roads = CellularSpace{
 -- 	file = filePath("roads.shp", "gpm"),
