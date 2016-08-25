@@ -151,6 +151,7 @@ metaTableNetwork_ = {
 -- and geometry boolean argument, indicating whether the project has a geometry.
 -- @arg data.strategy Strategy to be used in the network (optional).
 -- @arg data.weight User defined function to change the network distance (optional).
+-- If the distance is paved then divided by 5, if not the distance divided by 2.
 -- @arg data.outside User-defined function that computes the distance based on an
 -- Euclidean to enter and to leave the Network (optional).
 -- If not set a function, will return to own distance.
@@ -201,6 +202,14 @@ function Network(data)
     
 	if data.weight ~= nil and type(data.weight) ~= "function" then
 		incompatibleTypeError("weight", "function", data.weight)
+	elseif data.weight == nil then
+		data.weight = function(d, cell)
+			if cell.CD_PAVIMEN == "pavimentada" then
+				return d / 5
+			else
+				return d / 2
+			end
+		end
 	end
     
 	if data.outside ~= nil and type(data.outside) ~= "function" then
