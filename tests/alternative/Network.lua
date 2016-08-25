@@ -55,7 +55,7 @@ return {
 				weight = function() end
 			}
 		end
-		unitTest:assertError(error_func, defaultValueMsg("strategy", "open"))
+		unitTest:assertError(error_func, incompatibleTypeMsg("strategy", "open", "string"))
 
 		error_func = function()
 			local network = Network{
