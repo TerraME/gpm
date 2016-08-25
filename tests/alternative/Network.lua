@@ -85,5 +85,31 @@ return {
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("error", "number", "error"))
+	end,
+
+	createOpenNetwork = function(unitTest)
+		local roads = CellularSpace{
+			file = filePath("error/".."roads-invalid.shp", "gpm"),
+			geometry = true
+		}
+
+		local communities = CellularSpace{
+			file = filePath("communities.shp", "gpm"),
+			geometry = true
+		}
+
+		local network = Network{
+			lines = roads,
+			target = communities
+		}
+
+		local error_func = function()
+			network:createOpenNetwork{
+				lines = filePath("error/".."roads-invalid.shp", "gpm"),
+				target = filePath("communities.shp", "gpm")
+			}
+		end
+
+		unitTest:assertError(error_func, "line do not touch, They have a differance of: 731.34319968072")
 	end
 }

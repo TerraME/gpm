@@ -25,49 +25,38 @@ local terralib = getPackage("terralib")
 local binding = _Gtme.terralib_mod_binding_lua
 local tl = terralib.TerraLib{}
 
-local function lineCheck(cs)
-	local csPoint = CellularSpace{xdim = 1}
-	local counter = 1
+local function getBELine(cell)
+	local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
+	local nPoint = geometry:getNPoints()
+	local endPoint
+	local beginPoint = binding.te.gm.Point(geometry:getX(0), geometry:getY(0), geometry:getSRID())
 
-	forEachCell(cs, function(cell)
-		local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
-		local nPoint = geometry:getNPoints()
+	for i = 1, nPoint - 1 do
+		endPoint = binding.te.gm.Point(geometry:getX(i), geometry:getY(i), geometry:getSRID())
+	end
 
-		for i = 0, nPoint do
-			local point = binding.te.gm.Point(geometry:getX(i), geometry:getY(i), geometry:getSRID())
-			local cellPoint = Cell{point = point, x = i + 1, y = counter}
+	local ffPointer = {p1 = beginPoint, p2 = endPoint}
 
-			csPoint:add(cellPoint)
-		end
-		counter = counter + 1
-	end)
-
-	return csPoint
+	return ffPointer
 end
 
-local function getBELine(cs)
-	local csPoint = CellularSpace{xdim = 1}
-	local counter = 1
+local function distancePoint(line)
+	forEachCell(line, function(cellRed)
+		local geometry1 = tl:castGeomToSubtype(cellRed.geom:getGeometryN(0))
+		local nPoint1 = geometry2:getNPoints()
+        
+		for j = 0, nPoint1 do
 
-	forEachCell(cs, function(cell)
-		local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
-		local nPoint = geometry:getNPoints()
-		local beginPoint = binding.te.gm.Point(geometry:getX(0), geometry:getY(0), geometry:getSRID())
-		local cellPoint = Cell{beginPoint = beginPoint, counter = counter, x = 1, y = counter }
+			forEachCell(line, function(cellBlue)
+				local geometry2 = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
+				local nPoint2 = geometry2:getNPoints()
 
-		csPoint:add(cellPoint)
-		for i = 1, nPoint do
-			local endPoint = binding.te.gm.Point(geometry:getX(i), geometry:getY(i), geometry:getSRID())
-
+				for i = 0, nPoint2 do
+					
+				end
+			end)
 		end
-
-		local cellPoint = Cell{endPoint = endPoint, counter = counter, x = counter + 1, y = counter + 1}
-
-		csPoint:add(cellPoint)
-		counter = counter + 1
-	end)
-
-	return csPoint
+    end)
 end
 
 local function targetCheck(csLine, csTarget)
@@ -86,7 +75,7 @@ local function targetCheck(csLine, csTarget)
 					differance = distance
 				end
 
-				if distance < 2 then
+				if distance < 0 then
 					lineValidates = true
 				end
 			end
@@ -102,40 +91,101 @@ local function targetCheck(csLine, csTarget)
 	end)
 end
 
-local function checksInterconnectedNetwork(csLine, csTarget)
-    local csPoint = getBELine(csLine)
+local function checksInterconnectedNetwork(data)
+	local ncellRed = 0
 
-	forEachCell(csPoint, function(cellRed)
+	forEachCell(data.lines, function(cellRed)
+		local bePoint = getBELine(cellRed)
 		local lineValidates = false
 		local differance = math.huge
+		local distance = 20
+		local redPoint
 
-		forEachCell(csPoint, function(cellBlue)
-			if not (cellRed.counter == cellBlue.counter) and 
-			cellRed.counter ~= nil and cellBlue.counter ~= nil then
-				local distance = cellRed:distance(cellBlue)
+		for j = 0, 1 do
+			if j == 0 then
+				redPoint = tl:castGeomToSubtype(bePoint.p1)
+			else
+				redPoint = tl:castGeomToSubtype(bePoint.p2)
+			end
+
+			local ncellBlue = 0
+
+			forEachCell(data.lines, function(cellBlue)
+                   
+				local geometry = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
+				local nPoint = geometry:getNPoints()
+
+				for i = 0, nPoint do
+					local bluePoint = tl:castGeomToSubtype(geometry:getPointN(i))
+
+					if ncellRed ~= ncellBlue then
+						distance = redPoint:distance(bluePoint)
+
+						if distance <= data.error then
+							lineValidates = true
+						end
+
+						if differance > distance then
+							differance = distance
+						end
+					end
+				end
+
+				if lineValidates == true then
+					return false
+				end
+
+				ncellBlue = ncellBlue + 1
+			end)
+		end
     
-				if differance > distance then
-					differance = distance
-				end
-
-				if distance < 2 then
-					lineValidates = true
-				end
-			end
-
-			if lineValidates == true then
-				return false
-			end
-		end)
-
-		if not lineValidates and cellRed.x ~= 0 then
+		if not lineValidates then
 			customError("line do not touch, They have a differance of: "..differance)
 		end
+
+		ncellRed = ncellRed + 1
 	end)
 end
 
 Network_ = {
-	type_ = "Network"
+	type_ = "Network",
+	--- Creates and validates a network.
+	-- @arg data.target File with the path of network end points.
+	-- @arg data.lines File with the path of a network.
+	-- @usage csCenterspt = CellularSpace{
+	--	file = filePath("rondonia_urban_centers_pt.shp", "gpm")
+	--}
+	--local csLine = CellularSpace{
+	--	file = filePath("rondonia_roads_lin.shp", "gpm")
+	--}
+	--local nt = Network{
+	--	target = csCenterspt,
+	--	lines = csLine
+	--}
+	--nt:createOpenNetwork{
+	--	target = filePath("rondonia_urban_centers_pt.shp", "gpm"),
+	--	lines = filePath("rondonia_roads_lin.shp", "gpm")
+	--}
+	createOpenNetwork = function(self, data)
+		verifyUnnecessaryArguments(self, {"target", "lines", "error"})
+		if self.lines.geometry then
+			local cell = self.lines:sample()
+
+			if not string.find(cell.geom:getGeometryType(), "Line") then
+				incompatibleValueError("cell", "geometry", cell.geom)
+			end
+
+			checksInterconnectedNetwork(self)
+		end
+
+		if self.target.geometry then
+			local cell = self.target:sample()
+
+			if not string.find(cell.geom:getGeometryType(), "Point") then
+				incompatibleValueError("cell", "geometry", cell.geom)
+			end
+		end
+	end
 }
 
 metaTableNetwork_ = {
