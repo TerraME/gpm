@@ -168,8 +168,7 @@ end
 Network_ = {
 	type_ = "Network",
 	--- Creates and validates a network.
-	-- @arg data.target File with the path of network end points.
-	-- @arg data.lines File with the path of a network.
+	-- Necessary to create a network type 
 	-- @usage csCenterspt = CellularSpace{
 	--	file = filePath("rondonia_urban_centers_pt.shp", "gpm")
 	--}
