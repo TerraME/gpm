@@ -44,7 +44,7 @@ local function distancePoint(line)
 	forEachCell(line, function(cellRed)
 		local geometry1 = tl:castGeomToSubtype(cellRed.geom:getGeometryN(0))
 		local nPoint1 = geometry2:getNPoints()
-        
+
 		for j = 0, nPoint1 do
 
 			forEachCell(line, function(cellBlue)
@@ -56,7 +56,7 @@ local function distancePoint(line)
 				end
 			end)
 		end
-    end)
+	end)
 end
 
 local function targetCheck(csLine, csTarget)
@@ -111,7 +111,6 @@ local function checksInterconnectedNetwork(data)
 			local ncellBlue = 0
 
 			forEachCell(data.lines, function(cellBlue)
-                   
 				local geometry = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
 				local nPoint = geometry:getNPoints()
 
@@ -138,7 +137,7 @@ local function checksInterconnectedNetwork(data)
 				ncellBlue = ncellBlue + 1
 			end)
 		end
-    
+
 		if not lineValidates then
 			customError("line do not touch, They have a differance of: "..differance)
 		end
