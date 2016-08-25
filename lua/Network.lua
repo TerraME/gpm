@@ -40,55 +40,38 @@ local function getBELine(cell)
 	return ffPointer
 end
 
-local function distancePoint(line)
-	forEachCell(line, function(cellRed)
-		local geometry1 = tl:castGeomToSubtype(cellRed.geom:getGeometryN(0))
-		local nPoint1 = geometry2:getNPoints()
+local function distancePoint(lines, target)
+	local arrayTargetLine = {}
+	local counter = 0
 
-		for j = 0, nPoint1 do
+	forEachCell(target, function(targetPoint)
+		local geometry1 = tl:castGeomToSubtype(targetPoint.geom:getGeometryN(0))
+		local nPoint1 = geometry1:getNPoints()
+		local distance
+		local minDistance = math.huge
+		local point
 
-			forEachCell(line, function(cellBlue)
-				local geometry2 = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
-				local nPoint2 = geometry2:getNPoints()
+		forEachCell(lines, function(line)
+			local geometry2 = tl:castGeomToSubtype(line.geom:getGeometryN(0))
+			local nPoint2 = geometry2:getNPoints()
 
-				for i = 0, nPoint2 do
-					
+			for i = 0, nPoint2 do
+				point = tl:castGeomToSubtype(geometry2:getPointN(i))
+				distance = geometry1:distance(point)
+
+				if distance < minDistance then
+					minDistance = distance
+					arrayTargetLine[counter] = point
 				end
-			end)
-		end
-	end)
-end
-
-local function targetCheck(csLine, csTarget)
-	forEachCell(csTarget, function(cellRed)
-		local lineValidates = false
-		local differance = math.huge
-		local geometry1 = tl:castGeomToSubtype(cellRed.geom:getGeometryN(0))
-
-		forEachCell(csLine, function(cellBlue)
-			local geometry2 = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
-			local nPoint = geometry2:getNPoints()
-
-			for i = 0, nPoint do
-				local distance = geometry1:distance(cellBlue.geom)
-				if differance > distance then
-					differance = distance
-				end
-
-				if distance < 0 then
-					lineValidates = true
-				end
-			end
-
-			if lineValidates == true then
-				return false
 			end
 		end)
 
-		if not lineValidates then
-			customError("line do not touch, They have a differance of: "..differance)
+		if arrayTargetLine[counter] ~= nil then
+			counter = counter + 1
 		end
 	end)
+
+	return arrayTargetLine
 end
 
 local function checksInterconnectedNetwork(data)
@@ -182,6 +165,8 @@ Network_ = {
 
 			if not string.find(cell.geom:getGeometryType(), "Point") then
 				incompatibleValueError("cell", "geometry", cell.geom)
+			else 
+				distancePoint(self.lines, self.target)
 			end
 		end
 	end
