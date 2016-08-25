@@ -28,13 +28,8 @@ local tl = terralib.TerraLib{}
 local function getBELine(cell)
 	local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
 	local nPoint = geometry:getNPoints()
-	local endPoint
 	local beginPoint = binding.te.gm.Point(geometry:getX(0), geometry:getY(0), geometry:getSRID())
-
-	for i = 1, nPoint - 1 do
-		endPoint = binding.te.gm.Point(geometry:getX(i), geometry:getY(i), geometry:getSRID())
-	end
-
+	local endPoint = binding.te.gm.Point(geometry:getX(nPoint - 1), geometry:getY(nPoint - 1), geometry:getSRID())
 	local ffPointer = {p1 = beginPoint, p2 = endPoint}
 
 	return ffPointer
@@ -74,6 +69,14 @@ local function distancePoint(lines, target)
 	return arrayTargetLine
 end
 
+local function checksInterconnectedNetwork(lines, arrayTargetLine)
+	local counter = 0
+
+	while arrayTargetLine[counter] do
+		forEachCell(lines, function(line)
+		end)
+	end
+end
 local function checksInterconnectedNetwork(data)
 	local ncellRed = 0
 
@@ -81,7 +84,7 @@ local function checksInterconnectedNetwork(data)
 		local bePoint = getBELine(cellRed)
 		local lineValidates = false
 		local differance = math.huge
-		local distance = 20
+		local distance
 		local redPoint
 
 		for j = 0, 1 do
@@ -144,12 +147,8 @@ Network_ = {
 	--	target = csCenterspt,
 	--	lines = csLine
 	--}
-	--nt:createOpenNetwork{
-	--	target = filePath("rondonia_urban_centers_pt.shp", "gpm"),
-	--	lines = filePath("rondonia_roads_lin.shp", "gpm")
-	--}
-	createOpenNetwork = function(self, data)
-		verifyUnnecessaryArguments(self, {"target", "lines", "error"})
+	--nt:createOpenNetwork()
+	createOpenNetwork = function(self)
 		if self.lines.geometry then
 			local cell = self.lines:sample()
 

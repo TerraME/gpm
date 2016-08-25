@@ -45,10 +45,7 @@ return {
 			target = communities
 		}
 
-		network:createOpenNetwork{
-			lines = filePath("roads.shp", "gpm"),
-			target = filePath("communities.shp", "gpm")
-		}
+		network:createOpenNetwork()
 
 		unitTest:assertType(network, "Network")
 	end
