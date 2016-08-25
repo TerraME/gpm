@@ -153,6 +153,7 @@ metaTableNetwork_ = {
 -- @arg data.weight User defined function to change the network distance (optional).
 -- @arg data.outside User-defined function that computes the distance based on an
 -- Euclidean to enter and to leave the Network (optional).
+-- If not set a function, will return to own distance.
 -- @arg data.error Error argument to connect the lines in the Network (optional).
 -- If data.error case is not defined , assigned the value 0
 -- @output a network based on the geometry.
@@ -204,6 +205,8 @@ function Network(data)
     
 	if data.outside ~= nil and type(data.outside) ~= "function" then
 		incompatibleTypeError("outside", "function", data.outside)
+	elseif data.outside == nil then
+		data.outside = function(d) return d end
 	end
 
 	if data.error ~= nil and type(data.outside) ~= "number" then
