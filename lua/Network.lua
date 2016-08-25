@@ -35,6 +35,33 @@ local function getBELine(cell)
 	return ffPointer
 end
 
+local function calculateDistancePointSegment(line, p)
+	local x, y
+	local points = getBELine(line)
+	local p2 = {points.p2:getX() - points.p1:getX(), points.p2:getY() - points.p1:getY()}
+	local something = (p2[1] * p2[1]) + (p2[2] * p2[2])
+
+	if something == 0 then
+		x = points.p1:getX()
+		y = points.p1:getY()
+	else
+
+		local u = ((p:getX() - points.p1:getX()) * p2[1] + (p:getY() - points.p1:getY()) * p2[2]) / something
+
+		if u > 1 then
+			u = 1
+		elseif u < 0 then
+			u = 0
+		end
+
+		x = points.p1:getX() + u * p2[1]
+		y = points.p1:getY() + u * p2[2]
+	end
+
+	local Point = binding.te.gm.Point(x, y, p:getSRID())
+	return Point
+end
+
 local function distancePoint(lines, target)
 	local arrayTargetLine = {}
 	local counter = 0
@@ -49,10 +76,16 @@ local function distancePoint(lines, target)
 		forEachCell(lines, function(line)
 			local geometry2 = tl:castGeomToSubtype(line.geom:getGeometryN(0))
 			local nPoint2 = geometry2:getNPoints()
+			local pointLine = calculateDistancePointSegment(line, geometry1)
+			local distancePL = geometry1:distance(pointLine)
 
 			for i = 0, nPoint2 do
 				point = tl:castGeomToSubtype(geometry2:getPointN(i))
 				distance = geometry1:distance(point)
+
+				if distancePL < distance then
+					distance = distancePL
+				end
 
 				if distance < minDistance then
 					minDistance = distance
