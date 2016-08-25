@@ -222,6 +222,7 @@ metaTableNetwork_ = {
 -- }
 function Network(data)
 	verifyNamedTable(data)
+
 	if type(data.lines) ~= "CellularSpace" then
 		incompatibleTypeError("lines", "CellularSpace", data.lines)
 	else
@@ -229,7 +230,7 @@ function Network(data)
 			local cell = data.lines:sample()
 
 			if not string.find(cell.geom:getGeometryType(), "Line") then
-            	customError("Argument 'lines' should be composed by lines, got '"..cell.geom:getGeometryType().."'.")
+				customError("Argument 'lines' should be composed by lines, got '"..cell.geom:getGeometryType().."'.")
 			end
 		end
 	end
@@ -241,15 +242,15 @@ function Network(data)
 			local cell = data.target:sample()
 
 			if not string.find(cell.geom:getGeometryType(), "Point") then
-            	customError("Argument 'target' should be composed by points, got '"..cell.geom:getGeometryType().."'.")
+				customError("Argument 'target' should be composed by points, got '"..cell.geom:getGeometryType().."'.")
 			end
 		end
 	end
-    
+
 	if data.strategy ~= nil and string.find(data.strategy, "open") then
 		defaultValueWarning("strategy", data.strategy)
 	end
-    
+
 	if data.weight ~= nil and type(data.weight) ~= "function" then
 		incompatibleTypeError("weight", "function", data.weight)
 	elseif data.weight == nil then
@@ -261,7 +262,7 @@ function Network(data)
 			end
 		end
 	end
-    
+
 	if data.outside ~= nil and type(data.outside) ~= "function" then
 		incompatibleTypeError("outside", "function", data.outside)
 	elseif data.outside == nil then
