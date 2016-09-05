@@ -2,23 +2,23 @@
 return {
 	GPM = function(unitTest)
 		local roads = CellularSpace{
-			source = filePath("roads.shp", "gpm"),
+			file = filePath("roads.shp", "gpm"),
 			geometry = true
 		}
 
 		local communities = CellularSpace{
-			source = filePath("communities.shp", "gpm"),
+			file = filePath("communities.shp", "gpm"),
 			geometry = true
 		}
 		
 		local farms = CellularSpace{
-			source = filePath("farms.shp", "gpm"),
+			file = filePath("farms.shp", "gpm"),
 			geometry = true
 		}
 
 		local network = Network{
 			lines = roads,
-			destination = communities,
+			target = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
 					return d / 5
@@ -46,23 +46,23 @@ return {
 	end,
 	save = function(unitTest)
 		local roads = CellularSpace{
-			source = filePath("roads.shp", "gpm"),
+			file = filePath("roads.shp", "gpm"),
 			geometry = true
 		}
 
 		local communities = CellularSpace{
-			source = filePath("communities.shp", "gpm"),
+			file = filePath("communities.shp", "gpm"),
 			geometry = true
 		}
 		
 		local farms = CellularSpace{
-			source = filePath("farms.shp", "gpm"),
+			file = filePath("farms.shp", "gpm"),
 			geometry = true
 		}
 
 		local network = Network{
 			lines = roads,
-			destination = communities,
+			target = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
 					return d / 5
@@ -93,5 +93,6 @@ return {
 
 		gpm:save("farms.gwt")
 		unitTest:assertFile("farms.gwt")
+    end
 }
 
