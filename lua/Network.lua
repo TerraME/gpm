@@ -301,7 +301,6 @@ local function checksInterconnectedNetwork(data)
 					customWarning("The lines '"..geometryB:toString().."' and '"..geometryR:toString().."' crosses")
 					warning = true
 				end
-                		local bePointB = getBELine(cellBlue)
 
 				local bePointB = getBELine(cellBlue)
 				local bluePoint
