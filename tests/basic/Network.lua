@@ -27,27 +27,6 @@ return {
 		}
 
 		unitTest:assertType(network, "Network")
-	end,
-
-	createOpenNetwork = function(unitTest)
-		local roads = CellularSpace{
-			file = filePath("roads.shp", "gpm"),
-			geometry = true
-		}
-
-		local communities = CellularSpace{
-			file = filePath("communities.shp", "gpm"),
-			geometry = true
-		}
-
-		local network = Network{
-			lines = roads,
-			target = communities
-		}
-
-		network:createOpenNetwork()
-
-		unitTest:assertType(network, "Network")
 	end
 }
 

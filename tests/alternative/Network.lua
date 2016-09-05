@@ -98,13 +98,11 @@ return {
 			geometry = true
 		}
 
-		local network = Network{
-			lines = roads,
-			target = communities
-		}
-
 		local error_func = function()
-			network:createOpenNetwork()
+			local network = Network{
+				lines = roads,
+				target = communities
+			}
 		end
 
 		unitTest:assertError(error_func, "line do not touch, They have a differance of: 731.34319968072")

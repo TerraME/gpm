@@ -59,10 +59,11 @@ local function calculateDistancePointSegment(line, p)
 	end
 
 	local Point = binding.te.gm.Point(x, y, p:getSRID())
+
 	return Point
 end
 
-local function distancePoint(lines, target)
+local function distancePointTarget(lines, target)
 	local arrayTargetLine = {}
 	local counter = 0
 
@@ -102,14 +103,174 @@ local function distancePoint(lines, target)
 	return arrayTargetLine
 end
 
-local function checksInterconnectedNetwork(lines, arrayTargetLine)
-	local counter = 0
+local function checkDistance(line, finalDistance, target)
+	local result = {
+		lines = {},
+		finalDistance = finalDistance
+	}
 
-	while arrayTargetLine[counter] do
-		forEachCell(lines, function(line)
-		end)
+	while true do
+		local distance1 = 0
+		local distance2 = 0
+		local countline = 1
+		local bePoint1 = getBELine(line)
+		local PointA1
+		local PointB1
+		local PointB2
+		local finalDistance2 = 0
+
+		PointA1 = tl:castGeomToSubtype(bePoint1.p1)
+		distance1 = PointA1:distance(target)
+
+		local distance3 = distance1
+		local nextLine
+
+		while line.route[countline] do
+			local bePoint2 = getBELine(line.route[countline])
+
+			PointB1 = tl:castGeomToSubtype(bePoint2.p1)
+			distance2 = PointB1:distance(target)
+			PointB2 = tl:castGeomToSubtype(bePoint2.p2)
+
+			if distance3 > distance2 then
+				finalDistance2 = PointB1:distance(PointB2)
+				nextLine = line.route[countline]
+				distance3 = distance2
+			end
+
+			countline = countline + 1
+
+			if distance1 > distance3 and not (line.route[countline]) then
+				finalDistance = finalDistance2 + finalDistance
+				line = nextLine
+				countline = 0
+				table.insert(result.lines, nextLine)
+				break
+			end
+
+			if distance1 <= distance3 and not (line.route[countline]) then
+				result.finalDistance = finalDistance + distance1
+
+				return result
+			end
+		end
 	end
 end
+
+local function checkDistance2(line, finalDistance, target)
+	local result = {
+		lines = 0,
+		finalDistance = finalDistance
+	}
+
+	while true do
+		local distance1 = 0
+		local distance2 = 0
+		local countline = 1
+		local bePoint1 = getBELine(line)
+		local PointA2
+		local PointB1
+		local PointB2
+		local finalDistance2 = 0
+		local lineA = tl:castGeomToSubtype(line.geom)
+
+		PointA2 = tl:castGeomToSubtype(bePoint1.p2)
+		distance1 = PointA2:distance(target)
+
+		local distance3 = math.huge
+		local nextLine
+
+		while line.routeBegin[countline] do
+			local bePoint2 = getBELine(line.routeBegin[countline])
+
+			PointB1 = tl:castGeomToSubtype(bePoint2.p1)
+			PointB2 = tl:castGeomToSubtype(bePoint2.p2)
+			distance2 = PointB2:distance(target)
+
+			if distance3 > distance2 and result.lines ~= distance2 then
+				finalDistance2 = PointB1:distance(PointB2)
+				nextLine = line.routeBegin[countline]
+				distance3 = distance2
+			end
+
+			countline = countline + 1
+
+			if (distance1 > distance3 or not lineA:contains(target)) and not (line.routeEnd[countline]) then
+				finalDistance = finalDistance2 + finalDistance
+				line = nextLine
+				countline = 0
+				result.lines = distance1
+				break
+			end
+
+			if distance1 <= distance2 and not (line.routeBegin[countline]) then
+				result.finalDistance = finalDistance + distance1
+
+				return result
+			end
+		end
+	end
+end
+
+local function distanceLine(lines)
+	local vectorDistance = {}
+
+	forEachCell(lines, function(cell)
+		local bePoint = getBELine(cell)
+		local Point1 = tl:castGeomToSubtype(bePoint.p1)
+		local Point2 = tl:castGeomToSubtype(bePoint.p2)
+		local distance = Point1:distance(Point2)
+
+		vectorDistance[returnReferenceDL(cell)] = distance
+	end)
+
+	return vectorDistance
+end
+
+local function checksDistancePointTarget(lines, arrayTargetLine)
+	local countTarget = 0
+	local point = {}
+	local pointTarget = {}
+	local savePoint = true
+
+	while arrayTargetLine[countTarget] do
+		forEachCell(lines, function(line)
+			local bePoint = getBELine(line)
+			local result
+			pointTarget[arrayTargetLine[countTarget]] = {}
+
+			local Point1 = tl:castGeomToSubtype(bePoint.p1)
+			local Point2 = tl:castGeomToSubtype(bePoint.p2)
+
+			local finalDistanceA = Point1:distance(Point2)
+			local finalDistanceB = 0
+
+			result = checkDistance(line, finalDistanceB, arrayTargetLine[countTarget])
+
+			pointTarget[arrayTargetLine[countTarget]][Point1] = result
+
+			table.insert(point, Point1)
+
+			result = checkDistance(line, finalDistanceA, arrayTargetLine[countTarget])
+
+			pointTarget[arrayTargetLine[countTarget]][Point2] = result
+
+			table.insert(point, Point2)
+
+		end)
+
+		countTarget = countTarget + 1
+	end
+
+	local network = {
+		target = arrayTargetLine,
+		points = point,
+		distanceTarget = pointTarget
+	}
+
+	return network
+end
+
 local function checksInterconnectedNetwork(data)
 	local ncellRed = 0
 	local warning = false
@@ -178,32 +339,20 @@ local function checksInterconnectedNetwork(data)
 
 		ncellRed = ncellRed + 1
 	end)
+
+	if warning then
+		customError("Invalid file, it has overlapping line")
+	end
+
+	return data.lines
 end
 
-Network_ = {
-	type_ = "Network",
-	--- Creates and validates a network.
-	-- Necessary to create a network type 
-	-- @usage csCenterspt = CellularSpace{
-	--	file = filePath("rondonia_urban_centers_pt.shp", "gpm")
-	--}
-	--local csLine = CellularSpace{
-	--	file = filePath("rondonia_roads_lin.shp", "gpm")
-	--}
-	--local nt = Network{
-	--	target = csCenterspt,
-	--	lines = csLine
-	--}
-	--nt:createOpenNetwork()
-	createOpenNetwork = function(self)
-		if self.lines.geometry then
-			local cell = self.lines:sample()
+local function createOpenNetwork(self)
+	if self.lines.geometry then
+		local cell = self.lines:sample()
 
-			if not string.find(cell.geom:getGeometryType(), "Line") then
-				incompatibleValueError("cell", "geometry", cell.geom)
-			end
-
-			checksInterconnectedNetwork(self)
+		if not string.find(cell.geom:getGeometryType(), "Line") then
+			incompatibleValueError("cell", "geometry", cell.geom)
 		end
 
 		if self.target.geometry then
@@ -211,11 +360,20 @@ Network_ = {
 
 			if not string.find(cell.geom:getGeometryType(), "Point") then
 				incompatibleValueError("cell", "geometry", cell.geom)
-			else 
-				distancePoint(self.lines, self.target)
 			end
 		end
 	end
+
+	local distanceTarget = distancePointTarget(self.lines, self.target)
+	local checksIN = checksInterconnectedNetwork(self)
+	local checksDT = checksDistancePointTarget(checksIN, distanceTarget)
+
+	return checksDT
+end
+
+Network_ = {
+	type_ = "Network"
+
 }
 
 metaTableNetwork_ = {
@@ -239,12 +397,12 @@ metaTableNetwork_ = {
 -- If data.error case is not defined , assigned the value 0
 -- @output a network based on the geometry.
 -- @usage local roads = CellularSpace{
--- 	file = filePath("roads.shp", "gpm"),
--- 	geometry = true
+--	file = filePath("roads.shp", "gpm"),
+--	geometry = true
 -- }
 -- local communities = CellularSpace{
--- 	file = filePath("communities.shp", "gpm"),
--- 	geometry = true
+--	file = filePath("communities.shp", "gpm"),
+--	geometry = true
 -- }
 -- local nt = Network{
 --	target = communities,
@@ -281,6 +439,8 @@ function Network(data)
 	defaultTableValue(data, "weight", function(value) return value end)
 	defaultTableValue(data, "outside", function(value) return value end)
 	defaultTableValue(data, "error", 0)
+    
+	createOpenNetwork(data)
 
 	setmetatable(data, metaTableNetwork_)
 	return data
