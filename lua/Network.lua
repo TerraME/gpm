@@ -112,45 +112,60 @@ local function checksInterconnectedNetwork(lines, arrayTargetLine)
 end
 local function checksInterconnectedNetwork(data)
 	local ncellRed = 0
+	local warning = false
 
 	forEachCell(data.lines, function(cellRed)
-		local bePoint = getBELine(cellRed)
+		local geometryR = tl:castGeomToSubtype(cellRed.geom:getGeometryN(0))
+		local bePointR = getBELine(cellRed)
 		local lineValidates = false
 		local differance = math.huge
 		local distance
 		local redPoint
+		local nConect = 0
+		cellRed.route = {}
 
 		for j = 0, 1 do
 			if j == 0 then
-				redPoint = tl:castGeomToSubtype(bePoint.p1)
+				redPoint = tl:castGeomToSubtype(bePointR.p1)
 			else
-				redPoint = tl:castGeomToSubtype(bePoint.p2)
+				redPoint = tl:castGeomToSubtype(bePointR.p2)
 			end
 
 			local ncellBlue = 0
 
 			forEachCell(data.lines, function(cellBlue)
-				local geometry = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
-				local nPoint = geometry:getNPoints()
+				local geometryB = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
 
-				for i = 0, nPoint do
-					local bluePoint = tl:castGeomToSubtype(geometry:getPointN(i))
-
-					if ncellRed ~= ncellBlue then
-						distance = redPoint:distance(bluePoint)
-
-						if distance <= data.error then
-							lineValidates = true
-						end
-
-						if differance > distance then
-							differance = distance
-						end
-					end
+				if geometryR:crosses(geometryB) then
+					customWarning("The lines '"..geometryB:toString().."' and '"..geometryR:toString().."' crosses")
+					warning = true
 				end
+                		local bePointB = getBELine(cellBlue)
 
-				if lineValidates == true then
-					return false
+				local bePointB = getBELine(cellBlue)
+				local bluePoint
+
+				for i = 0, 1 do
+
+					if i == 1 then
+						bluePoint = tl:castGeomToSubtype(bePointB.p1)
+					else
+						bluePoint = tl:castGeomToSubtype(bePointB.p2)
+					end
+
+					if ncellRed == ncellBlue then break end 
+
+					distance = redPoint:distance(bluePoint)
+
+					if distance <= data.error then
+						table.insert(cellRed.route, cellBlue)
+						lineValidates = true
+						nConect = nConect + 1
+					end
+
+					if differance > distance then
+						differance = distance
+					end
 				end
 
 				ncellBlue = ncellBlue + 1
