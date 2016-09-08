@@ -487,10 +487,11 @@ local function getNextRoute(line, loopLine)
 	end
 end
 
-local function checksDistancePointTarget2(target)
+local function checksDistancePointTarget2(target, lines)
 	local countTarget = 0
 	local distance = {}
 	local keyRouts = {}
+	local points = {}
 
 	while target[countTarget] do
 		local loopRoute = true
@@ -541,8 +542,15 @@ local function checksDistancePointTarget2(target)
 		countTarget = countTarget + 1
 	end
 
+	forEachCell(lines, function(line)
+		local bePoint = {getBeginPoint(line), getEndPoint(line)}
+		table.insert(points, bePoint[1])
+		table.insert(points, bePoint[2])
+	end)
+
 	local network = {
 		target = target,
+		point = points,
 		keys = keyRouts,
 		distance = distance
 	}
@@ -555,14 +563,13 @@ local function createOpenNetwork(self)
 	local conectedLine = checksInterconnectedNetwork(self)
 	local netWork = checksDistancePointTarget(conectedLine, targetPoints)
 	local targetPoints2 = distancePointTarget2(conectedLine, self.target)
-	local netWork2 = checksDistancePointTarget2(targetPoints2)
+	local netWork2 = checksDistancePointTarget2(targetPoints2, conectedLine)
 
 	return netWork
 end
 
 Network_ = {
 	type_ = "Network"
-
 }
 
 metaTableNetwork_ = {
