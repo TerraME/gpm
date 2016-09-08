@@ -73,7 +73,9 @@ return {
 				weight = function() end,
 				outside = 2
 			}
+
 		end
+
 		unitTest:assertError(error_func, incompatibleTypeMsg("outside", "function", 2))
 
 		error_func = function()
@@ -86,7 +88,6 @@ return {
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("error", "number", "error"))
 	end,
-
 	createOpenNetwork = function(unitTest)
 		local roads = CellularSpace{
 			file = filePath("error/".."roads-invalid.shp", "gpm"),

@@ -27,8 +27,8 @@ return {
 		}
 
 		unitTest:assertType(network, "Network")
-		unitTest:assertEquals(#network.distance.point, (2 * #roads.cells))
-		unitTest:assertEquals((#network.distance.target + 1), #communities.cells)
+		unitTest:assertEquals(#network.distance.point, 2 * #roads.cells)
+		unitTest:assertEquals(#network.distance.target + 1, #communities.cells)
 	end
 }
 

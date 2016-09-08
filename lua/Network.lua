@@ -25,28 +25,31 @@ local terralib = getPackage("terralib")
 local binding = _Gtme.terralib_mod_binding_lua
 local tl = terralib.TerraLib{}
 
-local function getBELine(cell)
+local function getBeginPoint(cell)
 	local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
-	local nPoint = geometry:getNPoints()
-	local beginPoint = binding.te.gm.Point(geometry:getX(0), geometry:getY(0), geometry:getSRID())
-	local endPoint = binding.te.gm.Point(geometry:getX(nPoint - 1), geometry:getY(nPoint - 1), geometry:getSRID())
-	local ffPointer = {p1 = beginPoint, p2 = endPoint}
+	local Point = binding.te.gm.Point(geometry:getX(0), geometry:getY(0), geometry:getSRID())
 
-	return ffPointer
+	return Point
 end
 
-local function calculateDistancePointSegment(line, p)
+local function getEndPoint(cell)
+	local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
+	local nPoint = geometry:getNPoints()
+	local Point = binding.te.gm.Point(geometry:getX(nPoint - 1), geometry:getY(nPoint - 1), geometry:getSRID())
+    
+	return Point
+end
+
+local function closestPointFromSegment(line, p, lineID)
 	local x, y
-	local points = getBELine(line)
-	local p2 = {points.p2:getX() - points.p1:getX(), points.p2:getY() - points.p1:getY()}
-	local something = (p2[1] * p2[1]) + (p2[2] * p2[2])
+	local points = {getBeginPoint(line), getEndPoint(line)}
+	local p2 = {points[2]:getX() - points[1]:getX(), points[2]:getY() - points[1]:getY()}
+	local beginEqualsToEnd = (p2[1] * p2[1]) + (p2[2] * p2[2])
 
-	if something == 0 then
-		x = points.p1:getX()
-		y = points.p1:getY()
+	if beginEqualsToEnd == 0 then
+		customError("Invalid line '"..FID.."'. It has only two equal points.")
 	else
-
-		local u = ((p:getX() - points.p1:getX()) * p2[1] + (p:getY() - points.p1:getY()) * p2[2]) / something
+		local u = ((p:getX() - points[1]:getX()) * p2[1] + (p:getY() - points[1]:getY()) * p2[2]) / beginEqualsToEnd
 
 		if u > 1 then
 			u = 1
@@ -54,8 +57,8 @@ local function calculateDistancePointSegment(line, p)
 			u = 0
 		end
 
-		x = points.p1:getX() + u * p2[1]
-		y = points.p1:getY() + u * p2[2]
+		x = points[1]:getX() + u * p2[1]
+		y = points[1]:getY() + u * p2[2]
 	end
 
 	local Point = binding.te.gm.Point(x, y, p:getSRID())
@@ -77,7 +80,7 @@ local function distancePointTarget(lines, target)
 		forEachCell(lines, function(line)
 			local geometry2 = tl:castGeomToSubtype(line.geom:getGeometryN(0))
 			local nPoint2 = geometry2:getNPoints()
-			local pointLine = calculateDistancePointSegment(line, geometry1)
+			local pointLine = closestPointFromSegment(line, geometry1, line.FID)
 			local distancePL = geometry1:distance(pointLine)
 
 			for i = 0, nPoint2 do
@@ -120,7 +123,7 @@ local function distancePointTarget2(lines, target)
 		forEachCell(lines, function(line)
 			local geometry2 = tl:castGeomToSubtype(line.geom:getGeometryN(0))
 			local nPoint2 = geometry2:getNPoints()
-			local pointLine = calculateDistancePointSegment(line, geometry1)
+			local pointLine = closestPointFromSegment(line, geometry1, line.FID)
 			local distancePL = geometry1:distance(pointLine)
 
 			for i = 0, nPoint2 do
@@ -135,7 +138,7 @@ local function distancePointTarget2(lines, target)
 				if distance < minDistance then 
 					minDistance = distance
 					targetLine = line
-                    targetPoint = point
+					targetPoint = point
 				end
 			end
 		end)
@@ -170,24 +173,24 @@ local function checkDistance(line, finalDistance, target)
 		local distance1 = 0
 		local distance2 = 0
 		local countline = 1
-		local bePoint1 = getBELine(line)
+		local bePoint1 = {getBeginPoint(line), getEndPoint(line)}
 		local PointA1
 		local PointB1
 		local PointB2
 		local finalDistance2 = 0
 
-		PointA1 = tl:castGeomToSubtype(bePoint1.p1)
+		PointA1 = tl:castGeomToSubtype(bePoint1[1])
 		distance1 = PointA1:distance(target)
 
 		local distance3 = distance1
 		local nextLine
 
 		while line.route[countline] do
-			local bePoint2 = getBELine(line.route[countline])
+			local bePoint2 = {getBeginPoint(line.route[countline]), getEndPoint(line.route[countline])}
 
-			PointB1 = tl:castGeomToSubtype(bePoint2.p1)
+			PointB1 = tl:castGeomToSubtype(bePoint2[1])
 			distance2 = PointB1:distance(target)
-			PointB2 = tl:castGeomToSubtype(bePoint2.p2)
+			PointB2 = tl:castGeomToSubtype(bePoint2[2])
 
 			if distance3 > distance2 then
 				finalDistance2 = PointB1:distance(PointB2)
@@ -226,27 +229,27 @@ local function checkDistance2(line, finalDistance, target)
 		local distance1 = 0
 		local distance2 = 0
 		local countline = 1
-		local bePoint1 = getBELine(line)
+		local bePoint1 = {getBeginPoint(line), getEndPoint(line)}
 		local PointA2
 		local PointB1
 		local PointB2
 		local finalDistance2 = 0
 		local lineA = tl:castGeomToSubtype(line.geom)
 
-		PointA2 = tl:castGeomToSubtype(bePoint1.p2)
+		PointA2 = tl:castGeomToSubtype(bePoint1[1])
 		distance1 = PointA2:distance(target)
 
 		local distance3 = math.huge
 		local nextLine
 
 		while line.route[countline] do
-			local bePoint2 = getBELine(line.route[countline])
+			local bePoint2 = {getBeginPoint(line.route[countline]), getEndPoint(line.route[countline])}
 
-			PointB1 = tl:castGeomToSubtype(bePoint2.p1)
-			PointB2 = tl:castGeomToSubtype(bePoint2.p2)
+			PointB1 = tl:castGeomToSubtype(bePoint2[1])
+			PointB2 = tl:castGeomToSubtype(bePoint2[2])
 			distance2 = PointB2:distance(target)
 
-			if distance3 > distance2 and hasValue(result.id, line.route[countline].OBJET_ID_8) then
+			if distance3 > distance2 and hasValue(result.id, line.route[countline].FID) then
 				finalDistance2 = PointB1:distance(PointB2)
 				nextLine = line.route[countline]
 				distance3 = distance2
@@ -261,10 +264,10 @@ local function checkDistance2(line, finalDistance, target)
 				else
 					finalDistance = finalDistance2 + finalDistance
 					line = nextLine
-					table.insert(result.id, line.OBJET_ID_8)
+					table.insert(result.id, line.FID)
 					countline = 0
 					break
-                end
+				end
 			end
 
 			if distance1 <= distance2 and not (line.route[countline]) then
@@ -280,9 +283,9 @@ local function distanceLine(lines)
 	local vectorDistance = {}
 
 	forEachCell(lines, function(cell)
-		local bePoint = getBELine(cell)
-		local Point1 = tl:castGeomToSubtype(bePoint.p1)
-		local Point2 = tl:castGeomToSubtype(bePoint.p2)
+		local bePoint = {getBeginPoint(cell), getEndPoint(cell)}
+		local Point1 = tl:castGeomToSubtype(bePoint[1])
+		local Point2 = tl:castGeomToSubtype(bePoint[2])
 		local distance = Point1:distance(Point2)
 
 		vectorDistance[cell] = distance
@@ -298,17 +301,15 @@ local function checksDistancePointTarget(lines, arrayTargetLine)
 	local keyPoint = true
 
 	while arrayTargetLine[countTarget] do
-        local nPoints = 0
+		local nPoints = 0
+
 		pointTarget[arrayTargetLine[countTarget]] = {}
 
 		forEachCell(lines, function(line)
-			local bePoint = getBELine(line)
+			local bePoint = {getBeginPoint(line), getEndPoint(line)}
 			local result
-
-
-			local Point1 = tl:castGeomToSubtype(bePoint.p1)
-			local Point2 = tl:castGeomToSubtype(bePoint.p2)
-
+			local Point1 = tl:castGeomToSubtype(bePoint[1])
+			local Point2 = tl:castGeomToSubtype(bePoint[2])
 			local finalDistanceA = Point1:distance(Point2)
 			local finalDistanceB = 0
 
@@ -341,13 +342,13 @@ local function checksDistancePointTarget(lines, arrayTargetLine)
 
 	end
 
-	local nw = {
+	local network = {
 		point = point,
 		target = arrayTargetLine,
 		distance = pointTarget
 	}
 
-	return nw
+	return network
 end
 
 local function checksInterconnectedNetwork(data)
@@ -356,7 +357,7 @@ local function checksInterconnectedNetwork(data)
 
 	forEachCell(data.lines, function(cellRed)
 		local geometryR = tl:castGeomToSubtype(cellRed.geom:getGeometryN(0))
-		local bePointR = getBELine(cellRed)
+		local bePointR = {getBeginPoint(cellRed), getEndPoint(cellRed)}
 		local lineValidates = false
 		local differance = math.huge
 		local distance
@@ -366,9 +367,9 @@ local function checksInterconnectedNetwork(data)
 
 		for j = 0, 1 do
 			if j == 0 then
-				redPoint = tl:castGeomToSubtype(bePointR.p1)
+				redPoint = tl:castGeomToSubtype(bePointR[1])
 			else
-				redPoint = tl:castGeomToSubtype(bePointR.p2)
+				redPoint = tl:castGeomToSubtype(bePointR[2])
 			end
 
 			local ncellBlue = 0
@@ -381,16 +382,15 @@ local function checksInterconnectedNetwork(data)
 					warning = true
 				end
 
-				local bePointB = getBELine(cellBlue)
+				local bePointB = {getBeginPoint(cellBlue), getEndPoint(cellBlue)}
 				local bluePoint
+				local idLineError = 0
 
 				for i = 0, 1 do
-
 					if i == 1 then
-
-						bluePoint = tl:castGeomToSubtype(bePointB.p1)
+						bluePoint = tl:castGeomToSubtype(bePointB[1])
 					else
-						bluePoint = tl:castGeomToSubtype(bePointB.p2)
+						bluePoint = tl:castGeomToSubtype(bePointB[2])
 					end
 
 					if ncellRed == ncellBlue then break end 
@@ -405,6 +405,7 @@ local function checksInterconnectedNetwork(data)
 
 					if differance > distance then
 						differance = distance
+						idLineError = cellRed.FID
 					end
 				end
 
@@ -413,7 +414,7 @@ local function checksInterconnectedNetwork(data)
 		end
 
 		if not lineValidates then
-			customError("line do not touch, They have a differance of: "..differance)
+			customError("line: "..idLineError..", do not touch, They have a differance of: "..differance..".")
 		end
 
 		ncellRed = ncellRed + 1
@@ -427,30 +428,28 @@ local function checksInterconnectedNetwork(data)
 end
 
 local function getKey(line)
-	local keys = {k1, k2}
-	local bePoint = getBELine(line)
-
-	keys.P1 = line.OBJET_ID_8.."P1"
-	keys.P2 = line.OBJET_ID_8.."P2"
+	local keys = {
+		P1 = line.FID.."P1",
+		P2 = line.FID.."P2"
+	}
 
 	return keys
 end
 
-local function distanceRoute(target, line, vecDistance, fsPointers)
+local function distanceRoute(target, line, vecDistance, fsPointers, targetLine)
 	local distanceP = {
 		firstC,
 		secondC
 	}
-	local bePoint1 = getBELine(target)
-	local bePoint2 = getBELine(line)
+	local Point = getBeginPoint(target)
 	local distance = fsPointers.firstP:distance(fsPointers.secondP)
 
-	if bePoint1.p1:contains(fsPointers.firstP) then
-		vecDistance[line.OBJET_ID_8.."P1"] = vecDistance[target.OBJET_ID_8.."P1"]
-		vecDistance[line.OBJET_ID_8.."P2"] = (distance  + vecDistance[target.OBJET_ID_8.."P2"])
+	if Point:contains(fsPointers.firstP) then
+		vecDistance[targetLine][line.FID.."P1"] = vecDistance[targetLine][target.FID.."P1"]
+		vecDistance[targetLine][line.FID.."P2"] = (distance  + vecDistance[targetLine][target.FID.."P2"])
 	else
-		vecDistance[line.OBJET_ID_8.."P2"] = vecDistance[target.OBJET_ID_8.."P2"]
-		vecDistance[line.OBJET_ID_8.."P1"] = (distance  + vecDistance[target.OBJET_ID_8.."P1"])
+		vecDistance[targetLine][line.FID.."P2"] = vecDistance[targetLine][target.FID.."P2"]
+		vecDistance[targetLine][line.FID.."P1"] = (distance  + vecDistance[targetLine][target.FID.."P1"])
 	end
     
 	return getKey(line)
@@ -461,16 +460,16 @@ local function checkLinePoints(line, target)
 		firstP,
 		secondP
 	}
-	local bePoint = getBELine(line)
-	local dc1 = bePoint.p1:distance(target)
-	local dc2 = bePoint.p2:distance(target)
+	local bePoint = {getBeginPoint(line), getEndPoint(line)}
+	local dc1 = bePoint[1]:distance(target)
+	local dc2 = bePoint[2]:distance(target)
 
 	if dc1 > dc2 then
-		points.firstP = bePoint.p1
-		points.secondP = bePoint.p2
+		points.firstP = bePoint[1]
+		points.secondP = bePoint[2]
 	else
-		points.firstP = bePoint.p2
-		points.secondP = bePoint.p1
+		points.firstP = bePoint[2]
+		points.secondP = bePoint[1]
 	end
 
 	return points
@@ -488,24 +487,26 @@ local function getNextRoute(line, loopLine)
 	end
 end
 
-local function checksInterconnectedNetwork2(target)
+local function checksDistancePointTarget2(target)
 	local countTarget = 0
 	local distance = {}
 	local keyRouts = {}
-	local loopRoute = true
 
 	while target[countTarget] do
+		local loopRoute = true
 		local line = target[countTarget]
+		local targetLine = target[countTarget]
 		local countline = 1
-		local bePoint = getBELine(line)
+		local bePoint = {getBeginPoint(line), getEndPoint(line)}
 		local loopLine = {}
 		local loopLineCounte = 2
+		distance[targetLine] = {}
 
 		table.insert(loopLine, line)
 		keyRouts[line] = getKey(line)
 
-		distance[line.OBJET_ID_8.."P1"] = bePoint.p1:distance(line.targetPoint)
-		distance[line.OBJET_ID_8.."P2"] = bePoint.p2:distance(line.targetPoint)
+		distance[targetLine][line.FID.."P1"] = bePoint[1]:distance(line.targetPoint)
+		distance[targetLine][line.FID.."P2"] = bePoint[2]:distance(line.targetPoint)
 
 		while loopRoute do
 			local fsPointers
@@ -516,12 +517,11 @@ local function checksInterconnectedNetwork2(target)
 				fsPointers = checkLinePoints(line.route[countline], line.targ)
 			end
 
-			keyRouts[line.route[countline]] = distanceRoute(line, line.route[countline], distance, fsPointers)
+			keyRouts[line.route[countline]] = distanceRoute(line, line.route[countline], distance, fsPointers, targetLine)
 
 			countline = countline + 1
 
 			if not line.route[countline] then
-
 				getNextRoute(line, loopLine)
 
 				if loopLine[loopLineCounte] then
@@ -542,6 +542,7 @@ local function checksInterconnectedNetwork2(target)
 	end
 
 	local network = {
+		target = target,
 		keys = keyRouts,
 		distance = distance
 	}
@@ -550,27 +551,11 @@ local function checksInterconnectedNetwork2(target)
 end
 
 local function createOpenNetwork(self)
-	if self.lines.geometry then
-		local cell = self.lines:sample()
-
-		if not string.find(cell.geom:getGeometryType(), "Line") then
-			incompatibleValueError("cell", "geometry", cell.geom)
-		end
-
-		if self.target.geometry then
-			local cell = self.target:sample()
-
-			if not string.find(cell.geom:getGeometryType(), "Point") then
-				incompatibleValueError("cell", "geometry", cell.geom)
-			end
-		end
-	end
-
 	local targetPoints = distancePointTarget(self.lines, self.target)
 	local conectedLine = checksInterconnectedNetwork(self)
 	local netWork = checksDistancePointTarget(conectedLine, targetPoints)
 	local targetPoints2 = distancePointTarget2(conectedLine, self.target)
-	local netWork2 = checksInterconnectedNetwork2(targetPoints2)
+	local netWork2 = checksDistancePointTarget2(targetPoints2)
 
 	return netWork
 end
@@ -615,27 +600,23 @@ metaTableNetwork_ = {
 function Network(data)
 	verifyNamedTable(data)
 
-	if type(data.lines) ~= "CellularSpace" then
-		incompatibleTypeError("lines", "CellularSpace", data.lines)
-	else
-		if data.lines.geometry then
-			local cell = data.lines:sample()
+	mandatoryTableArgument(data, "lines", "CellularSpace")
 
-			if not string.find(cell.geom:getGeometryType(), "Line") then
-				customError("Argument 'lines' should be composed by lines, got '"..cell.geom:getGeometryType().."'.")
-			end
+	if data.lines.geometry then
+		local cell = data.lines:sample()
+
+		if not string.find(cell.geom:getGeometryType(), "Line") then
+			customError("Argument 'lines' should be composed by lines, got '"..cell.geom:getGeometryType().."'.")
 		end
 	end
 
-	if type(data.target) ~= "CellularSpace" then
-		incompatibleTypeError("target", "CellularSpace", data.target)
-	else
-		if data.target.geometry then
-			local cell = data.target:sample()
+	mandatoryTableArgument(data, "target", "CellularSpace")
 
-			if not string.find(cell.geom:getGeometryType(), "Point") then
-				customError("Argument 'target' should be composed by points, got '"..cell.geom:getGeometryType().."'.")
-			end
+	if data.target.geometry then
+		local cell = data.target:sample()
+
+		if not string.find(cell.geom:getGeometryType(), "Point") then
+			customError("Argument 'target' should be composed by points, got '"..cell.geom:getGeometryType().."'.")
 		end
 	end
 
