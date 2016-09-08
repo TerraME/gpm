@@ -64,12 +64,11 @@ metaTableGPM_ = {
 function GPM(data)
 	verifyNamedTable(data)
 
-	if type(data.network) ~= "Network" then
-		incompatibleTypeError("network", "Network", data.network)
-	end
+	mandatoryTableArgument(data, "network", "Network")
+	mandatoryTableArgument(data, "origin", "CellularSpace")
 
-	if type(data.origin) ~= "CellularSpace" or not data.origin.geometry then
-		incompatibleTypeError("geometry", "CellularSpace", data.lines)
+	if not data.origin.geometry then
+		customError("The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
 	end
 
 	defaultTableValue(data, "quantity", 1)
