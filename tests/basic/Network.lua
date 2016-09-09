@@ -16,9 +16,9 @@ return {
 			target = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
-					return d / 5
+					return distance / 5
 				else
-					return d / 2
+					return distance / 2
 				end
 			end,
 			outside = function(distance, cell)

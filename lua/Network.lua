@@ -47,7 +47,7 @@ local function closestPointFromSegment(line, p, lineID)
 	local beginEqualsToEnd = (p2[1] * p2[1]) + (p2[2] * p2[2])
 
 	if beginEqualsToEnd == 0 then
-		customError("Invalid line '"..FID.."'. It has only two equal points.")
+		customError("Invalid line '"..lineID.."'. It has only two equal points.")
 	else
 		local u = ((p:getX() - points[1]:getX()) * p2[1] + (p:getY() - points[1]:getY()) * p2[2]) / beginEqualsToEnd
 
@@ -66,7 +66,7 @@ local function closestPointFromSegment(line, p, lineID)
 	return Point
 end
 
-local function distancePointTarget(lines, target)
+local function buildPointTarget(lines, target)
 	local arrayTargetLine = {}
 	local counter = 0
 
@@ -107,7 +107,7 @@ local function distancePointTarget(lines, target)
 	return arrayTargetLine
 end
 
-local function distancePointTarget2(lines, target)
+local function buildPointTarget2(lines, target)
 	local arrayTargetLine = {}
 	local counter = 0
 	local TargetLine = 0
@@ -153,7 +153,7 @@ local function distancePointTarget2(lines, target)
 	return arrayTargetLine
 end
 
-local function hasValue (tab, val)
+local function hasValue(tab, val)
     for index, value in ipairs (tab) do
         if value == val then
             return false
@@ -163,7 +163,7 @@ local function hasValue (tab, val)
     return true
 end
 
-local function checkDistance(line, finalDistance, target)
+local function buildDistance(line, finalDistance, target, weight)
 	local result = {
 		lines = {},
 		finalDistance = finalDistance
@@ -201,7 +201,7 @@ local function checkDistance(line, finalDistance, target)
 			countline = countline + 1
 
 			if distance1 > distance3 and not (line.route[countline]) then
-				finalDistance = finalDistance2 + finalDistance
+				finalDistance = weight(finalDistance2 + finalDistance, line.route[countline])
 				line = nextLine
 				countline = 0
 				table.insert(result.lines, nextLine)
@@ -217,7 +217,7 @@ local function checkDistance(line, finalDistance, target)
 	end
 end
 
-local function checkDistance2(line, finalDistance, target)
+local function buildDistance2(line, finalDistance, target, weight)
 	local result = {
         id = {},
 		finalDistance = finalDistance
@@ -262,7 +262,7 @@ local function checkDistance2(line, finalDistance, target)
 					line = lineBegin
 					finalDistance = finalDistanceBegin
 				else
-					finalDistance = finalDistance2 + finalDistance
+					finalDistance = weight(finalDistance2 + finalDistance, line.route[countline])
 					line = nextLine
 					table.insert(result.id, line.FID)
 					countline = 0
@@ -294,7 +294,7 @@ local function distanceLine(lines)
 	return vectorDistance
 end
 
-local function checksDistancePointTarget(lines, arrayTargetLine)
+local function buildDistancePointTarget(lines, arrayTargetLine, weight)
 	local countTarget = 0
 	local point = {}
 	local pointTarget = {}
@@ -313,7 +313,7 @@ local function checksDistancePointTarget(lines, arrayTargetLine)
 			local finalDistanceA = Point1:distance(Point2)
 			local finalDistanceB = 0
 
-			result = checkDistance(line, finalDistanceB, arrayTargetLine[countTarget])
+			result = buildDistance(line, finalDistanceB, arrayTargetLine[countTarget], weight)
 
 			if keyPoint then 
 				table.insert(point, Point1)
@@ -324,7 +324,7 @@ local function checksDistancePointTarget(lines, arrayTargetLine)
 
 			pointTarget[arrayTargetLine[countTarget]][point[nPoints]] = result
 
-			result = checkDistance(line, finalDistanceA, arrayTargetLine[countTarget])
+			result = buildDistance(line, finalDistanceA, arrayTargetLine[countTarget], weight)
 
 			if keyPoint then 
 				table.insert(point, Point2)
@@ -354,6 +354,7 @@ end
 local function checksInterconnectedNetwork(data)
 	local ncellRed = 0
 	local warning = false
+	local nlineError = 0
 
 	forEachCell(data.lines, function(cellRed)
 		local geometryR = tl:castGeomToSubtype(cellRed.geom:getGeometryN(0))
@@ -378,8 +379,8 @@ local function checksInterconnectedNetwork(data)
 				local geometryB = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
 
 				if geometryR:crosses(geometryB) then
-					customWarning("The lines '"..geometryB:toString().."' and '"..geometryR:toString().."' crosses")
-					warning = true
+					customWarning("Lines '"..cellRed.FID.."' and '"..cellBlue.FID.."' crosses")
+					nlineError = nlineError + 1
 				end
 
 				local bePointB = {getBeginPoint(cellBlue), getEndPoint(cellBlue)}
@@ -414,14 +415,15 @@ local function checksInterconnectedNetwork(data)
 		end
 
 		if not lineValidates then
-			customError("line: "..idLineError..", do not touch, They have a differance of: "..differance..".")
+			customWarning("Line: "..idLineError..", does not touch any others line. They minimum distance of: "..differance..".")
+			nlineError = nlineError + 1
 		end
 
 		ncellRed = ncellRed + 1
 	end)
 
-	if warning then
-		customError("Invalid file, it has overlapping line")
+	if nlineError >= 1 then
+		customError("Cannot create a network from a file with the: "..nlineError.." problemes above.")
 	end
 
 	return data.lines
@@ -436,7 +438,7 @@ local function getKey(line)
 	return keys
 end
 
-local function distanceRoute(target, line, vecDistance, fsPointers, targetLine)
+local function distanceRoute(target, line, distanceWeight, distanceOutside, fsPointers, targetLine, weight, outside)
 	local distanceP = {
 		firstC,
 		secondC
@@ -445,11 +447,17 @@ local function distanceRoute(target, line, vecDistance, fsPointers, targetLine)
 	local distance = fsPointers.firstP:distance(fsPointers.secondP)
 
 	if Point:contains(fsPointers.firstP) then
-		vecDistance[targetLine][line.FID.."P1"] = vecDistance[targetLine][target.FID.."P1"]
-		vecDistance[targetLine][line.FID.."P2"] = (distance  + vecDistance[targetLine][target.FID.."P2"])
+		distanceWeight[targetLine][line.FID.."P1"] = weight(distanceWeight[targetLine][target.FID.."P1"], line)
+		distanceWeight[targetLine][line.FID.."P2"] = weight(distance  + distanceWeight[targetLine][target.FID.."P2"], line)
+
+		distanceOutside[targetLine][line.FID.."P1"] = outside(fsPointers.firstP:distance(targetLine.targetPoint))
+		distanceOutside[targetLine][line.FID.."P2"] = outside(fsPointers.secondP:distance(targetLine.targetPoint))
 	else
-		vecDistance[targetLine][line.FID.."P2"] = vecDistance[targetLine][target.FID.."P2"]
-		vecDistance[targetLine][line.FID.."P1"] = (distance  + vecDistance[targetLine][target.FID.."P1"])
+		distanceWeight[targetLine][line.FID.."P2"] = weight(distanceWeight[targetLine][target.FID.."P2"], line)
+		distanceWeight[targetLine][line.FID.."P1"] = weight(distance  + distanceWeight[targetLine][target.FID.."P1"], line)
+
+		distanceOutside[targetLine][line.FID.."P2"] = outside(fsPointers.firstP:distance(targetLine.targetPoint))
+		distanceOutside[targetLine][line.FID.."P1"] = outside(fsPointers.secondP:distance(targetLine.targetPoint))
 	end
     
 	return getKey(line)
@@ -487,9 +495,10 @@ local function getNextRoute(line, loopLine)
 	end
 end
 
-local function checksDistancePointTarget2(target, lines)
+local function buildDistancePointTarget2(target, lines, self)
 	local countTarget = 0
-	local distance = {}
+	local distanceOutside = {}
+	local distanceWeight = {}
 	local keyRouts = {}
 	local points = {}
 
@@ -501,13 +510,17 @@ local function checksDistancePointTarget2(target, lines)
 		local bePoint = {getBeginPoint(line), getEndPoint(line)}
 		local loopLine = {}
 		local loopLineCounte = 2
-		distance[targetLine] = {}
+		distanceWeight[targetLine] = {}
+		distanceOutside[targetLine] = {}
 
 		table.insert(loopLine, line)
 		keyRouts[line] = getKey(line)
 
-		distance[targetLine][line.FID.."P1"] = bePoint[1]:distance(line.targetPoint)
-		distance[targetLine][line.FID.."P2"] = bePoint[2]:distance(line.targetPoint)
+		distanceWeight[targetLine][line.FID.."P1"] = self.weight(bePoint[1]:distance(line.targetPoint), line)
+		distanceWeight[targetLine][line.FID.."P2"] = self.weight(bePoint[2]:distance(line.targetPoint), line)
+
+		distanceOutside[targetLine][line.FID.."P1"] = self.outside(bePoint[1]:distance(line.targetPoint), line)
+		distanceOutside[targetLine][line.FID.."P2"] = self.outside(bePoint[2]:distance(line.targetPoint), line)
 
 		while loopRoute do
 			local fsPointers
@@ -518,7 +531,7 @@ local function checksDistancePointTarget2(target, lines)
 				fsPointers = checkLinePoints(line.route[countline], line.targ)
 			end
 
-			keyRouts[line.route[countline]] = distanceRoute(line, line.route[countline], distance, fsPointers, targetLine)
+			keyRouts[line.route[countline]] = distanceRoute(line, line.route[countline], distanceWeight, distanceOutside, fsPointers, targetLine, self.weight, self.outside)
 
 			countline = countline + 1
 
@@ -552,18 +565,19 @@ local function checksDistancePointTarget2(target, lines)
 		target = target,
 		point = points,
 		keys = keyRouts,
-		distance = distance
+		distanceWeight = distanceWeight,
+		distanceOutside = distanceOutside
 	}
 
 	return network
 end
 
 local function createOpenNetwork(self)
-	local targetPoints = distancePointTarget(self.lines, self.target)
+	--local targetPoints = buildPointTarget(self.lines, self.target)
 	local conectedLine = checksInterconnectedNetwork(self)
-	local netWork = checksDistancePointTarget(conectedLine, targetPoints)
-	local targetPoints2 = distancePointTarget2(conectedLine, self.target)
-	local netWork2 = checksDistancePointTarget2(targetPoints2, conectedLine)
+	--local netWork = buildDistancePointTarget(conectedLine, targetPoints, self.weight)
+	local targetPoints2 = buildPointTarget2(conectedLine, self.target)
+	local netWork = buildDistancePointTarget2(targetPoints2, conectedLine, self)
 
 	return netWork
 end
@@ -615,6 +629,8 @@ function Network(data)
 		if not string.find(cell.geom:getGeometryType(), "Line") then
 			customError("Argument 'lines' should be composed by lines, got '"..cell.geom:getGeometryType().."'.")
 		end
+	else
+		customError("Argument 'lines' should be geometry.")
 	end
 
 	mandatoryTableArgument(data, "target", "CellularSpace")
@@ -625,6 +641,8 @@ function Network(data)
 		if not string.find(cell.geom:getGeometryType(), "Point") then
 			customError("Argument 'target' should be composed by points, got '"..cell.geom:getGeometryType().."'.")
 		end
+	else
+		customError("Argument 'target' should be geometry.")
 	end
 
 	optionalTableArgument(data, "strategy", "open")
