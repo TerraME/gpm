@@ -441,7 +441,7 @@ local function checksInterconnectedNetwork(data)
 				local geometryB = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
 
 				if geometryR:crosses(geometryB) then
-					customWarning("Lines '"..cellRed.FID.."' and '"..cellBlue.FID.."' crosses")
+					customWarning("Lines '"..cellRed.FID.."' and '"..cellBlue.FID.."' crosses.")
 					nlineError = nlineError + 1
 				end
 

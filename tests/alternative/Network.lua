@@ -126,10 +126,10 @@ return {
 			local network = Network{
 				lines = roads,
 				target = communities,
-				error = 9000
 			}
 		end
 
-		unitTest:assertError(error_func, "Lines '6' and '14' crosses")
+		unitTest:assertError(error_func, "Lines '6' and '14' crosses.")
+
 	end
 }
