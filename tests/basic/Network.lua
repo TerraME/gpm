@@ -30,6 +30,35 @@ return {
 		unitTest:assertEquals(#network.distance.lines, #roads.cells)
 		unitTest:assertEquals(#network.distance.target + 1, #communities.cells)
 
+		local countline = 1
+
+		while network.distance.lines[countline] do
+			unitTest:assert(network.distance.keys[network.distance.lines[countline]].P1 ~= nil)
+			unitTest:assert(network.distance.keys[network.distance.lines[countline]].P2 ~= nil)
+			countline = countline + 1
+		end
+
+		unitTest:assertEquals(countline - 1, #roads.cells)
+
+		countline = 1
+
+		while network.distance.lines[countline] do
+			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P1] ~= nil)
+			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P2] ~= nil)
+			countline = countline + 1
+		end
+
+		unitTest:assertEquals(countline - 1, #roads.cells)
+
+		countline = 1
+
+		while network.distance.lines[countline] do
+			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P1] ~= nil)
+			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P2] ~= nil)
+			countline = countline + 1
+		end
+
+		unitTest:assertEquals(countline - 1, #roads.cells)
 	end
 }
 

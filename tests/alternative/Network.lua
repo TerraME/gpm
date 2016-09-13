@@ -111,10 +111,25 @@ return {
 			local network = Network{
 				lines = roads,
 				target = communities,
-                error = 9000
+				error = 9000
 			}
 		end
 
 		unitTest:assertError(error_func, "The network disconected.")
+
+		local roads = CellularSpace{
+			file = filePath("error/".."roads_overlay_points.shp", "gpm"),
+			geometry = true
+		}
+
+		local error_func = function()
+			local network = Network{
+				lines = roads,
+				target = communities,
+				error = 9000
+			}
+		end
+
+		unitTest:assertError(error_func, "Lines '6' and '14' crosses")
 	end
 }
