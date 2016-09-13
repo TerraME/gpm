@@ -561,7 +561,7 @@ local function buildDistancePointTarget2(target, lines, self)
 	local distanceOutside = {}
 	local distanceWeight = {}
 	local keyRouts = {}
-	local points = {}
+	local linekey = {}
 	local loopLineCounte
 
 	while target[countTarget] do
@@ -618,14 +618,12 @@ local function buildDistancePointTarget2(target, lines, self)
 	end
 
 	forEachCell(lines, function(line)
-		local bePoint = {getBeginPoint(line), getEndPoint(line)}
-		table.insert(points, bePoint[1])
-		table.insert(points, bePoint[2])
+		table.insert(linekey, line)
 	end)
 
 	local network = {
 		target = target,
-		point = points,
+		lines = linekey,
 		keys = keyRouts,
 		distanceWeight = distanceWeight,
 		distanceOutside = distanceOutside
