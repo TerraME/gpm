@@ -40,6 +40,77 @@ local function getEndPoint(cell)
 	return Point
 end
 
+local function hasValue(tab, val)
+    for index, value in ipairs (tab) do
+        if value == val then
+            return false
+        end
+    end
+
+    return true
+end
+
+local function join(route, conect, firstNW, nw)
+	local counterLine = 1
+
+	while route[nw][counterLine] do
+		if hasValue(conect, route[nw][counterLine]) then
+			table.insert(conect, route[nw][counterLine])
+		end
+
+		counterLine = counterLine + 1
+	end
+
+	counterLine = 1
+
+	while route[firstNW][counterLine] do
+		if hasValue(conect, route[firstNW][counterLine]) then
+			table.insert(conect, route[firstNW][counterLine])
+		end
+
+		counterLine = counterLine + 1
+	end
+
+	return conect
+end
+
+local function checkNetworkDisconnected(lines)
+	local route = {}
+	local counterNetwork = 0
+	local conect = {}
+
+	forEachCell(lines, function(line)
+		local crosses = false
+		local firstNW
+
+		for i = 1, counterNetwork do
+			local counterLine = 1
+
+			while route[i][counterLine] do
+				if line.geom:touches(route[i][counterLine].geom) and not crosses then
+					table.insert(route[i], line)
+					crosses = true
+					firstNW = i
+				elseif line.geom:touches(route[i][counterLine].geom) and crosses then
+					route[firstNW] = join(route, conect, firstNW, i)
+				end
+
+				counterLine = counterLine + 1
+			end
+		end
+
+		if not crosses then
+			counterNetwork = counterNetwork + 1
+			route[counterNetwork] = {}
+			table.insert(route[counterNetwork], line)
+		end
+	end)
+
+	if #route[1] ~= #lines then
+		customError("The network disconected.")
+	end
+end
+
 local function closestPointFromSegment(line, p, lineID)
 	local x, y
 	local points = {getBeginPoint(line), getEndPoint(line)}
@@ -110,7 +181,7 @@ end
 local function buildPointTarget2(lines, target)
 	local arrayTargetLine = {}
 	local counter = 0
-	local TargetLine = 0
+	local targetLine = 0
 
 	forEachCell(target, function(targetPoint)
 		local geometry1 = tl:castGeomToSubtype(targetPoint.geom:getGeometryN(0))
@@ -151,16 +222,6 @@ local function buildPointTarget2(lines, target)
 	end)
 
 	return arrayTargetLine
-end
-
-local function hasValue(tab, val)
-    for index, value in ipairs (tab) do
-        if value == val then
-            return false
-        end
-    end
-
-    return true
 end
 
 local function buildDistance(line, finalDistance, target, weight)
@@ -364,6 +425,7 @@ local function checksInterconnectedNetwork(data)
 		local distance
 		local redPoint
 		local nConect = 0
+		local idLineError = 0
 		cellRed.route = {}
 
 		for j = 0, 1 do
@@ -385,7 +447,6 @@ local function checksInterconnectedNetwork(data)
 
 				local bePointB = {getBeginPoint(cellBlue), getEndPoint(cellBlue)}
 				local bluePoint
-				local idLineError = 0
 
 				for i = 0, 1 do
 					if i == 1 then
@@ -501,6 +562,7 @@ local function buildDistancePointTarget2(target, lines, self)
 	local distanceWeight = {}
 	local keyRouts = {}
 	local points = {}
+	local loopLineCounte
 
 	while target[countTarget] do
 		local loopRoute = true
@@ -509,7 +571,7 @@ local function buildDistancePointTarget2(target, lines, self)
 		local countline = 1
 		local bePoint = {getBeginPoint(line), getEndPoint(line)}
 		local loopLine = {}
-		local loopLineCounte = 2
+		loopLineCounte = 2
 		distanceWeight[targetLine] = {}
 		distanceOutside[targetLine] = {}
 
@@ -575,6 +637,7 @@ end
 local function createOpenNetwork(self)
 	--local targetPoints = buildPointTarget(self.lines, self.target)
 	local conectedLine = checksInterconnectedNetwork(self)
+	checkNetworkDisconnected(self.lines)
 	--local netWork = buildDistancePointTarget(conectedLine, targetPoints, self.weight)
 	local targetPoints2 = buildPointTarget2(conectedLine, self.target)
 	local netWork = buildDistancePointTarget2(targetPoints2, conectedLine, self)

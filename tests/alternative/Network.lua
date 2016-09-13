@@ -87,8 +87,7 @@ return {
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("error", "number", "error"))
-	end,
-	createOpenNetwork = function(unitTest)
+
 		local roads = CellularSpace{
 			file = filePath("error/".."roads-invalid.shp", "gpm"),
 			geometry = true
@@ -106,6 +105,16 @@ return {
 			}
 		end
 
-		unitTest:assertError(error_func, "line do not touch, They have a differance of: 731.34319968072")
+		unitTest:assertError(error_func, "Line: 7, does not touch any others line. They minimum distance of: 843.46359196883.")
+
+		local error_func = function()
+			local network = Network{
+				lines = roads,
+				target = communities,
+                error = 9000
+			}
+		end
+
+		unitTest:assertError(error_func, "The network disconected.")
 	end
 }
