@@ -50,8 +50,9 @@ local function hasValue(tab, val)
     return true
 end
 
-local function join(route, conect, firstNW, nw)
+local function join(route, firstNW, nw)
 	local counterLine = 1
+	local conect = {}
 
 	while route[nw][counterLine] do
 		if hasValue(conect, route[nw][counterLine]) then
@@ -77,7 +78,6 @@ end
 local function checkNetworkDisconnected(lines)
 	local route = {}
 	local counterNetwork = 0
-	local conect = {}
 
 	forEachCell(lines, function(line)
 		local crosses = false
@@ -92,7 +92,7 @@ local function checkNetworkDisconnected(lines)
 					crosses = true
 					firstNW = i
 				elseif line.geom:touches(route[i][counterLine].geom) and crosses then
-					route[firstNW] = join(route, conect, firstNW, i)
+					route[firstNW] = join(route, firstNW, i)
 				end
 
 				counterLine = counterLine + 1
