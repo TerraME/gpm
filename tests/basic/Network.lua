@@ -43,8 +43,8 @@ return {
 		countline = 1
 
 		while network.distance.lines[countline] do
-			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P1] ~= nil)
-			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P2] ~= nil)
+			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P1] >= 0)
+			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P2] >= 0)
 			countline = countline + 1
 		end
 
@@ -53,8 +53,8 @@ return {
 		countline = 1
 
 		while network.distance.lines[countline] do
-			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P1] ~= nil)
-			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P2] ~= nil)
+			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P1] >= 0)
+			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P2] >= 0)
 			countline = countline + 1
 		end
 

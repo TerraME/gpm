@@ -50,7 +50,7 @@ local function hasValue(tab, val)
     return true
 end
 
-local function join(route, firstNW, nw)
+local function joinNetWork(route, firstNW, nw)
 	local counterLine = 1
 	local conect = {}
 
@@ -92,7 +92,7 @@ local function checkNetworkDisconnected(lines)
 					crosses = true
 					firstNW = i
 				elseif line.geom:touches(route[i][counterLine].geom) and crosses then
-					route[firstNW] = join(route, firstNW, i)
+					route[firstNW] = joinNetWork(route, firstNW, i)
 				end
 
 				counterLine = counterLine + 1
