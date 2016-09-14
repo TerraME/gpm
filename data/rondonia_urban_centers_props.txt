@@ -1,0 +1,12 @@
+Plano de Informação: rondonia_urban_centers
+Identificador do Plano: 7
+
+Coordenada Inicial(X): 495630.3704537419
+Coordenada Inicial(Y): 8796979.4273855742
+Coordenada Final(X): 615442.5703720172
+Coordenada Final(Y): 9011387.2610336952
+
+Projeção: NoProjection
+Identificador da Projeção: 12
+
+Points number: 9

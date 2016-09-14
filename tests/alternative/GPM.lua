@@ -2,23 +2,23 @@
 return {
 	GPM = function(unitTest)
 		local roads = CellularSpace{
-			source = filePath("roads.shp", "gpm"),
+			file = filePath("roads.shp", "gpm"),
 			geometry = true
 		}
 
 		local communities = CellularSpace{
-			source = filePath("communities.shp", "gpm"),
+			file = filePath("communities.shp", "gpm"),
 			geometry = true
 		}
 		
 		local farms = CellularSpace{
-			source = filePath("farms.shp", "gpm"),
+			file = filePath("farms.shp", "gpm"),
 			geometry = true
 		}
 
 		local network = Network{
 			lines = roads,
-			destination = communities,
+			target = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
 					return d / 5
@@ -31,18 +31,22 @@ return {
 			end
 		}
 
-		local gpm = GPM{
-			network = network,
-			origin = farms,
-			distance = "distance",
-			relation = "community",
-		}
+		error_func = function()
+			local gpm = GPM{
+				network = 2,
+				origin = farms
+			}
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg("network", "Network", 2))
 
-		unitTest:assertType(gpm, "GPM")
-		unitTest:assertType(gpm.result, "table")
-		unitTest:assertEquals(#gpm.result.distance, #farms)
-		unitTest:assertEquals(#gpm.result.relation, #farms)
-		unitTest:assertEquals(#gpm, #farms)
+		error_func = function()
+			gpm:save(2)
+			local gpm = GPM{
+				network = network,
+				origin = 2
+			}
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg("origin", "CellularSpace", 2))
 	end,
 	save = function(unitTest)
 		local roads = CellularSpace{
@@ -77,21 +81,13 @@ return {
 
 		local gpm = GPM{
 			network = network,
-			destination = farms
+			origin = farms
 		}
 
-		gpm:save("farms.gpm")
-
-		farms:loadNeighborhood{
-			source = "farms.gpm"
-		}
-
-		unitTest:assertFile("farms.gpm")
-
-		gpm:save("farms.gal")
-		unitTest:assertFile("farms.gal")
-
-		gpm:save("farms.gwt")
-		unitTest:assertFile("farms.gwt")
+		error_func = function()
+			gpm:save(2)
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg(1, "string", 2))
+	end
 }
 
