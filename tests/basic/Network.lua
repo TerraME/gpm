@@ -28,37 +28,22 @@ return {
 
 		unitTest:assertType(network, "Network")
 		unitTest:assertEquals(#network.distance.lines, #roads.cells)
-		unitTest:assertEquals(#network.distance.target + 1, #communities.cells)
+		unitTest:assertEquals(#network.distance.target, #communities.cells)
 
-		local countline = 1
+		forEachElement(network.distance.lines, function(line)
+			unitTest:assertType(network.distance.keys[network.distance.lines[line]].P1, "string")
+			unitTest:assertType(network.distance.keys[network.distance.lines[line]].P2, "string")
+		end)
 
-		while network.distance.lines[countline] do
-			unitTest:assert(network.distance.keys[network.distance.lines[countline]].P1 ~= nil)
-			unitTest:assert(network.distance.keys[network.distance.lines[countline]].P2 ~= nil)
-			countline = countline + 1
-		end
+		forEachElement(network.distance.lines, function(line)
+			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[line]].P1] >= 0)
+			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[line]].P2] >= 0)
+		end)
 
-		unitTest:assertEquals(countline - 1, #roads.cells)
-
-		countline = 1
-
-		while network.distance.lines[countline] do
-			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P1] >= 0)
-			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P2] >= 0)
-			countline = countline + 1
-		end
-
-		unitTest:assertEquals(countline - 1, #roads.cells)
-
-		countline = 1
-
-		while network.distance.lines[countline] do
-			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P1] >= 0)
-			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[countline]].P2] >= 0)
-			countline = countline + 1
-		end
-
-		unitTest:assertEquals(countline - 1, #roads.cells)
+		forEachElement(network.distance.lines, function(line)
+			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[line]].P1] >= 0)
+			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[line]].P2] >= 0)
+		end)
 	end
 }
 
