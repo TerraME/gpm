@@ -30,40 +30,47 @@ metaTableGPM_ = {
 	__index = GPM_,
 	__tostring = _Gtme.tostring
 }
+
 --- Compute a generalised proximity matrix from a Network.
 -- It gets a Network and a target as parameters and compute the distance
 -- from the targets to the targets of the Network.
 -- @arg data.network CellularSpace that receives end points of the networks.
 -- @arg data.origin CellularSpace with geometry representing entry points on the network.
 -- @arg data.quantity Number of points for target.
--- @arg data.distance --
--- @arg data.relation --
+-- @arg data.distance --.
+-- @arg data.relation --.
 -- @output GPM based on network and target points.
--- @usage local roads = CellularSpace{
+-- @usage import("gpm")
+-- local roads = CellularSpace{
 --	file = filePath("roads.shp", "gpm"),
 --	geometry = true
 -- }
+--
 -- local communities = CellularSpace{
 --	file = filePath("communities.shp", "gpm"),
 --	geometry = true
 -- }
+--
 -- local farms = CellularSpace{
 --	file = filePath("farms.shp", "gpm"),
 --	geometry = true
 -- }
--- local nt = Network{
+--
+-- local network = Network{
 --	target = communities,
---	lines = roads
+--	lines = roads,
+--	weight = function(distance, cell) return distance end
 -- }
+--
 -- local gpm = GPM{
 --	network = network,
 --	origin = farms,
 --	distance = "distance",
---	relation = "community",
+--	relation = "community"
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation"})
 	mandatoryTableArgument(data, "network", "Network")
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
