@@ -44,6 +44,11 @@ return {
 			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[line]].P1] >= 0)
 			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[line]].P2] >= 0)
 		end)
+
+		forEachElement(network.distance.lines, function(line)
+			unitTest:assertType(network.distance.points[network.distance.lines[line]].P1, "userdata")
+			unitTest:assertType(network.distance.points[network.distance.lines[line]].P2, "userdata")
+		end)
 	end
 }
 

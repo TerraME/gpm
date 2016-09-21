@@ -157,7 +157,7 @@ local function buildPointTarget(lines, target)
 				point = tl:castGeomToSubtype(geometry2:getPointN(i))
 				distance = geometry1:distance(point)
 
-				if distancePL < distance then
+				if distancePL < distance and line.geom:contains(pointLine) then
 					distance = distancePL
 					point = pointLine
 				end
@@ -171,7 +171,7 @@ local function buildPointTarget(lines, target)
 		end)
 
 		if targetLine ~= nil then
-            targetLine.targetPoint = targetPoint
+			targetLine.targetPoint = targetPoint
 			arrayTargetLine[counterTarget] = targetLine
 			counterTarget = counterTarget + 1
 		end
@@ -259,55 +259,49 @@ local function checksInterconnectedNetwork(data)
 end
 
 local function getKey(line)
-	local keys = {
+	return {
 		P1 = line.FID.."P1",
 		P2 = line.FID.."P2"
 	}
 
-	return keys
 end
 
 local function distanceRoute(target, line, distanceWeight, distanceOutside, fsPointers, targetLine, weight, outside)
-	local distanceP = {
-		firstC,
-		secondC
-	}
-
 	local Point = getBeginPoint(target)
-	local distance = fsPointers.firstP:distance(fsPointers.secondP)
+	local distance = fsPointers.P1:distance(fsPointers.P2)
 
-	if Point:contains(fsPointers.firstP) then
+	if Point:contains(fsPointers.P1) then
 		distanceWeight[targetLine][line.FID.."P1"] = weight(distanceWeight[targetLine][target.FID.."P1"], line)
 		distanceWeight[targetLine][line.FID.."P2"] = weight(distance + distanceWeight[targetLine][target.FID.."P2"], line)
 
-		distanceOutside[targetLine][line.FID.."P1"] = outside(fsPointers.firstP:distance(targetLine.targetPoint))
-		distanceOutside[targetLine][line.FID.."P2"] = outside(fsPointers.secondP:distance(targetLine.targetPoint))
+		distanceOutside[targetLine][line.FID.."P1"] = outside(fsPointers.P1:distance(targetLine.targetPoint))
+		distanceOutside[targetLine][line.FID.."P2"] = outside(fsPointers.P2:distance(targetLine.targetPoint))
 	else
 		distanceWeight[targetLine][line.FID.."P2"] = weight(distanceWeight[targetLine][target.FID.."P2"], line)
 		distanceWeight[targetLine][line.FID.."P1"] = weight(distance + distanceWeight[targetLine][target.FID.."P1"], line)
 
-		distanceOutside[targetLine][line.FID.."P2"] = outside(fsPointers.firstP:distance(targetLine.targetPoint))
-		distanceOutside[targetLine][line.FID.."P1"] = outside(fsPointers.secondP:distance(targetLine.targetPoint))
+		distanceOutside[targetLine][line.FID.."P2"] = outside(fsPointers.P1:distance(targetLine.targetPoint))
+		distanceOutside[targetLine][line.FID.."P1"] = outside(fsPointers.P2:distance(targetLine.targetPoint))
 	end
-    
+
 	return getKey(line)
 end
 
 local function checkLinePoints(line, target)
 	local points = {
-		firstP,
-		secondP
+		P1,
+		P2
 	}
 	local bePoint = {getBeginPoint(line), getEndPoint(line)}
 	local dc1 = bePoint[1]:distance(target)
 	local dc2 = bePoint[2]:distance(target)
 
 	if dc1 > dc2 then
-		points.firstP = bePoint[1]
-		points.secondP = bePoint[2]
+		points.P1 = bePoint[1]
+		points.P2 = bePoint[2]
 	else
-		points.firstP = bePoint[2]
-		points.secondP = bePoint[1]
+		points.P1 = bePoint[2]
+		points.P2 = bePoint[1]
 	end
 
 	return points
@@ -332,6 +326,7 @@ local function buildDistancePointTarget(target, lines, self)
 	local keyRouts = {}
 	local linekey = {}
 	local loopLineCounte
+	local points = {}
 
 	while target[countTarget] do
 		local loopRoute = true
@@ -362,6 +357,7 @@ local function buildDistancePointTarget(target, lines, self)
 				fsPointers = checkLinePoints(line.route[countline], line.targ)
 			end
 
+			points[line] = fsPointers
 			keyRouts[line.route[countline]] = distanceRoute(line, line.route[countline], distanceWeight, distanceOutside, fsPointers, targetLine, self.weight, self.outside)
 
 			countline = countline + 1
@@ -371,7 +367,7 @@ local function buildDistancePointTarget(target, lines, self)
 
 				if loopLine[loopLineCounte] then
 					line = loopLine[loopLineCounte]
-					line.targ = fsPointers.secondP
+					line.targ = fsPointers.P2
 				end
 
 				loopLineCounte = loopLineCounte + 1
@@ -390,15 +386,15 @@ local function buildDistancePointTarget(target, lines, self)
 		table.insert(linekey, line)
 	end)
 
-	local network = {
+	return {
 		target = target,
 		lines = linekey,
 		keys = keyRouts,
+		points = points,
 		distanceWeight = distanceWeight,
 		distanceOutside = distanceOutside
 	}
 
-	return network
 end
 
 local function createOpenNetwork(self)
