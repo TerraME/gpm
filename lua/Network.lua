@@ -40,7 +40,7 @@ local function getEndPoint(cell)
 	return Point
 end
 
-local function hasValue(tab, val)
+local function hasntValue(tab, val)
     for index, value in ipairs (tab) do
         if value == val then
             return false
@@ -55,7 +55,7 @@ local function joinNetWork(route, firstNW, nw)
 	local conect = {}
 
 	while route[nw][counterLine] do
-		if hasValue(conect, route[nw][counterLine]) then
+		if hasntValue(conect, route[nw][counterLine]) then
 			table.insert(conect, route[nw][counterLine])
 		end
 
@@ -65,7 +65,7 @@ local function joinNetWork(route, firstNW, nw)
 	counterLine = 1
 
 	while route[firstNW][counterLine] do
-		if hasValue(conect, route[firstNW][counterLine]) then
+		if hasntValue(conect, route[firstNW][counterLine]) then
 			table.insert(conect, route[firstNW][counterLine])
 		end
 
@@ -194,13 +194,17 @@ local function checksInterconnectedNetwork(data)
 		local redPoint
 		local nConect = 0
 		local idLineError = 0
+		local P = 1 
 		cellRed.route = {}
+		cellRed.P1 = {}
+		cellRed.P2 = {}
 
 		for j = 0, 1 do
 			if j == 0 then
 				redPoint = tl:castGeomToSubtype(bePointR[1])
 			else
 				redPoint = tl:castGeomToSubtype(bePointR[2])
+				P = 2
 			end
 
 			local ncellBlue = 0
@@ -231,6 +235,11 @@ local function checksInterconnectedNetwork(data)
 						table.insert(cellRed.route, cellBlue)
 						lineValidates = true
 						nConect = nConect + 1
+						if P == 1 then
+							table.insert(cellRed.P1, cellBlue)
+						else
+							table.insert(cellRed.P2, cellBlue)
+						end
 					end
 
 					if differance > distance then
@@ -266,121 +275,113 @@ local function getKey(line)
 
 end
 
-local function distanceRoute(target, line, distanceWeight, distanceOutside, fsPointers, targetLine, weight, outside)
-	local Point = getBeginPoint(target)
-	local distance = fsPointers.P1:distance(fsPointers.P2)
+local function checkLinePoints(line, target)
+	local bePoint = {getBeginPoint(line), getEndPoint(line)}
 
-	if Point:contains(fsPointers.P1) then
-		distanceWeight[targetLine][line.FID.."P1"] = weight(distanceWeight[targetLine][target.FID.."P1"], line)
-		distanceWeight[targetLine][line.FID.."P2"] = weight(distance + distanceWeight[targetLine][target.FID.."P2"], line)
+	return {
+		P1 = bePoint[1],
+		P2 = bePoint[2]
+	}
 
-		distanceOutside[targetLine][line.FID.."P1"] = outside(fsPointers.P1:distance(targetLine.targetPoint))
-		distanceOutside[targetLine][line.FID.."P2"] = outside(fsPointers.P2:distance(targetLine.targetPoint))
-	else
-		distanceWeight[targetLine][line.FID.."P2"] = weight(distanceWeight[targetLine][target.FID.."P2"], line)
-		distanceWeight[targetLine][line.FID.."P1"] = weight(distance + distanceWeight[targetLine][target.FID.."P1"], line)
+end
 
-		distanceOutside[targetLine][line.FID.."P2"] = outside(fsPointers.P1:distance(targetLine.targetPoint))
-		distanceOutside[targetLine][line.FID.."P1"] = outside(fsPointers.P2:distance(targetLine.targetPoint))
+local function distanceRoute(target, line, distanceWeight, distanceOutside, targetLine, weight, outside)
+	local Point = {getBeginPoint(target), getEndPoint(target)}
+	local bePoint = {getBeginPoint(line), getEndPoint(line)}
+	local distance = weight(bePoint[1]:distance(bePoint[2]), line)
+
+	if Point[1]:equals(bePoint[1]) then
+		distanceWeight[targetLine][line.FID.."P1"] = (distanceWeight[targetLine][target.FID.."P1"])
+		distanceWeight[targetLine][line.FID.."P2"] = (distance + distanceWeight[targetLine][line.FID.."P1"])
+
+	elseif Point[1]:equals(bePoint[2]) then
+		distanceWeight[targetLine][line.FID.."P2"] = (distanceWeight[targetLine][target.FID.."P1"])
+		distanceWeight[targetLine][line.FID.."P1"] = (distance + distanceWeight[targetLine][line.FID.."P2"])
+
+	elseif Point[2]:equals(bePoint[1]) then
+		distanceWeight[targetLine][line.FID.."P1"] = (distanceWeight[targetLine][target.FID.."P2"])
+		distanceWeight[targetLine][line.FID.."P2"] = (distance + distanceWeight[targetLine][line.FID.."P1"])
+
+	elseif Point[2]:equals(bePoint[2]) then
+		distanceWeight[targetLine][line.FID.."P2"] = (distanceWeight[targetLine][target.FID.."P2"])
+		distanceWeight[targetLine][line.FID.."P1"] = (distance + distanceWeight[targetLine][line.FID.."P2"])
 	end
+
+	distanceOutside[targetLine][line.FID.."P1"] = outside(bePoint[1]:distance(targetLine.targetPoint), line)
+	distanceOutside[targetLine][line.FID.."P2"] = outside(bePoint[2]:distance(targetLine.targetPoint), line)
 
 	return getKey(line)
 end
 
-local function checkLinePoints(line, target)
-	local points = {
-		P1,
-		P2
-	}
-	local bePoint = {getBeginPoint(line), getEndPoint(line)}
-	local dc1 = bePoint[1]:distance(target)
-	local dc2 = bePoint[2]:distance(target)
-
-	if dc1 > dc2 then
-		points.P1 = bePoint[1]
-		points.P2 = bePoint[2]
-	else
-		points.P1 = bePoint[2]
-		points.P2 = bePoint[1]
-	end
-
-	return points
-end
-
-local function getNextRoute(line, loopLine)
+local function getNextRoute(line, loopRoute, referencePoint)
 	local countLine = 1
-
-	while line.route[countLine] do
-		if hasValue(loopLine, line.route[countLine]) then
-			table.insert(loopLine, line.route[countLine])
+    
+	forEachElement(line.P1, function(targetLines)
+		if hasntValue(loopRoute, line.P1[targetLines]) then
+			table.insert(loopRoute, line.P1[targetLines])
 		end
+	end)
 
-		countLine = countLine + 1
-	end
+	forEachElement(line.P2, function(targetLines)
+		if hasntValue(loopRoute, line.P2[targetLines]) then
+			table.insert(loopRoute, line.P2[targetLines])
+		end
+	end)
 end
 
 local function buildDistancePointTarget(target, lines, self)
-	local countTarget = 1
 	local distanceOutside = {}
 	local distanceWeight = {}
 	local keyRouts = {}
 	local linekey = {}
-	local loopLineCounte
 	local points = {}
 
-	while target[countTarget] do
+	forEachElement(target, function(targetLines)
+        local targetLine = target[targetLines]
+		local bePoint = {getBeginPoint(targetLine), getEndPoint(targetLine)}
 		local loopRoute = true
-		local line = target[countTarget]
-		local targetLine = target[countTarget]
-		local countline = 1
-		local bePoint = {getBeginPoint(line), getEndPoint(line)}
-		local loopLine = {}
-		loopLineCounte = 2
+		local lineRoute = {}
 		distanceWeight[targetLine] = {}
 		distanceOutside[targetLine] = {}
 
-		table.insert(loopLine, line)
-		keyRouts[line] = getKey(line)
+		table.insert(lineRoute, targetLine)
+		getNextRoute(targetLine, lineRoute)
 
-		distanceWeight[targetLine][line.FID.."P1"] = self.weight(bePoint[1]:distance(line.targetPoint), line)
-		distanceWeight[targetLine][line.FID.."P2"] = self.weight(bePoint[2]:distance(line.targetPoint), line)
+		distanceWeight[targetLine][targetLine.FID.."P1"] = self.weight(bePoint[1]:distance(targetLine.targetPoint), targetLine)
+		distanceWeight[targetLine][targetLine.FID.."P2"] = self.weight(bePoint[2]:distance(targetLine.targetPoint), targetLine)
 
-		distanceOutside[targetLine][line.FID.."P1"] = self.outside(bePoint[1]:distance(line.targetPoint), line)
-		distanceOutside[targetLine][line.FID.."P2"] = self.outside(bePoint[2]:distance(line.targetPoint), line)
+		distanceOutside[targetLine][targetLine.FID.."P1"] = self.outside(bePoint[1]:distance(targetLine.targetPoint), targetLine)
+		distanceOutside[targetLine][targetLine.FID.."P2"] = self.outside(bePoint[2]:distance(targetLine.targetPoint), targetLine)
+
+		keyRouts[targetLine] = getKey(targetLine)
+
+		local countLine = 1
+		local target = targetLine
+		local countRoute = 3
 
 		while loopRoute do
-			local fsPointers
+			points[target] = checkLinePoints(target)
 
-			if line.targetPoint ~= nil then
-				fsPointers = checkLinePoints(line.route[countline], line.targetPoint)
-			else
-				fsPointers = checkLinePoints(line.route[countline], line.targ)
+			if target.P1[countLine] ~= nil then
+				keyRouts[target.P1[countLine]] = distanceRoute(target, target.P1[countLine], distanceWeight, distanceOutside, targetLine, self.weight, self.outside)
 			end
 
-			points[line] = fsPointers
-			keyRouts[line.route[countline]] = distanceRoute(line, line.route[countline], distanceWeight, distanceOutside, fsPointers, targetLine, self.weight, self.outside)
+			if target.P2[countLine] ~= nil then
+				keyRouts[target.P2[countLine]] = distanceRoute(target, target.P2[countLine], distanceWeight, distanceOutside, targetLine, self.weight, self.outside)
+			end
 
-			countline = countline + 1
+			countLine = countLine + 1
 
-			if not line.route[countline] then
-				getNextRoute(line, loopLine)
-
-				if loopLine[loopLineCounte] then
-					line = loopLine[loopLineCounte]
-					line.targ = fsPointers.P2
-				end
-
-				loopLineCounte = loopLineCounte + 1
-				countline = 1
-
-				if not loopLine[loopLineCounte] then
-					loopRoute = false
-				end
+			if target.P1[countLine] == nil and target.P2[countLine] == nil and lineRoute[countRoute] ~= nil then
+				target = lineRoute[countRoute]
+				getNextRoute(target, lineRoute)
+				countRoute = countRoute + 1
+				countLine = 1
+			elseif lineRoute[countRoute] == nil then
+				loopRoute = false
 			end
 		end
-
-		countTarget = countTarget + 1
-	end
+	end)
 
 	forEachCell(lines, function(line)
 		table.insert(linekey, line)
@@ -401,7 +402,7 @@ local function createOpenNetwork(self)
 	local conectedLines = checksInterconnectedNetwork(self)
 	checkNetworkDisconnected(self.lines)
 	local targetPoints = buildPointTarget(conectedLines, self.target)
-	local netWork = buildDistancePointTarget(targetPoints, conectedLines, self)
+    local netWork = buildDistancePointTarget(targetPoints, conectedLines, self)
 
 	return netWork
 end
