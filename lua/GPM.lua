@@ -31,24 +31,25 @@ local function buildPointTargetWeight(centroid, network, targetLine, pointID)
 	local target
 
 	forEachElement(network.distance.target, function(targetID)
-		distanceP1 = network.distance.distanceWeight[network.distance.target[targetID]][network.distance.keys[targetLine].P1]
+		local distanceP1 = network.distance.distanceWeight[network.distance.target[targetID]][network.distance.keys[targetLine].P1]
 
-		if distanceP1 ~= nil and pointID == "P1"then
-			if distance > distanceP1 then
-				target = targetID
-				distance = distanceP1 
-			end
+		if distanceP1 ~= nil and pointID == "P1" and distance > distanceP1 then
+			target = targetID
+			distance = distanceP1 
 		else
-			distanceP2 = network.distance.distanceWeight[network.distance.target[targetID]][network.distance.keys[targetLine].P2]
+			local distanceP2 = network.distance.distanceWeight[network.distance.target[targetID]][network.distance.keys[targetLine].P2]
 
-			if distanceP2 ~= nil and distance > distanceP2 then
+			if distanceP2 ~= nil and distance > distanceP2 and pointID == "P2" then
 				target = targetID
 				distance = distanceP2
 			end
 		end
 	end)
 
-	return target
+	return {
+		target = target,
+		distance = distance
+	}
 end
 
 local function buildPointTargetOutside(centroid, network, targetLine, pointID)
@@ -58,24 +59,17 @@ local function buildPointTargetOutside(centroid, network, targetLine, pointID)
 	local target
 
 	forEachElement(network.distance.target, function(targetID)
-		distanceP1 = network.distance.distanceOutside[network.distance.target[targetID]][network.distance.keys[targetLine].P1]
-
-		if distanceP1 ~= nil and pointID == "P1"then
-			if distance > distanceP1 then
-				target = targetID
-				distance = distanceP1 
-			end
-		else
-			distanceP2 = network.distance.distanceOutside[network.distance.target[targetID]][network.distance.keys[targetLine].P2]
-
-			if distanceP2 ~= nil and distance > distanceP2 then
-				target = targetID
-				distance = distanceP2
-			end
+		if distance > network.distance.target[targetID].targetPoint:distance(centroid) then
+			target = targetID
+			distance = network.distance.target[targetID].targetPoint:distance(centroid)
 		end
 	end)
 
-	return target
+	return {
+		target = target,
+		distance = distance
+	}
+
 end
 
 local function getDistanceInputPoint(centroid, network, ID)
@@ -88,6 +82,7 @@ local function getDistanceInputPoint(centroid, network, ID)
 	local pointID
 	local point
 	local indexPoint
+	local lineID
 
 	forEachElement(network.distance.lines, function(line)
 		local p1 = network.distance.points[network.distance.lines[line]].P1
@@ -110,15 +105,17 @@ local function getDistanceInputPoint(centroid, network, ID)
 			pointID = indexPoint
 			minimumDistance = distance
 			targetLine = network.distance.lines[line]
+			lineID = network.distance.lines[line].FID
 		end
 	end)
 
 	return {
 		targetWeight = buildPointTargetWeight(target, network, targetLine, pointID),
 		targetOutside = buildPointTargetOutside(target, network, targetLine, pointID),
-		ID = ID,
-		point = pointID,
+		polygonID = ID,
+		targetPoint = pointID,
 		targetLine = targetLine,
+		lineID  = lineID,
 		distance = minimumDistance
 	}
 end
@@ -203,7 +200,7 @@ function GPM(data)
 	optionalTableArgument(data, "distance", "string")
 	optionalTableArgument(data, "relation", "string")
 
-	data.origin = createOpenGPM(data.origin, data.network)
+	data.distance = createOpenGPM(data.origin, data.network)
 
 	setmetatable(data, metaTableGPM_)
 	return data
