@@ -475,7 +475,7 @@ function Network(data)
 	end
 
 	optionalTableArgument(data, "strategy", "open")
-	defaultTableValue(data, "outside", function(value) return value end)
+	defaultTableValue(data, "outside", function(value, line) return 0 end)
 	defaultTableValue(data, "error", 0)
     
 	data.distance = createOpenNetwork(data)
