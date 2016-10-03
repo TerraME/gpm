@@ -26,42 +26,24 @@ local terralib = getPackage("terralib")
 local binding = _Gtme.terralib_mod_binding_lua
 local tl = terralib.TerraLib{}
 
-local function buildPointTargetWeight(centroid, network, targetLine, pointID)
-	local distance = math.huge
-	local target
-
-	forEachElement(network.distance.target, function(targetID)
-		local distanceP1 = network.distance.distanceWeight[network.distance.target[targetID]][network.distance.keys[targetLine].P1]
-
-		if distanceP1 ~= nil and pointID == "P1" and distance > distanceP1 then
-			target = targetID
-			distance = distanceP1 
-		else
-			local distanceP2 = network.distance.distanceWeight[network.distance.target[targetID]][network.distance.keys[targetLine].P2]
-
-			if distanceP2 ~= nil and distance > distanceP2 and pointID == "P2" then
-				target = targetID
-				distance = distanceP2
-			end
-		end
-	end)
-
+local function buildPointTargetWeight(centroid, network, targetLine, targetPoint)
 	return {
-		target = target,
-		distance = distance
+		target = network.distance.distanceWeight[targetPoint:getX()..".."..targetPoint:getY()].targetID,
+		distance = network.distance.distanceWeight[targetPoint:getX()..".."..targetPoint:getY()].distance
 	}
+
 end
 
-local function buildPointTargetOutside(centroid, network, targetLine, pointID)
+local function buildPointTargetOutside(centroid, network)
 	local distance = math.huge
-	local distanceP1
-	local distanceP2
 	local target
 
 	forEachElement(network.distance.target, function(targetID)
-		if distance > network.distance.target[targetID].targetPoint:distance(centroid) then
+		local distanceTarget = network.distance.target[targetID].targetPoint:distance(centroid)
+
+		if distance > distanceTarget then
 			target = targetID
-			distance = network.distance.target[targetID].targetPoint:distance(centroid)
+			distance = distanceTarget
 		end
 	end)
 
@@ -79,9 +61,7 @@ local function getDistanceInputPoint(centroid, network, ID)
 	local targetLine
 	local targetPoint
 	local target
-	local pointID
 	local point
-	local indexPoint
 	local lineID
 
 	forEachElement(network.distance.lines, function(line)
@@ -89,20 +69,17 @@ local function getDistanceInputPoint(centroid, network, ID)
 		local p2 = network.distance.points[network.distance.lines[line]].P2
 
 		distance = centroid:distance(p1)
-		indexPoint = "P1"
 		targetPoint = p1
 
 		distanceP2 = centroid:distance(p2)
 
 		if distanceP2 < distance then
-			indexPoint = "P2"
 			targetPoint = p2
 			distance = distanceP2
 		end
 
 		if distance < minimumDistance then
 			target = targetPoint
-			pointID = indexPoint
 			minimumDistance = distance
 			targetLine = network.distance.lines[line]
 			lineID = network.distance.lines[line].FID
@@ -110,10 +87,9 @@ local function getDistanceInputPoint(centroid, network, ID)
 	end)
 
 	return {
-		targetWeight = buildPointTargetWeight(target, network, targetLine, pointID),
-		targetOutside = buildPointTargetOutside(target, network, targetLine, pointID),
+		targetWeight = buildPointTargetWeight(centroid, network, targetLine, target),
+		targetOutside = buildPointTargetOutside(centroid, network, targetLine),
 		polygonID = ID,
-		targetPoint = pointID,
 		targetLine = targetLine,
 		lineID  = lineID,
 		distance = minimumDistance
@@ -121,16 +97,16 @@ local function getDistanceInputPoint(centroid, network, ID)
 end
 
 local function buildDistanceOriginTarget(origin, network)
-	local distanceOrigin = {}
+	local distance = {}
 
 	forEachCell(origin, function(polygon)
 		local geometry = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
 
-		table.insert(distanceOrigin, getDistanceInputPoint(geometry, network, polygon.FID))
+		table.insert(distance, getDistanceInputPoint(geometry:getCentroid(), network, polygon.FID))
 
 	end)
 
-	return distanceOrigin
+	return distance
 end
 
 local function createOpenGPM(origin, network)
