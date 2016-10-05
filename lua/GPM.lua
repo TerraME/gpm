@@ -26,14 +26,6 @@ local terralib = getPackage("terralib")
 local binding = _Gtme.terralib_mod_binding_lua
 local tl = terralib.TerraLib{}
 
-local function buildPointTargetWeight(centroid, network, targetLine, targetPoint)
-	return {
-		target = network.distance.distanceWeight[targetPoint:getX()..".."..targetPoint:getY()].targetID,
-		distance = network.distance.distanceWeight[targetPoint:getX()..".."..targetPoint:getY()].distance
-	}
-
-end
-
 local function buildPointTargetOutside(centroid, network)
 	local distance = math.huge
 	local target
@@ -52,6 +44,25 @@ local function buildPointTargetOutside(centroid, network)
 		distance = distance
 	}
 
+end
+
+local function buildPointTargetWeight(network, centroid)
+	local minimumDistance = math.huge
+	local target
+
+	forEachElement(network.distance.netpoint, function(point)
+		local distance = centroid:distance(network.distance.netpoint[point].point)
+
+		if distance < minimumDistance then
+			target = network.distance.netpoint[point].targetID
+			minimumDistance = distance
+		end
+	end)
+
+	return{
+		target = target,
+		minimumDistance = minimumDistance
+	}
 end
 
 local function getDistanceInputPoint(centroid, network, ID)
@@ -87,7 +98,7 @@ local function getDistanceInputPoint(centroid, network, ID)
 	end)
 
 	return {
-		targetWeight = buildPointTargetWeight(centroid, network, targetLine, target),
+		targetWeight = buildPointTargetWeight(network, centroid),
 		targetOutside = buildPointTargetOutside(centroid, network, targetLine),
 		polygonID = ID,
 		targetLine = targetLine,
