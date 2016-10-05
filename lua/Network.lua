@@ -27,17 +27,17 @@ local tl = terralib.TerraLib{}
 
 local function getBeginPoint(cell)
 	local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
-	local Point = binding.te.gm.Point(geometry:getX(0), geometry:getY(0), geometry:getSRID())
+	local point = binding.te.gm.Point(geometry:getX(0), geometry:getY(0), geometry:getSRID())
 
-	return Point
+	return point
 end
 
 local function getEndPoint(cell)
 	local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
 	local nPoint = geometry:getNPoints()
-	local Point = binding.te.gm.Point(geometry:getX(nPoint - 1), geometry:getY(nPoint - 1), geometry:getSRID())
+	local point = binding.te.gm.Point(geometry:getX(nPoint - 1), geometry:getY(nPoint - 1), geometry:getSRID())
     
-	return Point
+	return point
 end
 
 local function hasntValue(tab, val)
@@ -89,7 +89,7 @@ local function createConnectivity(lines)
 			local beforePoint = tl:castGeomToSubtype(geometry:getPointN(i - 1))
 			local nameNodes = point:getX()..".."..point:getY()
 
-			netpoints[nameNodes] = {point = point, route = {}, distance = math.huge, targetID, cell = line}
+			netpoints[nameNodes] = {point = point, route = {}, distance = math.huge, distanceOutside = math.huge,  targetID, targetIDOutside, cell = line}
 			table.insert(netpoints[nameNodes].route, afterPoint:getX()..".."..afterPoint:getY())
 			table.insert(netpoints[nameNodes].route, beforePoint:getX()..".."..beforePoint:getY())
 		end
@@ -99,14 +99,14 @@ local function createConnectivity(lines)
 		if hasntValueNode(netpoints, points[1]) then
 			local nameNodes = points[1]:getX()..".."..points[1]:getY()
 
-			netpoints[nameNodes] = {point = points[1], route = {}, distance = math.huge, targetID, cell = line}
+			netpoints[nameNodes] = {point = points[1], route = {}, distance = math.huge, distanceOutside = math.huge, targetID, targetIDOutside, cell = line}
 			table.insert(netpoints[nameNodes].route, points[2]:getX()..".."..points[2]:getY())
 		end
 
 		if hasntValueNode(netpoints, points[2]) then
 			local nameNodes = points[2]:getX()..".."..points[2]:getY()
 
-			netpoints[nameNodes] = {point = points[2], route = {}, distance = math.huge, targetID, cell = line}
+			netpoints[nameNodes] = {point = points[2], route = {}, distance = math.huge, distanceOutside = math.huge, targetID, targetIDOutside, cell = line}
 			table.insert(netpoints[nameNodes].route, points[1]:getX()..".."..points[1]:getY())
 		end
 	end)
@@ -115,7 +115,8 @@ local function createConnectivity(lines)
 end
 
 local function addRoute(netpoint, cell)
-	bePoint = {getBeginPoint(cell), getEndPoint(cell)}
+	local bePoint = {getBeginPoint(cell), getEndPoint(cell)}
+
 	if netpoint.point:equals(bePoint[1]) then
 		if hasntValue(netpoint.route, bePoint[2]:getX()..".."..bePoint[2]:getY()) then
 			table.insert(netpoint.route, bePoint[2]:getX()..".."..bePoint[2]:getY())
@@ -353,46 +354,6 @@ local function checksInterconnectedNetwork(data)
 
 end
 
-local function getKey(line)
-	return {
-		P1 = line.FID.."P1",
-		P2 = line.FID.."P2"
-	}
-
-end
-
-local function checkLinePoints(line, target)
-	local bePoint = {getBeginPoint(line), getEndPoint(line)}
-
-	return {
-		P1 = bePoint[1],
-		P2 = bePoint[2]
-	}
-
-end
-
-local function distanceRouteOutside(target, line, distanceOutside, targetLine, outside)
-	local bePoint = {getBeginPoint(line), getEndPoint(line)}
-
-	distanceOutside[targetLine][line.FID.."P1"] = outside(bePoint[1]:distance(targetLine.targetPoint), line)
-	distanceOutside[targetLine][line.FID.."P2"] = outside(bePoint[2]:distance(targetLine.targetPoint), line)
-
-	return getKey(line)
-end
-
-local function getNextRoute(line, loopRoute)
-	forEachElement(line.P1, function(targetLines)
-		if hasntValue(loopRoute, line.P1[targetLines]) then
-			table.insert(loopRoute, line.P1[targetLines])
-		end
-	end)
-
-	forEachElement(line.P2, function(targetLines)
-		if hasntValue(loopRoute, line.P2[targetLines]) then
-			table.insert(loopRoute, line.P2[targetLines])
-		end
-	end)
-end
 
 local function checkInsidePoints(line, point1, point2)
 	if line.geom:contains(point1) or line.geom:contains(point2) then
@@ -406,7 +367,8 @@ local function distanceRouteNode(node, netpoint, weight, lines)
 	local notChange = false
 
 	forEachElement(node.route, function(neighbor)
-		point = node.route[neighbor]
+		local point = node.route[neighbor]
+
 		forEachCell(lines, function(line)
 			local bePointLine = {getBeginPoint(line), getEndPoint(line)}
 
@@ -454,7 +416,6 @@ local function buildDistanceWeight(target, netpoint, self)
 		forEachElement(targetLine.insidePoint, function(inTarget)
 			local point = targetLine.insidePoint[inTarget]
 			local pointTarget = targetLine.targetPoint
-			local pointDistance = targetLine.pointDistance
 
 			if netpoint[point:getX()..".."..point:getY()].distance > self.weight(point:distance(pointTarget), targetLine) then
 				netpoint[point:getX()..".."..point:getY()].distance = self.weight(point:distance(pointTarget), targetLine)
@@ -476,77 +437,35 @@ local function buildDistanceWeight(target, netpoint, self)
 			notChange = true
 		end
 	end
+end
 
-	return netpoint
+local function buildDistanceOutside(target, netpoint, self)
+local distance = math.huge
 
+	forEachElement(netpoint, function(inTarget)
+		local point = netpoint[inTarget].point
+
+		forEachElement(target, function(targetLines)
+			local targetLine = target[targetLines]
+			local pointTarget = targetLine.targetPoint
+
+			if netpoint[point:getX()..".."..point:getY()].distanceOutside > self.outside(point:distance(pointTarget), targetLine) then
+				netpoint[point:getX()..".."..point:getY()].distanceOutside = self.outside(point:distance(pointTarget), targetLine)
+				netpoint[point:getX()..".."..point:getY()].targetIDOutside = targetLines
+			end
+		end)
+	end)
 end
 
 local function buildDistancePointTarget(target, lines, self, netpoint)
-	local distanceOutside = {}
-	local distanceWeight = {}
-	local keyRouts = {}
-	local linekey = {}
-	local points = {}
-
-	forEachElement(target, function(targetLines)
-		local targetLine = target[targetLines]
-		local bePoint = {getBeginPoint(targetLine), getEndPoint(targetLine)}
-		local loopRoute = true
-		local lineRoute = {}
-		distanceWeight[targetLine] = {}
-		distanceOutside[targetLine] = {}
-
-		table.insert(lineRoute, targetLine)
-		getNextRoute(targetLine, lineRoute)
-
-		distanceOutside[targetLine][targetLine.FID.."P1"] = self.outside(bePoint[1]:distance(targetLine.targetPoint), targetLine)
-		distanceOutside[targetLine][targetLine.FID.."P2"] = self.outside(bePoint[2]:distance(targetLine.targetPoint), targetLine)
-
-		keyRouts[targetLine] = getKey(targetLine)
-
-		local countLine = 1
-		local target = targetLine
-		local countRoute = 1
-
-		while loopRoute do
-			points[target] = checkLinePoints(target)
-
-			if target.P1[countLine] ~= nil then
-				keyRouts[target.P1[countLine]] = distanceRouteOutside(target, target.P1[countLine],  distanceOutside, targetLine, self.outside)
-			end
-
-			if target.P2[countLine] ~= nil then
-				keyRouts[target.P2[countLine]] = distanceRouteOutside(target, target.P2[countLine], distanceOutside, targetLine, self.outside)
-			end
-
-			countLine = countLine + 1
-
-			if target.P1[countLine] == nil and target.P2[countLine] == nil and lineRoute[countRoute] ~= nil then
-				target = lineRoute[countRoute]
-				getNextRoute(target, lineRoute)
-				countRoute = countRoute + 1
-				countLine = 1
-			elseif lineRoute[countRoute] == nil then
-				loopRoute = false
-			end
-		end
-	end)
-
-	forEachCell(lines, function(line)
-		table.insert(linekey, line)
-	end)
-
 	buildDistanceWeight(target, netpoint, self)
+	buildDistanceOutside(target, netpoint, self)
 
 	return {
-        netpoint = netpoint,
+		netpoint = netpoint,
 		target = target,
-		lines = linekey,
-		keys = keyRouts,
-		points = points,
-		distanceOutside = distanceOutside
+		lines = lines
 	}
-
 end
 
 local function createOpenNetwork(self)
