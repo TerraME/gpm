@@ -34,8 +34,8 @@ end
 
 local function getEndPoint(cell)
 	local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
-	local nPoint = geometry:getNPoints()
-	local point = binding.te.gm.Point(geometry:getX(nPoint - 1), geometry:getY(nPoint - 1), geometry:getSRID())
+	local counterPoint = geometry:getNPoints()
+	local point = binding.te.gm.Point(geometry:getX(counterPoint - 1), geometry:getY(counterPoint - 1), geometry:getSRID())
     
 	return point
 end
@@ -65,9 +65,9 @@ end
 local function addPointsLibe(line)
     line.insidePoint = {}
 	local geometry = tl:castGeomToSubtype(line.geom:getGeometryN(0))
-	local nPoint = geometry:getNPoints()
+	local counterPoint = geometry:getNPoints()
 
-	for i = 0, nPoint - 1 do
+	for i = 0, counterPoint - 1 do
 		local point = tl:castGeomToSubtype(geometry:getPointN(i))
 
 		table.insert(line.insidePoint, point)
@@ -220,21 +220,21 @@ local function buildPointTarget(lines, target)
 	local targetLine = 0
 
 	forEachCell(target, function(targetPoint)
-		local geometry1 = tl:castGeomToSubtype(targetPoint.geom:getGeometryN(0))
+		local geometry = tl:castGeomToSubtype(targetPoint.geom:getGeometryN(0))
 		local distance
 		local minDistance = math.huge
 		local point
 		local targetPoint
 
 		forEachCell(lines, function(line)
-			local geometry2 = tl:castGeomToSubtype(line.geom:getGeometryN(0))
-			local nPoint2 = geometry2:getNPoints()
-			local pointLine = closestPointFromSegment(line, geometry1, line.FID)
-			local distancePL = geometry1:distance(pointLine)
+			local geometryLine= tl:castGeomToSubtype(line.geom:getGeometryN(0))
+			local counterPoint = geometryLine:getNPoints()
+			local pointLine = closestPointFromSegment(line, geometry, line.FID)
+			local distancePL = geometry:distance(pointLine)
 
-			for i = 0, nPoint2 do
-				point = tl:castGeomToSubtype(geometry2:getPointN(i))
-				distance = geometry1:distance(point)
+			for i = 0, counterPoint do
+				point = tl:castGeomToSubtype(geometryLine:getPointN(i))
+				distance = geometry:distance(point)
 
 				if distancePL < distance and line.geom:contains(pointLine) then
 					distance = distancePL
@@ -261,9 +261,9 @@ local function buildPointTarget(lines, target)
 end
 
 local function checksInterconnectedNetwork(data)
-	local ncellRed = 0
+	local counterCellRed = 0
 	local warning = false
-	local nlineError = 0
+	local counterLineError = 0
 	local netpoints = createConnectivity(data.lines)
 
 	forEachCell(data.lines, function(cellRed)
@@ -273,54 +273,47 @@ local function checksInterconnectedNetwork(data)
 		local differance = math.huge
 		local distance
 		local redPoint
-		local nConect = 0
 		local idLineError = 0
-		local P = 1 
 		cellRed.route = {}
-		cellRed.P1 = {}
-		cellRed.P2 = {}
 
-		for j = 0, 1 do
-			if j == 0 then
+		for pointRed = 1, 2 do
+			if pointRed == 1 then
 				redPoint = tl:castGeomToSubtype(bePointR[1])
 			else
 				redPoint = tl:castGeomToSubtype(bePointR[2])
-				P = 2
 			end
 
-			local ncellBlue = 0
+			local counterCellBlue = 0
 
 			forEachCell(data.lines, function(cellBlue)
 				local geometryB = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
 
 				if geometryR:crosses(geometryB) then
 					customWarning("Lines '"..cellRed.FID.."' and '"..cellBlue.FID.."' cross each other.")
-					nlineError = nlineError + 1
+					counterLineError = counterLineError + 1
 				end
 
 				local bePointB = {getBeginPoint(cellBlue), getEndPoint(cellBlue)}
 				local bluePoint
 
-				for i = 0, 1 do
-					if i == 1 then
+				for pointBlue = 1, 2 do
+					if pointBlue == 1 then
 						bluePoint = tl:castGeomToSubtype(bePointB[1])
 					else
 						bluePoint = tl:castGeomToSubtype(bePointB[2])
 					end
 
-					if ncellRed == ncellBlue then break end 
+					if counterCellRed == counterCellBlue then break end 
 
 					distance = redPoint:distance(bluePoint)
 
 					if distance <= data.error then
 						table.insert(cellRed.route, cellBlue)
 						lineValidates = true
-						nConect = nConect + 1
-						if P == 1 then
-							table.insert(cellRed.P1, cellBlue)
+
+						if pointRed == 1 then
 							addRoute(netpoints[redPoint:getX()..".."..redPoint:getY()], cellBlue)
 						else
-							table.insert(cellRed.P2, cellBlue)
 							addRoute(netpoints[redPoint:getX()..".."..redPoint:getY()], cellBlue)
 						end
 					end
@@ -331,19 +324,19 @@ local function checksInterconnectedNetwork(data)
 					end
 				end
 
-				ncellBlue = ncellBlue + 1
+				counterCellBlue = counterCellBlue + 1
 			end)
 		end
 
 		if not lineValidates then
 			customWarning("Line: '"..idLineError.."' does not touch any other line. The minimum distance found was: "..differance..".")
-			nlineError = nlineError + 1
+			counterLineError = counterLineError + 1
 		end
 
-		ncellRed = ncellRed + 1
+		counterCellRed = counterCellRed + 1
 	end)
 
-	if nlineError >= 1 then
+	if counterLineError >= 1 then
 		customError("Cannot create a network from a file with the: "..nlineError.." problemes above.")
 	end
 
@@ -351,7 +344,6 @@ local function checksInterconnectedNetwork(data)
 		line = data.lines,
 		node = netpoints
 	}
-
 end
 
 
