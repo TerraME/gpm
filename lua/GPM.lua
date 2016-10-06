@@ -28,7 +28,7 @@ local tl = terralib.TerraLib{}
 
 local function buildPointTargetWeight(network, centroid, ID)
 	local minimumDistance = math.huge
-	local distancePointTraget
+	local distancePointTarget
 	local target
 
 	forEachElement(network.distance.netpoint, function(point)
@@ -37,20 +37,20 @@ local function buildPointTargetWeight(network, centroid, ID)
 		if distance < minimumDistance then
 			target = network.distance.netpoint[point].targetID
 			minimumDistance = distance
-			distancePointTraget = network.distance.netpoint[point].distance
+			distancePointTarget = network.distance.netpoint[point].distance
 		end
 	end)
 
 	return{
 		target = target,
-		distance = distancePointTraget,
+		distance = distancePointTarget,
 		id = ID
 	}
 end
 
 local function buildPointTargetOutside(network, centroid, ID)
 	local minimumDistance = math.huge
-	local distancePointTraget
+	local distancePointTarget
 	local target
 
 	forEachElement(network.distance.netpoint, function(point)
@@ -59,13 +59,13 @@ local function buildPointTargetOutside(network, centroid, ID)
 		if distance < minimumDistance then
 			target = network.distance.netpoint[point].targetIDOutside
 			minimumDistance = distance
-			distancePointTraget = network.distance.netpoint[point].distance
+			distancePointTarget = network.distance.netpoint[point].distance
 		end
 	end)
 
 	return{
 		target = target,
-		distance = distancePointTraget,
+		distance = distancePointTarget,
 		id = ID
 	}
 end
