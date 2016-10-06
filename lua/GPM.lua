@@ -26,7 +26,7 @@ local terralib = getPackage("terralib")
 local binding = _Gtme.terralib_mod_binding_lua
 local tl = terralib.TerraLib{}
 
-local function buildPointTargetWeight(network, centroid)
+local function buildPointTargetWeight(network, centroid, ID)
 	local minimumDistance = math.huge
 	local distancePointTraget
 	local target
@@ -43,11 +43,12 @@ local function buildPointTargetWeight(network, centroid)
 
 	return{
 		target = target,
-		distance = distancePointTraget
+		distance = distancePointTraget,
+		id = ID
 	}
 end
 
-local function buildPointTargetOutside(network, centroid)
+local function buildPointTargetOutside(network, centroid, ID)
 	local minimumDistance = math.huge
 	local distancePointTraget
 	local target
@@ -64,14 +65,15 @@ local function buildPointTargetOutside(network, centroid)
 
 	return{
 		target = target,
-		distance = distancePointTraget
+		distance = distancePointTraget,
+		id = ID
 	}
 end
 
 local function getDistanceInputPoint(centroid, network, ID)
 	return {
-		targetWeight = buildPointTargetWeight(network, centroid),
-		targetOutside = buildPointTargetOutside(network, centroid),
+		weight = buildPointTargetWeight(network, centroid, ID),
+		outside = buildPointTargetOutside(network, centroid, ID),
 	}
 end
 
