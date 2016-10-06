@@ -15,7 +15,8 @@ return {
 			local network = Network{
 				lines = 2,
 				target = communities,
-				weight = function(distance, cell) return distance end
+				weight = function(distance, cell) return distance end,
+				outside = function(distance, cell) return distance * 2 end
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("lines", "CellularSpace", 2))
@@ -24,7 +25,8 @@ return {
 			local network = Network{
 				lines = communities,
 				target = communities,
-				weight = function(distance, cell) return distance end
+				weight = function(distance, cell) return distance end,
+				outside = function(distance, cell) return distance * 2 end
 			}
 		end
 		unitTest:assertError(error_func, "Argument 'lines' should be composed by lines, got 'MultiPoint'.")
@@ -33,7 +35,8 @@ return {
 			local network = Network{
 				lines = roads,
 				target = roads,
-				weight = function(distance, cell) return distance end
+				weight = function(distance, cell) return distance end,
+				outside = function(distance, cell) return distance * 2 end
 			}
 		end
 		unitTest:assertError(error_func, "Argument 'target' should be composed by points, got 'MultiLineString'.")
@@ -42,7 +45,8 @@ return {
 			local network = Network{
 				lines = roads,
 				target = 2,
-				weight = function(distance, cell) return distance end
+				weight = function(distance, cell) return distance end,
+				outside = function(distance, cell) return distance * 2 end
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("target", "CellularSpace", 2))
@@ -52,7 +56,8 @@ return {
 				lines = roads,
 				strategy = "open",
 				target = communities,
-				weight = function(distance, cell) return distance end
+				weight = function(distance, cell) return distance end,
+				outside = function(distance, cell) return distance * 2 end
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("strategy", "open", "string"))
@@ -61,7 +66,8 @@ return {
 			local network = Network{
 				lines = roads,
 				target = communities,
-				weight = 2
+				weight = 2,
+				outside = function(distance, cell) return distance * 2 end
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("weight", "function", 2))
@@ -81,6 +87,7 @@ return {
 				lines = roads,
 				target = communities,
 				weight = function(distance, cell) return distance end,
+				outside = function(distance, cell) return distance * 2 end,
 				error = "error"
 			}
 		end
@@ -100,7 +107,8 @@ return {
 			local network = Network{
 				lines = roads,
 				target = communities,
-				weight = function(distance, cell) return distance end
+				weight = function(distance, cell) return distance end,
+				outside = function(distance, cell) return distance * 2 end
 			}
 		end
 		unitTest:assertError(error_func, "Line: '7' does not touch any other line. The minimum distance found was: 843.46359196883.")
@@ -110,6 +118,7 @@ return {
 				lines = roads,
 				target = communities,
 				weight = function(distance, cell) return distance end,
+				outside = function(distance, cell) return distance * 2 end,
 				error = 9000
 			}
 		end
@@ -124,7 +133,8 @@ return {
 			local network = Network{
 				lines = roads,
 				target = communities,
-				weight = function(distance, cell) return distance end
+				weight = function(distance, cell) return distance end,
+				outside = function(distance, cell) return distance * 2 end
 			}
 		end
 		unitTest:assertError(error_func, "Lines '6' and '14' cross each other.")
@@ -138,7 +148,8 @@ return {
 			local network = Network{
 				lines = cs,
 				target = communities,
-				weight = function(distance, cell) return distance end
+				weight = function(distance, cell) return distance end,
+				outside = function(distance, cell) return distance * 2 end
 			}
 		end
 		unitTest:assertError(error_func, "The CellularSpace in argument 'lines' must be loaded with 'geometry = true'.")
@@ -147,7 +158,8 @@ return {
 			local network = Network{
 				lines = roads,
 				target = cs,
-				weight = function(distance, cell) return distance end
+				weight = function(distance, cell) return distance end,
+				outside = function(distance, cell) return distance * 2 end
 			}
 		end
 		unitTest:assertError(error_func, "The CellularSpace in argument 'target' must be loaded with 'geometry = true'.")
