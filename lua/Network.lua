@@ -495,7 +495,7 @@ metaTableNetwork_ = {
 -- local nt = Network{
 --	target = communities,
 --	lines = roads,
---	weight = function(distance, cell) return distance end
+--	weight = function(distance, cell) return distance end,
 --	outside = function(distance, cell) return distance * 2 end
 -- }
 function Network(data)
