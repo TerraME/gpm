@@ -26,7 +26,39 @@ local terralib = getPackage("terralib")
 local binding = _Gtme.terralib_mod_binding_lua
 local tl = terralib.TerraLib{}
 
-local function buildPointTargetWeight(network, centroid, ID)
+local function addOutputID(ID, geometry, polygonID)
+	table.insert(geometry[polygonID], ID)
+end
+
+local function addOutputDistance(distanceTarget, geometry, polygonDistance)
+	table.insert(geometry[polygonDistance], distanceTarget)
+end
+
+local function addOutput(self, geometry)
+	local reference = 0
+
+	if self.output then
+		if self.output.id ~= nil then
+			reference = 1
+
+			geometry[self.output.id] = {}
+		end
+
+		if self.output.distance ~= nil then
+			geometry[self.output.distance] = {}
+
+			if reference == 1 then
+				reference = 3
+			else
+				reference = 2
+			end
+		end
+	end
+
+	return reference
+end
+
+local function buildPointTargetWeight(self, reference, network, centroid, ID, geometry)
 	local minimumDistance = math.huge
 	local distancePointTarget
 	local target
@@ -41,6 +73,15 @@ local function buildPointTargetWeight(network, centroid, ID)
 		end
 	end)
 
+	if reference == 1 then
+		addOutputID(target, geometry, self.output.id)
+	elseif reference == 2 then
+		addOutputDistance(minimumDistance, geometry, self.output.distance)
+	elseif reference == 3 then
+		addOutputID(target, geometry, self.output.id)
+		addOutputDistance(minimumDistance, geometry, self.output.distance)
+	end
+
 	return{
 		target = target,
 		distance = distancePointTarget,
@@ -48,7 +89,7 @@ local function buildPointTargetWeight(network, centroid, ID)
 	}
 end
 
-local function buildPointTargetOutside(network, centroid, ID)
+local function buildPointTargetOutside(self, reference, network, centroid, ID, geometry)
 	local minimumDistance = math.huge
 	local distancePointTarget
 	local target
@@ -63,6 +104,15 @@ local function buildPointTargetOutside(network, centroid, ID)
 		end
 	end)
 
+	if reference == 1 then
+		addOutputID(target, geometry, self.output.id)
+	elseif reference == 2 then
+		addOutputDistance(minimumDistance, geometry, self.output.distance)
+	elseif reference == 3 then
+		addOutputID(target, geometry, self.output.id)
+		addOutputDistance(minimumDistance, geometry, self.output.distance)
+	end
+
 	return{
 		target = target,
 		distance = distancePointTarget,
@@ -70,20 +120,22 @@ local function buildPointTargetOutside(network, centroid, ID)
 	}
 end
 
-local function getDistanceInputPoint(centroid, network, ID)
+local function getDistanceInputPoint(self, centroid, network, ID, geometry)
+	reference = addOutput(self, geometry)
+
 	return {
-		weight = buildPointTargetWeight(network, centroid, ID),
-		outside = buildPointTargetOutside(network, centroid, ID),
+		weight = buildPointTargetWeight(self, reference, network, centroid, ID, geometry),
+		outside = buildPointTargetOutside(self, reference, network, centroid, ID, geometry)
 	}
 end
 
-local function createOpenGPM(origin, network)
+local function createOpenGPM(self)
 	local distance = {}
 
-	forEachCell(origin, function(polygon)
-		local geometry = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+	forEachCell(self.origin, function(geometryOrigin)
+		local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 
-		table.insert(distance, getDistanceInputPoint(geometry:getCentroid(), network, polygon.FID))
+		table.insert(distance, getDistanceInputPoint(self, geometry:getCentroid(), self.network, geometry.FID, geometryOrigin))
 	end)
 
 	return distance
@@ -106,6 +158,8 @@ metaTableGPM_ = {
 -- @arg data.quantity Number of points for target.
 -- @arg data.distance --.
 -- @arg data.relation --.
+-- @arg data.output Table to receive the output value of the GPM (optional).
+-- This table gets two values ​​ID and distance.
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
@@ -126,7 +180,8 @@ metaTableGPM_ = {
 -- local network = Network{
 --	target = communities,
 --	lines = roads,
---	weight = function(distance, cell) return distance end
+--	weight = function(distance, cell) return distance end,
+--	outside = function(distance, cell) return distance * 2 end
 -- }
 --
 -- local gpm = GPM{
@@ -150,7 +205,24 @@ function GPM(data)
 	optionalTableArgument(data, "distance", "string")
 	optionalTableArgument(data, "relation", "string")
 
-	data.distance = createOpenGPM(data.origin, data.network)
+	if data.output ~= nil then
+		optionalTableArgument(data, "output", "table")
+        
+        if #data.output <= 2 then
+			forEachElement(data.output, function(output)
+				if output ~= 'id' and output ~= 'distance' then
+					incompatibleValueError("output", "id or distance", output) 
+				end
+			end)
+		else
+			incompatibleValueError("output", "id or distance", output)
+		end
+	else
+		data.output = false
+		data.output = false
+	end
+
+	data.distance = createOpenGPM(data)
 
 	setmetatable(data, metaTableGPM_)
 	return data
