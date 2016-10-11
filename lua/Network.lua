@@ -63,9 +63,9 @@ local function createConnectivity(lines)
 
 		for i = 1, nPoint - 1 do
 			local point = tl:castGeomToSubtype(geometry:getPointN(i))
+			local nameNodes = point:getX()..".."..point:getY()
 			local afterPoint = tl:castGeomToSubtype(geometry:getPointN(i + 1))
 			local beforePoint = tl:castGeomToSubtype(geometry:getPointN(i - 1))
-			local nameNodes = point:getX()..".."..point:getY()
 
 			netpoints[nameNodes] = {
 				point = point, 
