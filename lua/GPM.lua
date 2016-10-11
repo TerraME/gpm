@@ -77,7 +77,7 @@ local function buildPointTarget(self, reference, network, centroid, ID, geometry
 		if distance < minimumDistance then
 			target = network.distance.netpoint[point].targetIDOutside
 			minimumDistance = distance
-			distancePointTarget = network.distance.netpoint[point].distance
+			distancePointTarget = network.distance.netpoint[point].distanceOutside
 		end
 	end)
 
