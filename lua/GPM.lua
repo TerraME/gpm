@@ -27,11 +27,11 @@ local binding = _Gtme.terralib_mod_binding_lua
 local tl = terralib.TerraLib{}
 
 local function addOutputID(ID, geometry, polygonID)
-	table.insert(geometry[polygonID], ID)
+	geometry[polygonID] = ID
 end
 
 local function addOutputDistance(distanceTarget, geometry, polygonDistance)
-	table.insert(geometry[polygonDistance], distanceTarget)
+	geometry[polygonDistance] = distanceTarget
 end
 
 local function addOutput(self, geometry)
@@ -58,7 +58,7 @@ local function addOutput(self, geometry)
 	return reference
 end
 
-local function buildPointTargetWeight(self, reference, network, centroid, ID, geometry)
+local function buildPointTarget(self, reference, network, centroid, ID, geometry)
 	local minimumDistance = math.huge
 	local distancePointTarget
 	local target
@@ -71,31 +71,8 @@ local function buildPointTargetWeight(self, reference, network, centroid, ID, ge
 			minimumDistance = distance
 			distancePointTarget = network.distance.netpoint[point].distance
 		end
-	end)
 
-	if reference == 1 then
-		addOutputID(target, geometry, self.output.id)
-	elseif reference == 2 then
-		addOutputDistance(minimumDistance, geometry, self.output.distance)
-	elseif reference == 3 then
-		addOutputID(target, geometry, self.output.id)
-		addOutputDistance(minimumDistance, geometry, self.output.distance)
-	end
-
-	return{
-		target = target,
-		distance = distancePointTarget,
-		id = ID
-	}
-end
-
-local function buildPointTargetOutside(self, reference, network, centroid, ID, geometry)
-	local minimumDistance = math.huge
-	local distancePointTarget
-	local target
-
-	forEachElement(network.distance.netpoint, function(point)
-		local distance = centroid:distance(network.distance.netpoint[point].point)
+		distance = centroid:distance(network.distance.netpoint[point].point)
 
 		if distance < minimumDistance then
 			target = network.distance.netpoint[point].targetIDOutside
@@ -107,38 +84,24 @@ local function buildPointTargetOutside(self, reference, network, centroid, ID, g
 	if reference == 1 then
 		addOutputID(target, geometry, self.output.id)
 	elseif reference == 2 then
-		addOutputDistance(minimumDistance, geometry, self.output.distance)
+		addOutputDistance(distancePointTarget, geometry, self.output.distance)
 	elseif reference == 3 then
 		addOutputID(target, geometry, self.output.id)
-		addOutputDistance(minimumDistance, geometry, self.output.distance)
+		addOutputDistance(distancePointTarget, geometry, self.output.distance)
 	end
-
-	return{
-		target = target,
-		distance = distancePointTarget,
-		id = ID
-	}
 end
 
 local function getDistanceInputPoint(self, centroid, network, ID, geometry)
 	reference = addOutput(self, geometry)
-
-	return {
-		weight = buildPointTargetWeight(self, reference, network, centroid, ID, geometry),
-		outside = buildPointTargetOutside(self, reference, network, centroid, ID, geometry)
-	}
+	buildPointTarget(self, reference, network, centroid, ID, geometry)
 end
 
 local function createOpenGPM(self)
-	local distance = {}
-
 	forEachCell(self.origin, function(geometryOrigin)
 		local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 
-		table.insert(distance, getDistanceInputPoint(self, geometry:getCentroid(), self.network, geometry.FID, geometryOrigin))
+		getDistanceInputPoint(self, geometry:getCentroid(), self.network, geometry.FID, geometryOrigin)
 	end)
-
-	return distance
 end
 
 GPM_ = {
@@ -209,10 +172,18 @@ function GPM(data)
 		optionalTableArgument(data, "output", "table")
         
         if #data.output <= 2 then
+			local cell = data.origin:sample()
+
 			forEachElement(data.output, function(output)
 				if output ~= 'id' and output ~= 'distance' then
 					incompatibleValueError("output", "id or distance", output) 
 				end
+
+				forEachElement(cell, function(parameters)
+					if data.output[output] == parameters then
+						customError("Argument '"..data.output[output].."' already exists in the Cell.")
+					end
+				end)
 			end)
 		else
 			incompatibleValueError("output", "id or distance", output)
