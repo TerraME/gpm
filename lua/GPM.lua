@@ -219,7 +219,6 @@ function GPM(data)
 		end
 	else
 		data.output = false
-		data.output = false
 	end
 
 	data.distance = createOpenGPM(data)
