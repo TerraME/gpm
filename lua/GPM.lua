@@ -64,7 +64,7 @@ local function buildPointTarget(self, reference, network, centroid, ID, geometry
 	local target
 
 	forEachElement(network.distance.netpoint, function(point)
-		local distance = centroid:distance(network.distance.netpoint[point].point)
+		local distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distance
 
 		if distance < minimumDistance then
 			target = network.distance.netpoint[point].targetID
@@ -72,7 +72,7 @@ local function buildPointTarget(self, reference, network, centroid, ID, geometry
 			distancePointTarget = network.distance.netpoint[point].distance
 		end
 
-		distance = centroid:distance(network.distance.netpoint[point].point)
+		distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distanceOutside
 
 		if distance < minimumDistance then
 			target = network.distance.netpoint[point].targetIDOutside
@@ -92,7 +92,7 @@ local function buildPointTarget(self, reference, network, centroid, ID, geometry
 end
 
 local function getDistanceInputPoint(self, centroid, network, ID, geometry)
-	reference = addOutput(self, geometry)
+	local reference = addOutput(self, geometry)
 	buildPointTarget(self, reference, network, centroid, ID, geometry)
 end
 
@@ -155,7 +155,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output"})
 	mandatoryTableArgument(data, "network", "Network")
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
@@ -169,25 +169,19 @@ function GPM(data)
 	optionalTableArgument(data, "relation", "string")
 
 	if data.output ~= nil then
-		optionalTableArgument(data, "output", "table")
-        
-        if #data.output <= 2 then
-			local cell = data.origin:sample()
+		local cell = data.origin:sample()
 
-			forEachElement(data.output, function(output)
-				if output ~= 'id' and output ~= 'distance' then
-					incompatibleValueError("output", "id or distance", output) 
+		forEachElement(data.output, function(output)
+			if output ~= 'id' and output ~= 'distance' then
+				incompatibleValueError("output", "id or distance", output) 
+			end
+
+			forEachElement(cell, function(parameters)
+				if data.output[output] == parameters then
+					customError("Argument '"..data.output[output].."' already exists in the Cell.")
 				end
-
-				forEachElement(cell, function(parameters)
-					if data.output[output] == parameters then
-						customError("Argument '"..data.output[output].."' already exists in the Cell.")
-					end
-				end)
 			end)
-		else
-			incompatibleValueError("output", "id or distance", output)
-		end
+		end)
 	else
 		data.output = false
 	end
