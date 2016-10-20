@@ -93,6 +93,7 @@ end
 
 local function getDistanceInputPoint(self, centroid, network, ID, geometry)
 	local reference = addOutput(self, geometry)
+
 	buildPointTarget(self, reference, network, centroid, ID, geometry)
 end
 
@@ -107,7 +108,6 @@ end
 GPM_ = {
 	type_ = "GPM"
 }
-
 metaTableGPM_ = {
 	__index = GPM_,
 	__tostring = _Gtme.tostring
@@ -143,8 +143,8 @@ metaTableGPM_ = {
 -- local network = Network{
 --	target = communities,
 --	lines = roads,
---	weight = function(distance, cell) return distance end,
---	outside = function(distance, cell) return distance * 2 end
+--	weight = function(distance) return distance end,
+--	outside = function(distance) return distance * 2 end
 -- }
 --
 -- local gpm = GPM{
@@ -176,18 +176,15 @@ function GPM(data)
 				incompatibleValueError("output", "id or distance", output) 
 			end
 
-			forEachElement(cell, function(parameters)
-				if data.output[output] == parameters then
-					customError("Argument '"..data.output[output].."' already exists in the Cell.")
-				end
-			end)
+			if cell[output] == nil then
+				customError("Argument '"..data.output[output].."' already exists in the Cell.")
+			end
 		end)
 	else
 		data.output = false
 	end
 
 	data.distance = createOpenGPM(data)
-
 	setmetatable(data, metaTableGPM_)
 	return data
 end

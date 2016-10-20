@@ -21,23 +21,53 @@ return {
 			target = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
-					return d / 5
+					return distance / 5
 				else
-					return d / 2
+					return distance / 2
 				end
 			end,
-			outside = function(distance, cell)
+			outside = function(distance)
 				return distance * 2
 			end
 		}
 
-		error_func = function()
+		local error_func = function()
 			local gpm = GPM{
 				network = 2,
 				origin = farms
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("network", "Network", 2))
+
+		farms = CellularSpace{
+			file = filePath("farms.shp", "gpm")
+		}
+
+		local error_func = function()
+			local gpm = GPM{
+				network = network,
+				origin = farms
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
+
+		farms = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
+			geometry = true
+		}
+
+		local error_func = function()
+			local gpm = GPM{
+				network = network,
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					d = "distance"
+				}
+			}
+		end
+		unitTest:assertError(error_func, incompatibleValueMsg("output", "id or distance", "d"))
 
 		error_func = function()
 			gpm:save(2)
@@ -69,12 +99,12 @@ return {
 			destination = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
-					return d / 5
+					return distance / 5
 				else
-					return d / 2
+					return distance / 2
 				end
 			end,
-			outside = function(distance, cell)
+			outside = function(distance)
 				return distance * 2
 			end
 		}
@@ -90,4 +120,3 @@ return {
 		unitTest:assertError(error_func, incompatibleTypeMsg(1, "string", 2))
 	end
 }
-
