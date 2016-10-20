@@ -319,16 +319,12 @@ local function checksInterconnectedNetwork(data)
 		end
 
 		if not lineValidates then
-			customWarning("Line: '"..idLineError.."' does not touch any other line. The minimum distance found was: "..differance..".")
 			counterLineError = counterLineError + 1
+			customWarning("Line: '"..idLineError.."' does not touch any other line. The minimum distance found was: "..differance..".")
 		end
 
 		counterCellRed = counterCellRed + 1
 	end)
-
-	if counterLineError >= 1 then
-		customError("Cannot create a network from a file with the "..nlineError.." problemes above.")
-	end
 
 	return {
 		line = data.lines,
@@ -341,7 +337,7 @@ local function checkInsidePoints(line, point1, point2)
 	return line.geom:contains(point1) or line.geom:contains(point2)
 end
 
-local function distanceRouteNode(node, netpoint, weight, lines)
+local function distanceFromRouteToNode(node, netpoint, weight, lines)
 	local change = false
 
 	forEachElement(node.route, function(neighbor)
@@ -405,7 +401,7 @@ local function buildDistanceWeight(target, netpoint, self)
 
 	while loopRoute do
 		forEachElement(netpoint, function(node)
-			if distanceRouteNode(netpoint[node], netpoint, self.weight, self.lines) then
+			if distanceFromRouteToNode(netpoint[node], netpoint, self.weight, self.lines) then
 				change = false
 			end
 		end)
@@ -419,7 +415,7 @@ local function buildDistanceWeight(target, netpoint, self)
 end
 
 local function buildDistanceOutside(target, netpoint, self)
-local distance = math.huge
+	local distance = math.huge
 
 	forEachElement(netpoint, function(inTarget)
 		local point = netpoint[inTarget].point
@@ -495,8 +491,8 @@ metaTableNetwork_ = {
 -- local nt = Network{
 --	target = communities,
 --	lines = roads,
---	weight = function(distance, cell) return distance end,
---	outside = function(distance, cell) return distance * 2 end
+--	weight = function(distance) return distance end,
+--	outside = function(distance) return distance * 2 end
 -- }
 function Network(data)
 	verifyNamedTable(data)
