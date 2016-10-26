@@ -63,7 +63,7 @@ local function createConnectivity(lines)
 
 		for i = 1, nPoint - 1 do
 			local point = tl:castGeomToSubtype(geometry:getPointN(i))
-			local nameNodes = point:getX()..".."..point:getY()
+			local nameNodes = point:asText()
 			local afterPoint = tl:castGeomToSubtype(geometry:getPointN(i + 1))
 			local beforePoint = tl:castGeomToSubtype(geometry:getPointN(i - 1))
 
@@ -75,24 +75,24 @@ local function createConnectivity(lines)
 				cell = line
 			}
 
-			table.insert(netpoints[nameNodes].route, afterPoint:getX()..".."..afterPoint:getY())
-			table.insert(netpoints[nameNodes].route, beforePoint:getX()..".."..beforePoint:getY())
+			table.insert(netpoints[nameNodes].route, afterPoint:asText())
+			table.insert(netpoints[nameNodes].route, beforePoint:asText())
 		end
 
 		local points = {getBeginPoint(line), getEndPoint(line)}
 
 		if not belong(points[1], netpoints) then
-			local nameNodes = points[1]:getX()..".."..points[1]:getY()
+			local nameNodes = points[1]:asText()
 
 			netpoints[nameNodes] = {point = points[1], route = {}, distance = math.huge, distanceOutside = math.huge, targetID, targetIDOutside, cell = line}
-			table.insert(netpoints[nameNodes].route, points[2]:getX()..".."..points[2]:getY())
+			table.insert(netpoints[nameNodes].route, points[2]:asText())
 		end
 
 		if not belong(points[2], netpoints) then
-			local nameNodes = points[2]:getX()..".."..points[2]:getY()
+			local nameNodes = points[2]:asText()
 
 			netpoints[nameNodes] = {point = points[2], route = {}, distance = math.huge, distanceOutside = math.huge, targetID, targetIDOutside, cell = line}
-			table.insert(netpoints[nameNodes].route, points[1]:getX()..".."..points[1]:getY())
+			table.insert(netpoints[nameNodes].route, points[1]:asText())
 		end
 	end)
 
@@ -103,7 +103,7 @@ local function addRoute(netpoint, cell)
 	local bePoint = {getBeginPoint(cell), getEndPoint(cell)}
 
 	if netpoint.point:equals(bePoint[1]) then
-		local nameNodes = bePoint[2]:getX()..".."..bePoint[2]:getY()
+		local nameNodes = bePoint[2]:asText()
 
 		if not belong(nameNodes, netpoint.route) then
 			table.insert(netpoint.route, nameNodes)
@@ -111,7 +111,7 @@ local function addRoute(netpoint, cell)
 	end
 
 	if netpoint.point:equals(bePoint[2]) then
-		local nameNodes = bePoint[1]:getX()..".."..bePoint[1]:getY()
+		local nameNodes = bePoint[1]:asText()
 
 		if not belong(nameNodes, netpoint.route) then
 			table.insert(netpoint.route, nameNodes)
@@ -302,9 +302,9 @@ local function checksInterconnectedNetwork(data)
 						lineValidates = true
 
 						if pointRed == 1 then
-							addRoute(netpoints[redPoint:getX()..".."..redPoint:getY()], cellBlue)
+							addRoute(netpoints[redPoint:asText()], cellBlue)
 						else
-							addRoute(netpoints[redPoint:getX()..".."..redPoint:getY()], cellBlue)
+							addRoute(netpoints[redPoint:asText()], cellBlue)
 						end
 					end
 
@@ -390,7 +390,7 @@ local function buildDistanceWeight(target, netpoint, self)
 		forEachElement(targetLine.insidePoint, function(inTarget)
 			local point = targetLine.insidePoint[inTarget]
 			local pointTarget = targetLine.targetPoint
-			local referencePoint = netpoint[point:getX()..".."..point:getY()]
+			local referencePoint = netpoint[point:asText()]
 
 			if referencePoint.distance > self.weight(point:distance(pointTarget), targetLine) then
 				referencePoint.distance = self.weight(point:distance(pointTarget), targetLine)
@@ -423,7 +423,7 @@ local function buildDistanceOutside(target, netpoint, self)
 		forEachElement(target, function(targetLines)
 			local targetLine = target[targetLines]
 			local pointTarget = targetLine.targetPoint
-			local referencePoint = netpoint[point:getX()..".."..point:getY()]
+			local referencePoint = netpoint[point:asText()]
 
 			if referencePoint.distanceOutside > self.outside(point:distance(pointTarget), targetLine) then
 				referencePoint.distanceOutside = self.outside(point:distance(pointTarget), targetLine)
