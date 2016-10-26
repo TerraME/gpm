@@ -60,8 +60,8 @@ return {
 			value = {1, 2, 3, 4},
 			color = {"red", "blue", "green", "black"}
 		}
-		--unitTest:assertType(map, "Map")
-		--unitTest:assertSnapshot(map, "id_farms.bmp")
+		unitTest:assertType(map, "Map")
+		unitTest:assertSnapshot(map, "id_farms.bmp")
 
 		map = Map{
 			target = farms,
@@ -69,8 +69,8 @@ return {
 			slices = 20,
 			color = "Blues"
 		}
-		--unitTest:assertType(map, "Map")
-		--unitTest:assertSnapshot(map, "distance_farms.bmp")
+		unitTest:assertType(map, "Map")
+		unitTest:assertSnapshot(map, "distance_farms.bmp")
 
 		unitTest:assertType(gpm, "GPM")
 	end,
