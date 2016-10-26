@@ -382,7 +382,7 @@ end
 local function buildDistanceWeight(target, netpoint, self)
 	local distanceWeight = {}
 	local loopRoute = true
-	local change = 0
+	local change
 
 	forEachElement(target, function(targetLines)
 		local targetLine = target[targetLines]
