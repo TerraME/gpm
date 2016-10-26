@@ -125,28 +125,14 @@ return {
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("nameFile", "string", nameFile))
 
-		gpm:save("gpmError.gpm")
-		gpm:save("gwtError.gwt")
-		gpm:save("galError.gal")
+		local gpmFile = gpm:save("gpmError.gpm")
 
 		local error_func = function()
 			gpm:save("gpmError.gpm")
 		end
 		unitTest:assertError(error_func, "A file with name 'gpmError.gpm' already exists.")
 
-		local error_func = function()
-			gpm:save("gwtError.gwt")
-		end
-		unitTest:assertError(error_func, "A file with name 'gwtError.gwt' already exists.")
-
-		local error_func = function()
-			gpm:save("galError.gal")
-		end
-		unitTest:assertError(error_func, "A file with name 'galError.gal' already exists.")
-
-		unitTest:assertSnapshot("gpmError.gpm")
-		unitTest:assertSnapshot("gwtError.gwt")
-		unitTest:assertSnapshot("galError.gal")
+		unitTest:assertSnapshot(gpmFile, "gpmError.gpm")
 
 		local gpm = GPM{
 			network = network,

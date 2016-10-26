@@ -125,11 +125,6 @@ local function saveGAL(self, fileName)
 	local validates = false
 	local origin = self.origin
 	local outputText = "0 "..#self.neighbor.." "..origin.layer.." object_id_\n"
-	local file = File(fileName)
-
-	if file:exists() then
-		customError("A file with name '"..fileName.."' already exists.")
-	end
 
 	forEachElement(self.neighbor, function(neighbor)
 		outputText = outputText..(neighbor).." "..self.neighbor[neighbor].."\n"
@@ -154,14 +149,9 @@ local function saveGPM(self, fileName)
 	local validates = false
 	local origin = self.origin
 	local outputText = "0 "..origin.layer.." "..origin.layer.." object_id_\n"
-	local file = File(fileName)
 
 	if self.output.distance == nil then
 		mandatoryArgumentError("output.distance")
-	end
-
-	if file:exists() then
-		customError("A file with name '"..fileName.."' already exists.")
 	end
 
 	forEachElement(self.neighbor, function(neighbor)
@@ -187,7 +177,6 @@ local function saveGWT(self, fileName)
 	local validates = false
 	local origin = self.origin
 	local outputText = "0 "..#self.neighbor.." "..origin.layer.." object_id_\n"
-	local file = File(fileName)
 
 	if self.output.distance == nil then
 		mandatoryArgumentError("output.distance")
@@ -247,8 +236,8 @@ GPM_ = {
 	--	distance = "distance",
 	--	relation = "community",
 	--	output = {
-	--	id = "id1",
-	--	distance = "distance"
+	--		id = "id1",
+	--		distance = "distance"
 	--	}
 	-- }
 	--
@@ -256,6 +245,12 @@ GPM_ = {
 	save = function(self, fileName)
 		if type(fileName) ~= "string" then
 			incompatibleTypeError("nameFile", "string", fileName)
+		end
+
+		local file = File(fileName)
+
+		if file:exists() then
+			customError("A file with name '"..fileName.."' already exists.")
 		end
 
 		local extension = string.sub(fileName, -4)
