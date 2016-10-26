@@ -69,7 +69,7 @@ local function buildPointTarget(self, reference, network, centroid, ID, geometry
 		if distance < minimumDistance then
 			target = network.distance.netpoint[point].targetID
 			minimumDistance = distance
-			distancePointTarget = network.distance.netpoint[point].distance
+			distancePointTarget = distance
 		end
 
 		distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distanceOutside
@@ -77,9 +77,17 @@ local function buildPointTarget(self, reference, network, centroid, ID, geometry
 		if distance < minimumDistance then
 			target = network.distance.netpoint[point].targetIDOutside
 			minimumDistance = distance
-			distancePointTarget = network.distance.netpoint[point].distanceOutside
+			distancePointTarget = distance
 		end
 	end)
+
+	geometry.neighbor = target
+
+	if self.neighbor[target] == nil then
+		self.neighbor[target] = 1
+	else
+		self.neighbor[target] = self.neighbor[target] + 1
+	end
 
 	if reference == 1 then
 		addOutputID(target, geometry, self.output.id)
@@ -98,15 +106,168 @@ local function getDistanceInputPoint(self, centroid, network, ID, geometry)
 end
 
 local function createOpenGPM(self)
+	local counterCode = 0
+
+	self.neighbor = {}
+
 	forEachCell(self.origin, function(geometryOrigin)
+		geometryOrigin.code = counterCode
+		geometryOrigin.neighbor = 0
+
 		local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 
 		getDistanceInputPoint(self, geometry:getCentroid(), self.network, geometry.FID, geometryOrigin)
+		counterCode = counterCode + 1
 	end)
 end
 
+local function saveGAL(self, fileName)
+	local validates = false
+	local origin = self.origin
+	local outputText = "0 "..#self.neighbor.." "..origin.layer.." object_id_\n"
+	local file = File(fileName)
+
+	if file:exists() then
+		customError("A file with name '"..fileName.."' already exists.")
+	end
+
+	forEachElement(self.neighbor, function(neighbor)
+		outputText = outputText..(neighbor).." "..self.neighbor[neighbor].."\n"
+
+		forEachElement(self.origin.cells, function(cell)
+			if self.origin.cells[cell].neighbor == neighbor then
+				outputText = outputText..self.origin.cells[cell].code.." "
+				validates = true
+			end
+		end)
+
+		if validates then
+			outputText = outputText.."\n"
+		end
+	end)
+
+	file:write(outputText)
+	file:close()
+end
+
+local function saveGPM(self, fileName)
+	local validates = false
+	local origin = self.origin
+	local outputText = "0 "..origin.layer.." "..origin.layer.." object_id_\n"
+	local file = File(fileName)
+
+	if self.output.distance == nil then
+		mandatoryArgumentError("output.distance")
+	end
+
+	if file:exists() then
+		customError("A file with name '"..fileName.."' already exists.")
+	end
+
+	forEachElement(self.neighbor, function(neighbor)
+		outputText = outputText..(neighbor).." "..self.neighbor[neighbor].."\n"
+
+		forEachElement(self.origin.cells, function(cell)
+			if self.origin.cells[cell].neighbor == neighbor then
+				outputText = outputText..self.origin.cells[cell].code.." "..self.origin.cells[cell][self.output.distance].." "
+				validates = true
+			end
+		end)
+
+		if validates then
+			outputText = outputText.."\n"
+		end
+	end)
+
+	file:write(outputText)
+	file:close()
+end
+
+local function saveGWT(self, fileName)
+	local validates = false
+	local origin = self.origin
+	local outputText = "0 "..#self.neighbor.." "..origin.layer.." object_id_\n"
+	local file = File(fileName)
+
+	if self.output.distance == nil then
+		mandatoryArgumentError("output.distance")
+	end
+
+	if file:exists() then
+		customError("A file with name '"..fileName.."' already exists.")
+	end
+
+	forEachElement(self.origin.cells, function(cell)
+		outputText = outputText..self.origin.cells[cell].neighbor.." "..self.origin.cells[cell].code.." "..self.origin.cells[cell][self.output.distance].."\n"
+	end)
+
+	file:write(outputText)
+	file:close()
+end
+
 GPM_ = {
-	type_ = "GPM"
+	type_ = "GPM",
+	--- Save the GPM values ​​for use in '.shp'.
+	-- @arg fileName The names of the attributes to be saved,
+	-- this name is a string.
+	-- This file can have three extension '.gal', '.gwt' and '.gpm''.
+	-- @usage roads = CellularSpace{
+	-- 	file = filePath("roads.shp", "gpm"),
+	-- 	geometry = true
+	-- }
+	--
+	-- communities = CellularSpace{
+	-- 	file = filePath("communities.shp", "gpm"),
+	-- 	geometry = true
+	-- }
+	--
+	-- farms = CellularSpace{
+	-- 	file = filePath("farms.shp", "gpm"),
+	-- 	geometry = true
+	-- }
+	--
+	-- network = Network{
+	-- 	lines = roads,
+	-- 	target = communities,
+	-- 	weight = function(distance, cell)
+	-- 		if cell.CD_PAVIMEN == "pavimentada" then
+	-- 			return distance / 5
+	-- 		else
+	-- 			return distance / 2
+	-- 		end
+	-- 	end,
+	-- 	outside = function(distance)
+	-- 		return distance * 2
+	-- 	end
+	-- }
+	--
+	-- gpm = GPM{
+	-- 	network = network,
+	-- 	destination = farms,
+	--	distance = "distance",
+	--	relation = "community",
+	--	output = {
+	--	id = "id1",
+	--	distance = "distance"
+	--	}
+	-- }
+	--
+	-- gpm:save("farms.gpm")
+	save = function(self, fileName)
+		if type(fileName) ~= "string" then
+			incompatibleTypeError("nameFile", "string", fileName)
+		end
+
+		local extension = string.sub(fileName, -4)
+
+		if extension == ".gpm" then
+			saveGPM(self, fileName)
+		elseif extension == ".gwt" then
+			saveGWT(self, fileName)
+		elseif extension == ".gal" then
+			saveGAL(self, fileName)
+		end
+	end
 }
 metaTableGPM_ = {
 	__index = GPM_,
