@@ -125,15 +125,6 @@ return {
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("nameFile", "string", nameFile))
 
-		local gpmFile = gpm:save("gpmError.gpm")
-
-		local error_func = function()
-			gpm:save("gpmError.gpm")
-		end
-		unitTest:assertError(error_func, "A file with name 'gpmError.gpm' already exists.")
-
-		unitTest:assertSnapshot(gpmFile, "gpmError.gpm")
-
 		local gpm = GPM{
 			network = network,
 			origin = farms,

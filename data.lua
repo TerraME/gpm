@@ -1,8 +1,23 @@
-
 data{
 	file = "farms.shp",
 	attributes = {"id"},
 	description = {"Character identifier"},
+	summary = "A shapefile describing the farms.",
+	source = "TerraME team"
+}
+
+data{
+	file = "rfarms_cells2.shp",
+	attributes = {
+		"id",
+		"col",
+		"row"
+	},
+	description = {
+		"Character identifier",
+		"number of columns",
+		"number of line"
+	},
 	summary = "A shapefile describing the farms.",
 	source = "TerraME team"
 }

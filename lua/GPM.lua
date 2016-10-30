@@ -231,7 +231,7 @@ GPM_ = {
 	--
 	-- gpm = GPM{
 	-- 	network = network,
-	-- 	destination = farms,
+	-- 	origin = farms,
 	--	distance = "distance",
 	--	relation = "community",
 	--	output = {
