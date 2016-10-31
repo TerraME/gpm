@@ -30,19 +30,12 @@ return {
 		unitTest:assertEquals(#network.distance.lines, #roads.cells)
 		unitTest:assertEquals(#network.distance.target, #communities.cells)
 
-		forEachElement(network.distance.lines, function(line)
-			unitTest:assertType(network.distance.keys[network.distance.lines[line]].P1, "string")
-			unitTest:assertType(network.distance.keys[network.distance.lines[line]].P2, "string")
-		end)
-
-		forEachElement(network.distance.lines, function(line)
-			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[line]].P1] >= 0)
-			unitTest:assert(network.distance.distanceOutside[network.distance.target[1]][network.distance.keys[network.distance.lines[line]].P2] >= 0)
-		end)
-
-		forEachElement(network.distance.lines, function(line)
-			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[line]].P1] >= 0)
-			unitTest:assert(network.distance.distanceWeight[network.distance.target[1]][network.distance.keys[network.distance.lines[line]].P2] >= 0)
+		forEachElement(network.distance.netpoint, function(neighbor)
+			unitTest:assert(network.distance.netpoint[neighbor].distance >= 0)
+			unitTest:assert(network.distance.netpoint[neighbor].distanceOutside >= 0)
+			unitTest:assertType(network.distance.netpoint[neighbor].targetIDOutside, "number")
+			unitTest:assertType(network.distance.netpoint[neighbor].targetID, "number")
+			unitTest:assertType(network.distance.netpoint[neighbor].point, "userdata")
 		end)
 	end
 }

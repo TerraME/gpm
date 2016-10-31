@@ -12,7 +12,7 @@ return {
 		}
 		
 		local farms = CellularSpace{
-			file = filePath("farms.shp", "gpm"),
+			file = filePath("rfarms_cells2.shp", "gpm"),
 			geometry = true
 		}
 
@@ -21,17 +21,17 @@ return {
 			target = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
-					return d / 5
+					return distance / 5
 				else
-					return d / 2
+					return distance / 2
 				end
 			end,
-			outside = function(distance, cell)
+			outside = function(distance)
 				return distance * 2
 			end
 		}
 
-		error_func = function()
+		local error_func = function()
 			local gpm = GPM{
 				network = 2,
 				origin = farms
@@ -39,8 +39,37 @@ return {
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("network", "Network", 2))
 
+		farms = CellularSpace{
+			file = filePath("farms.shp", "gpm")
+		}
+
+		local error_func = function()
+			local gpm = GPM{
+				network = network,
+				origin = farms
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
+
+		farms = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
+			geometry = true
+		}
+
+		local error_func = function()
+			local gpm = GPM{
+				network = network,
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					d = "distance"
+				}
+			}
+		end
+		unitTest:assertError(error_func, incompatibleValueMsg("output", "id or distance", "d"))
+
 		error_func = function()
-			gpm:save(2)
 			local gpm = GPM{
 				network = network,
 				origin = 2
@@ -50,44 +79,65 @@ return {
 	end,
 	save = function(unitTest)
 		local roads = CellularSpace{
-			source = filePath("roads.shp", "gpm"),
+			file = filePath("roads.shp", "gpm"),
 			geometry = true
 		}
 
 		local communities = CellularSpace{
-			source = filePath("communities.shp", "gpm"),
+			file = filePath("communities.shp", "gpm"),
 			geometry = true
 		}
 		
 		local farms = CellularSpace{
-			source = filePath("farms.shp", "gpm"),
+			file = filePath("rfarms_cells2.shp", "gpm"),
 			geometry = true
 		}
 
 		local network = Network{
 			lines = roads,
-			destination = communities,
+			target = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
-					return d / 5
+					return distance / 5
 				else
-					return d / 2
+					return distance / 2
 				end
 			end,
-			outside = function(distance, cell)
+			outside = function(distance)
 				return distance * 2
 			end
 		}
 
 		local gpm = GPM{
 			network = network,
-			origin = farms
+			origin = farms,
+			distance = "distance",
+			relation = "community",
+			output = {
+				id = "id1",
+				distance = "distance"
+			}
 		}
+		local nameFile = 2
 
-		error_func = function()
-			gpm:save(2)
+		local error_func = function()
+			gpm:save(nameFile)
 		end
-		unitTest:assertError(error_func, incompatibleTypeMsg(1, "string", 2))
+		unitTest:assertError(error_func, incompatibleTypeMsg("nameFile", "string", nameFile))
+
+		local gpm = GPM{
+			network = network,
+			origin = farms,
+			distance = "distance",
+			relation = "community",
+			output = {
+				id = "id1"
+			}
+		}
+    
+		error_func = function()
+			gpm:save("gpm.gpm")
+		end
+		unitTest:assertError(error_func, mandatoryArgumentMsg("output.distance"))
 	end
 }
-

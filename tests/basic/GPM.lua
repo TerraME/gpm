@@ -10,25 +10,23 @@ return {
 			file = filePath("communities.shp", "gpm"),
 			geometry = true
 		}
-		
-		local farms = CellularSpace{
-			file = filePath("farms.shp", "gpm"),
-			geometry = true
-		}
 
 		local network = Network{
 			lines = roads,
 			target = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
-					return d / 5
+					return distance / 5
 				else
-					return d / 2
+					return distance / 2
 				end
 			end,
-			outside = function(distance, cell)
-				return distance * 2
-			end
+			outside = function(distance) return distance * 2 end
+		}
+
+		local farms = CellularSpace{
+			file = filePath("rfarms_cells2.shp", "gpm"),
+			geometry = true
 		}
 
 		local gpm = GPM{
@@ -36,13 +34,45 @@ return {
 			origin = farms,
 			distance = "distance",
 			relation = "community",
+			output = {
+				distance = "distance"
+			}
 		}
 
+		local cell = gpm.origin:sample()
+
+		unitTest:assertType(cell.distance, "number")
+
+		local gpm = GPM{
+			network = network,
+			origin = farms,
+			distance = "distance",
+			relation = "community",
+			output = {
+				id = "id1",
+				distance = "distance"
+			}
+		}
+
+		local map = Map{
+			target = gpm.origin,
+			select = "id1",
+			value = {1, 2, 3, 4},
+			color = {"red", "blue", "green", "black"}
+		}
+		unitTest:assertType(map, "Map")
+		unitTest:assertSnapshot(map, "id_farms.bmp")
+
+		map = Map{
+			target = farms,
+			select = "distance",
+			slices = 20,
+			color = "Blues"
+		}
+		unitTest:assertType(map, "Map")
+		unitTest:assertSnapshot(map, "distance_farms.bmp")
+
 		unitTest:assertType(gpm, "GPM")
-		unitTest:assertType(gpm.result, "table")
-		unitTest:assertEquals(#gpm.result.distance, #farms)
-		unitTest:assertEquals(#gpm.result.relation, #farms)
-		unitTest:assertEquals(#gpm, #farms)
 	end,
 	save = function(unitTest)
 		local roads = CellularSpace{
@@ -56,7 +86,7 @@ return {
 		}
 		
 		local farms = CellularSpace{
-			file = filePath("farms.shp", "gpm"),
+			file = filePath("rfarms_cells2.shp", "gpm"),
 			geometry = true
 		}
 
@@ -65,19 +95,25 @@ return {
 			target = communities,
 			weight = function(distance, cell)
 				if cell.CD_PAVIMEN == "pavimentada" then
-					return d / 5
+					return distance / 5
 				else
-					return d / 2
+					return distance / 2
 				end
 			end,
-			outside = function(distance, cell)
+			outside = function(distance)
 				return distance * 2
 			end
 		}
 
 		local gpm = GPM{
 			network = network,
-			destination = farms
+			origin = farms,
+			distance = "distance",
+			relation = "community",
+			output = {
+				id = "id1",
+				distance = "distance"
+			}
 		}
 
 		gpm:save("farms.gpm")
@@ -93,6 +129,6 @@ return {
 
 		gpm:save("farms.gwt")
 		unitTest:assertFile("farms.gwt")
-    end
+	end
 }
 
