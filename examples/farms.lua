@@ -1,8 +1,7 @@
 -- @example GPM Implementation creating maps.
 -- Creates maps based on distance routes, entry points and exit points.
 
--- import gpm and terralib
-import("terralib")
+-- import gpm
 import("gpm")
 
 -- create the CellularSpace

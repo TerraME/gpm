@@ -279,32 +279,36 @@ metaTableGPM_ = {
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
--- 	file = filePath("roads.shp", "gpm"),
--- 	geometry = true
+--  file = filePath("roads.shp", "gpm"),
+--  geometry = true
 -- }
 --
 -- local communities = CellularSpace{
--- 	file = filePath("communities.shp", "gpm"),
--- 	geometry = true
+--  file = filePath("communities.shp", "gpm"),
+--  geometry = true
 -- }
 --
 -- local farms = CellularSpace{
--- 	file = filePath("farms.shp", "gpm"),
--- 	geometry = true
+--  file = filePath("farms.shp", "gpm"),
+--  geometry = true
 -- }
 --
 -- local network = Network{
--- 	target = communities,
--- 	lines = roads,
--- 	weight = function(distance) return distance end,
--- 	outside = function(distance) return distance * 2 end
+--  target = communities,
+--  lines = roads,
+--  weight = function(distance) return distance end,
+--  outside = function(distance) return distance * 2 end
 -- }
 --
 -- local gpm = GPM{
--- 	network = network,
--- 	origin = farms,
--- 	distance = "distance",
--- 	relation = "community"
+--  network = network,
+--  origin = farms,
+--  distance = "distance",
+--  relation = "community",
+--  output = {
+--   id = "id1",
+--   distance = "distance"
+--  }
 -- }
 function GPM(data)
 	verifyNamedTable(data)
