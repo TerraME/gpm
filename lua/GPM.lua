@@ -59,24 +59,21 @@ local function addOutput(self, geometry)
 end
 
 local function buildPointTarget(self, reference, network, centroid, ID, geometry)
-	local minimumDistance = math.huge
-	local distancePointTarget
+	local distancePointTarget = math.huge
 	local target
 
 	forEachElement(network.distance.netpoint, function(point)
 		local distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distance
 
-		if distance < minimumDistance then
+		if distance < distancePointTarget then
 			target = network.distance.netpoint[point].targetID
-			minimumDistance = distance
 			distancePointTarget = distance
 		end
 
 		distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distanceOutside
 
-		if distance < minimumDistance then
+		if distance < distancePointTarget then
 			target = network.distance.netpoint[point].targetIDOutside
-			minimumDistance = distance
 			distancePointTarget = distance
 		end
 	end)
@@ -196,9 +193,10 @@ end
 GPM_ = {
 	type_ = "GPM",
 	--- Save the GPM values ​​for use in '.shp'.
-	-- @arg fileName The names of the attributes to be saved,
+	-- @arg fileName The names of the file to be saved,
 	-- this name is a string.
 	-- This file can have three extension '.gal', '.gwt' and '.gpm''.
+	-- The values ID_Neighborhood ​​and Attribute are defined by the output parameter.
 	-- @usage roads = CellularSpace{
 	-- 	file = filePath("roads.shp", "gpm"),
 	-- 	geometry = true
@@ -232,12 +230,12 @@ GPM_ = {
 	-- gpm = GPM{
 	-- 	network = network,
 	-- 	origin = farms,
-	--	distance = "distance",
-	--	relation = "community",
-	--	output = {
-	--		id = "id1",
-	--		distance = "distance"
-	--	}
+	-- 	distance = "distance",
+	-- 	relation = "community",
+	-- 	output = {
+	-- 		id = "id1",
+	-- 		distance = "distance"
+	-- 	}
 	-- }
 	--
 	-- gpm:save("farms.gpm")
@@ -281,32 +279,32 @@ metaTableGPM_ = {
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
---	file = filePath("roads.shp", "gpm"),
---	geometry = true
+-- 	file = filePath("roads.shp", "gpm"),
+-- 	geometry = true
 -- }
 --
 -- local communities = CellularSpace{
---	file = filePath("communities.shp", "gpm"),
---	geometry = true
+-- 	file = filePath("communities.shp", "gpm"),
+-- 	geometry = true
 -- }
 --
 -- local farms = CellularSpace{
---	file = filePath("farms.shp", "gpm"),
---	geometry = true
+-- 	file = filePath("farms.shp", "gpm"),
+-- 	geometry = true
 -- }
 --
 -- local network = Network{
---	target = communities,
---	lines = roads,
---	weight = function(distance) return distance end,
---	outside = function(distance) return distance * 2 end
+-- 	target = communities,
+-- 	lines = roads,
+-- 	weight = function(distance) return distance end,
+-- 	outside = function(distance) return distance * 2 end
 -- }
 --
 -- local gpm = GPM{
---	network = network,
---	origin = farms,
---	distance = "distance",
---	relation = "community"
+-- 	network = network,
+-- 	origin = farms,
+-- 	distance = "distance",
+-- 	relation = "community"
 -- }
 function GPM(data)
 	verifyNamedTable(data)
@@ -329,10 +327,6 @@ function GPM(data)
 		forEachElement(data.output, function(output)
 			if output ~= 'id' and output ~= 'distance' then
 				incompatibleValueError("output", "id or distance", output) 
-			end
-
-			if cell[output] == nil then
-				customError("Argument '"..data.output[output].."' already exists in the Cell.")
 			end
 		end)
 	else

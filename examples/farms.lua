@@ -1,6 +1,10 @@
 -- @example GPM Implementation creating maps.
 -- Creates maps based on distance routes, entry points and exit points.
 
+-- import gpm and terralib
+import("terralib")
+import("gpm")
+
 -- create the CellularSpace
 local csCenterspt = CellularSpace{
 	file = filePath("communities.shp", "gpm"),
@@ -38,7 +42,7 @@ local gpm = GPM{
 	distance = "distance",
 	relation = "community",
 	output = {
-		id = "idi",
+		id = "id1",
 		distance = "distance"
 	}
 }
@@ -53,7 +57,14 @@ map = Map{
 
 map = Map{
 	target = gpm.origin,
-	select = "idi",
+	select = "id1",
 	value = {1, 2, 3, 4},
 	color = {"red", "blue", "green", "black"}
 }
+
+gpm:save("gpm.gpm")
+
+farms:loadNeighborhood{
+	source = "gpm.gpm"
+}
+
