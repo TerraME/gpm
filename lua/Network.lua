@@ -479,20 +479,20 @@ metaTableNetwork_ = {
 -- @output a network based on the geometry.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
---	file = filePath("roads.shp", "gpm"),
---	geometry = true
+-- 	file = filePath("roads.shp", "gpm"),
+-- 	geometry = true
 -- }
 --
 -- local communities = CellularSpace{
---	geometry = true,
---	file = filePath("communities.shp", "gpm")
+-- 	geometry = true,
+-- 	file = filePath("communities.shp", "gpm")
 -- }
 --
 -- local nt = Network{
---	target = communities,
---	lines = roads,
---	weight = function(distance) return distance end,
---	outside = function(distance) return distance * 2 end
+-- 	target = communities,
+-- 	lines = roads,
+-- 	weight = function(distance) return distance end,
+-- 	outside = function(distance) return distance * 2 end
 -- }
 function Network(data)
 	verifyNamedTable(data)
