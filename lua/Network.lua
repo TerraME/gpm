@@ -458,8 +458,7 @@ Network_ = {
 }
 
 metaTableNetwork_ = {
-	__index = Network_,
-	__tostring = _Gtme.tostring
+	__index = Network_
 }
 
 --- Type for network creation. Given geometry of the line type,

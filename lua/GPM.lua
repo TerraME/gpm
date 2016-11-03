@@ -193,8 +193,8 @@ end
 GPM_ = {
 	type_ = "GPM",
 	--- Save the GPM values ​​for use in '.shp'.
-	-- @arg fileName The names of the file to be saved,
-	-- this name is a string.
+	-- @arg file The names of the file to be saved,
+	-- this name is a string or file.
 	-- This file can have three extension '.gal', '.gwt' and '.gpm''.
 	-- The values ID_Neighborhood ​​and Attribute are defined by the output parameter.
 	-- @usage roads = CellularSpace{
@@ -239,15 +239,13 @@ GPM_ = {
 	-- }
 	--
 	-- gpm:save("farms.gpm")
-	save = function(self, fileName)
-		if type(fileName) ~= "string" then
-			incompatibleTypeError("nameFile", "string", fileName)
-		end
+	save = function(self, file)
+		local fileName = ""..file
 
-		local file = File(fileName)
-
-		if file:exists() then
-			customError("A file with name '"..fileName.."' already exists.")
+		if type(file) ~= "string" then
+			if type(file) ~= "File" then
+				incompatibleTypeError("nameFile", "String or File", file)
+			end
 		end
 
 		local extension = string.sub(fileName, -4)
@@ -262,8 +260,7 @@ GPM_ = {
 	end
 }
 metaTableGPM_ = {
-	__index = GPM_,
-	__tostring = _Gtme.tostring
+	__index = GPM_
 }
 
 --- Compute a generalised proximity matrix from a Network.

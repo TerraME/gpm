@@ -60,7 +60,6 @@ return {
 			value = {1, 2, 3, 4},
 			color = {"red", "blue", "green", "black"}
 		}
-		unitTest:assertType(map, "Map")
 		unitTest:assertSnapshot(map, "id_farms.bmp")
 
 		map = Map{
@@ -69,7 +68,6 @@ return {
 			slices = 20,
 			color = "Blues"
 		}
-		unitTest:assertType(map, "Map")
 		unitTest:assertSnapshot(map, "distance_farms.bmp")
 
 		unitTest:assertType(gpm, "GPM")
@@ -129,6 +127,14 @@ return {
 
 		gpm:save("farms.gwt")
 		unitTest:assertFile("farms.gwt")
+
+		local fileGPM = File("farms.gpm")
+		local fileGAL = File("farms.gal")
+		local fileGWT = File("farms.gwt")
+
+		fileGPM:deleteIfExists()
+		fileGAL:deleteIfExists()
+		fileGWT:deleteIfExists()
 	end
 }
 
