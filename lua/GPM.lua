@@ -118,11 +118,10 @@ local function createOpenGPM(self)
 	end)
 end
 
-local function saveGAL(self, fileName)
+local function saveGAL(self, file)
 	local validates = false
 	local origin = self.origin
 	local outputText = "0 "..#self.neighbor.." "..origin.layer.." object_id_\n"
-	local file = File(fileName)
 
 	forEachElement(self.neighbor, function(neighbor)
 		outputText = outputText..(neighbor).." "..self.neighbor[neighbor].."\n"
@@ -143,11 +142,10 @@ local function saveGAL(self, fileName)
 	file:close()
 end
 
-local function saveGPM(self, fileName)
+local function saveGPM(self, file)
 	local validates = false
 	local origin = self.origin
 	local outputText = "0 "..origin.layer.." "..origin.layer.." object_id_\n"
-	local file = File(fileName)
 
 	if self.output.distance == nil then
 		mandatoryArgumentError("output.distance")
@@ -172,11 +170,10 @@ local function saveGPM(self, fileName)
 	file:close()
 end
 
-local function saveGWT(self, fileName)
+local function saveGWT(self, file)
 	local validates = false
 	local origin = self.origin
 	local outputText = "0 "..#self.neighbor.." "..origin.layer.." object_id_\n"
-	local file = File(fileName)
 
 	if self.output.distance == nil then
 		mandatoryArgumentError("output.distance")
@@ -194,7 +191,7 @@ GPM_ = {
 	type_ = "GPM",
 	--- Save the GPM values ​​for use in '.shp'.
 	-- @arg file The names of the file to be saved,
-	-- this name is a string or file.
+	-- this name is a string or a base::File.
 	-- This file can have three extension '.gal', '.gwt' and '.gpm''.
 	-- The values ID_Neighborhood ​​and Attribute are defined by the output parameter.
 	-- @usage roads = CellularSpace{
@@ -240,22 +237,22 @@ GPM_ = {
 	--
 	-- gpm:save("farms.gpm")
 	save = function(self, file)
-		local fileName = ""..file
-
-		if type(file) ~= "string" then
-			if type(file) ~= "File" then
-				incompatibleTypeError("nameFile", "String or File", file)
-			end
+		if type(file) == "string" then
+			file = File(file)
 		end
 
-		local extension = string.sub(fileName, -4)
+		if type(file) ~= "File" then
+			incompatibleTypeError("file", "string or File", file)
+		end
 
-		if extension == ".gpm" then
-			saveGPM(self, fileName)
-		elseif extension == ".gwt" then
-			saveGWT(self, fileName)
-		elseif extension == ".gal" then
-			saveGAL(self, fileName)
+		local extension = file:extension()
+
+		if extension == "gpm" then
+			saveGPM(self, file)
+		elseif extension == "gwt" then
+			saveGWT(self, file)
+		elseif extension == "gal" then
+			saveGAL(self, file)
 		end
 	end
 }
@@ -326,7 +323,7 @@ function GPM(data)
 		local cell = data.origin:sample()
 
 		forEachElement(data.output, function(output)
-			if output ~= 'id' and output ~= 'distance' then
+			if output ~= "id" and output ~= "distance" then
 				incompatibleValueError("output", "id or distance", output) 
 			end
 		end)
