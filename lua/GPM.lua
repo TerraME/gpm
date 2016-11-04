@@ -205,17 +205,28 @@ end
 local function saveGWT(self, file)
 	local validates = false
 	local origin = self.origin
-	local outputText = "0 "..#self.neighbor.." "..origin.layer.." object_id_\n"
+	local outputText = {}
+
+	table.insert(outputText, "0 ")
+	table.insert(outputText, #self.neighbor)
+	table.insert(outputText, " ")
+	table.insert(outputText, origin.layer)
+	table.insert(outputText, " object_id_\n")
 
 	if self.output.distance == nil then
 		mandatoryArgumentError("output.distance")
 	end
 
 	forEachElement(self.origin.cells, function(cell)
-		outputText = outputText..self.origin.cells[cell].neighbor.." "..self.origin.cells[cell].code.." "..self.origin.cells[cell][self.output.distance].."\n"
+		table.insert(outputText, self.origin.cells[cell].neighbor)
+		table.insert(outputText, " ")
+		table.insert(outputText, self.origin.cells[cell].code)
+		table.insert(outputText, " ")
+		table.insert(outputText, self.origin.cells[cell][self.output.distance])
+		table.insert(outputText, "\n")
 	end)
 
-	file:write(outputText)
+	file:write(table.concat(outputText))
 	file:close()
 end
 
