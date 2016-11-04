@@ -123,7 +123,7 @@ return {
 		local error_func = function()
 			gpm:save(nameFile)
 		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("nameFile", "string", nameFile))
+		unitTest:assertError(error_func, incompatibleTypeMsg("file", "string or File", nameFile))
 
 		local gpm = GPM{
 			network = network,
