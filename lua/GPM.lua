@@ -165,28 +165,40 @@ end
 local function saveGPM(self, file)
 	local validates = false
 	local origin = self.origin
-	local outputText = "0 "..origin.layer.." "..origin.layer.." object_id_\n"
+	local outputText = {}
+
+	table.insert(outputText, "0 ")
+	table.insert(outputText, origin.layer)
+	table.insert(outputText, " ")
+	table.insert(outputText, origin.layer)
+	table.insert(outputText, " object_id_\n")
 
 	if self.output.distance == nil then
 		mandatoryArgumentError("output.distance")
 	end
 
 	forEachElement(self.neighbor, function(neighbor)
-		outputText = outputText..(neighbor).." "..self.neighbor[neighbor].."\n"
+		table.insert(outputText, neighbor)
+		table.insert(outputText, " ")
+		table.insert(outputText, self.neighbor[neighbor])
+		table.insert(outputText, "\n")
 
 		forEachElement(self.origin.cells, function(cell)
 			if self.origin.cells[cell].neighbor == neighbor then
-				outputText = outputText..self.origin.cells[cell].code.." "..self.origin.cells[cell][self.output.distance].." "
+				table.insert(outputText, self.origin.cells[cell].code)
+				table.insert(outputText, " ")
+				table.insert(outputText, self.origin.cells[cell][self.output.distance])
+				table.insert(outputText, " ")
 				validates = true
 			end
 		end)
 
 		if validates then
-			outputText = outputText.."\n"
+			table.insert(outputText, "\n")
 		end
 	end)
 
-	file:write(outputText)
+	file:write(table.concat(outputText))
 	file:close()
 end
 
