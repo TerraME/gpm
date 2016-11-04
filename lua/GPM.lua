@@ -104,6 +104,8 @@ end
 
 local function createOpenGPM(self)
 	local counterCode = 0
+	local numberGeometry = math.abs(#self.origin/4) - 1
+	local counterGeometry = numberGeometry
 
 	self.neighbor = {}
 
@@ -115,6 +117,13 @@ local function createOpenGPM(self)
 
 		getDistanceInputPoint(self, geometry:getCentroid(), self.network, geometry.FID, geometryOrigin)
 		counterCode = counterCode + 1
+
+		if self.progress then
+			if counterCode >= counterGeometry then
+				print("Processing origin "..math.ceil(counterGeometry/numberGeometry).."/4")
+				counterGeometry = counterGeometry + numberGeometry
+			end
+		end
 	end)
 end
 
@@ -270,6 +279,7 @@ metaTableGPM_ = {
 -- @arg data.relation --.
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ​​ID and distance.
+-- @arg data.progress print as values are being processed(optional).
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
@@ -306,7 +316,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress"})
 	mandatoryTableArgument(data, "network", "Network")
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
@@ -315,6 +325,9 @@ function GPM(data)
 	end
 
 	defaultTableValue(data, "quantity", 1)
+	defaultTableValue(data, "progress", false)
+
+	mandatoryTableArgument(data, "progress", "boolean")
 
 	optionalTableArgument(data, "distance", "string")
 	optionalTableArgument(data, "relation", "string")
