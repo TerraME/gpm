@@ -387,6 +387,10 @@ local function buildDistanceWeight(target, netpoint, self)
 	forEachElement(target, function(targetLines)
 		local targetLine = target[targetLines]
 
+		if self.progress then
+			print("Reducing distances "..targetLines.."/"..#target)
+		end
+
 		forEachElement(targetLine.insidePoint, function(inTarget)
 			local point = targetLine.insidePoint[inTarget]
 			local pointTarget = targetLine.targetPoint
@@ -398,6 +402,10 @@ local function buildDistanceWeight(target, netpoint, self)
 			end
 		end)
 	end)
+
+	if self.progress then
+		print("It is not possible to reduce distances anymore.")
+	end
 
 	while loopRoute do
 		forEachElement(netpoint, function(node)
@@ -434,8 +442,8 @@ local function buildDistanceOutside(target, netpoint, self)
 end
 
 local function buildDistancePointTarget(target, lines, self, netpoint)
-	buildDistanceWeight(target, netpoint, self)
 	buildDistanceOutside(target, netpoint, self)
+	buildDistanceWeight(target, netpoint, self)
 
 	return {
 		netpoint = netpoint,
@@ -475,6 +483,7 @@ metaTableNetwork_ = {
 -- If not set a function, will return to own distance.
 -- @arg data.error Error argument to connect the lines in the Network (optional).
 -- If data.error case is not defined , assigned the value 0.
+-- @arg data.progress print as values are being processed(optional).
 -- @output a network based on the geometry.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
@@ -495,7 +504,7 @@ metaTableNetwork_ = {
 -- }
 function Network(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"target", "lines", "strategy", "weight", "outside", "error"})
+	verifyUnnecessaryArguments(data, {"target", "lines", "strategy", "weight", "outside", "error", "progress"})
 	mandatoryTableArgument(data, "lines", "CellularSpace")
 
 	if data.lines.geometry then
@@ -524,6 +533,10 @@ function Network(data)
 
 	optionalTableArgument(data, "strategy", "open")
 	defaultTableValue(data, "error", 0)
+	defaultTableValue(data, "progress", false)
+
+	mandatoryTableArgument(data, "error", "number")
+	mandatoryTableArgument(data, "progress", "boolean")
 
 	data.distance = createOpenNetwork(data)
 
