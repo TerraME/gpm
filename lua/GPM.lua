@@ -23,7 +23,6 @@
 -------------------------------------------------------------------------------------------
 
 local terralib = getPackage("terralib")
-local binding = _Gtme.terralib_mod_binding_lua
 local tl = terralib.TerraLib{}
 
 local function addOutputID(ID, geometry, polygonID)
@@ -58,7 +57,7 @@ local function addOutput(self, geometry)
 	return reference
 end
 
-local function buildPointTarget(self, reference, network, centroid, ID, geometry)
+local function buildPointTarget(self, reference, network, centroid, geometry)
 	local distancePointTarget = math.huge
 	local target
 
@@ -96,10 +95,10 @@ local function buildPointTarget(self, reference, network, centroid, ID, geometry
 	end
 end
 
-local function getDistanceInputPoint(self, centroid, network, ID, geometry)
+local function getDistanceInputPoint(self, centroid, network, geometry)
 	local reference = addOutput(self, geometry)
 
-	buildPointTarget(self, reference, network, centroid, ID, geometry)
+	buildPointTarget(self, reference, network, centroid, geometry)
 end
 
 local function createOpenGPM(self)
@@ -115,7 +114,7 @@ local function createOpenGPM(self)
 
 		local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 
-		getDistanceInputPoint(self, geometry:getCentroid(), self.network, geometry.FID, geometryOrigin)
+		getDistanceInputPoint(self, geometry:getCentroid(), self.network, geometryOrigin)
 		counterCode = counterCode + 1
 
 		if self.progress then
@@ -203,7 +202,6 @@ local function saveGPM(self, file)
 end
 
 local function saveGWT(self, file)
-	local validates = false
 	local origin = self.origin
 	local outputText = {}
 
@@ -367,8 +365,6 @@ function GPM(data)
 	optionalTableArgument(data, "relation", "string")
 
 	if data.output ~= nil then
-		local cell = data.origin:sample()
-
 		forEachElement(data.output, function(output)
 			if output ~= "id" and output ~= "distance" then
 				incompatibleValueError("output", "id or distance", output) 

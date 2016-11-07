@@ -43,7 +43,7 @@ return {
 
 		unitTest:assertType(cell.distance, "number")
 
-		local gpm = GPM{
+		gpm = GPM{
 			network = network,
 			origin = farms,
 			distance = "distance",

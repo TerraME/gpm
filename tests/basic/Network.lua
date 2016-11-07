@@ -21,7 +21,7 @@ return {
 					return distance / 2
 				end
 			end,
-			outside = function(distance, cell)
+			outside = function(distance)
 				return distance * 2
 			end
 		}

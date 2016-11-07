@@ -180,7 +180,7 @@ local function checkNetworkDisconnected(lines)
 	end
 end
 
-local function closestPointFromSegment(line, p, lineID)
+local function closestPointFromSegment(line, p)
 	local x, y
 	local points = {getBeginPoint(line), getEndPoint(line)}
 	local p2 = {points[2]:getX() - points[1]:getX(), points[2]:getY() - points[1]:getY()}
@@ -213,12 +213,12 @@ local function buildPointTarget(lines, target)
 		local distance
 		local minDistance = math.huge
 		local point
-		local targetPoint
+		local target
 
 		forEachCell(lines, function(line)
 			local geometryLine= tl:castGeomToSubtype(line.geom:getGeometryN(0))
 			local counterPoint = geometryLine:getNPoints()
-			local pointLine = closestPointFromSegment(line, geometry, line.FID)
+			local pointLine = closestPointFromSegment(line, geometry)
 			local distancePL = geometry:distance(pointLine)
 
 			for i = 0, counterPoint do
@@ -233,13 +233,13 @@ local function buildPointTarget(lines, target)
 				if distance < minDistance then 
 					minDistance = distance
 					targetLine = line
-					targetPoint = point
+					target = point
 				end
 			end
 		end)
 
 		if targetLine ~= nil then
-			targetLine.targetPoint = targetPoint
+			targetLine.targetPoint = target
 			targetLine.pointDistance = minDistance
 			arrayTargetLine[counterTarget] = targetLine
 			counterTarget = counterTarget + 1
@@ -251,7 +251,6 @@ end
 
 local function checksInterconnectedNetwork(data)
 	local counterCellRed = 0
-	local warning = false
 	local counterLineError = 0
 	local netpoints = createConnectivity(data.lines)
 
@@ -380,7 +379,6 @@ local function distanceFromRouteToNode(node, netpoint, weight, lines)
 end
 
 local function buildDistanceWeight(target, netpoint, self)
-	local distanceWeight = {}
 	local loopRoute = true
 	local change
 
@@ -423,8 +421,6 @@ local function buildDistanceWeight(target, netpoint, self)
 end
 
 local function buildDistanceOutside(target, netpoint, self)
-	local distance = math.huge
-
 	forEachElement(netpoint, function(inTarget)
 		local point = netpoint[inTarget].point
 

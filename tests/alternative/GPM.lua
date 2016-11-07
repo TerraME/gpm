@@ -32,7 +32,7 @@ return {
 		}
 
 		local error_func = function()
-			local gpm = GPM{
+			GPM{
 				network = 2,
 				origin = farms
 			}
@@ -43,8 +43,8 @@ return {
 			file = filePath("farms.shp", "gpm")
 		}
 
-		local error_func = function()
-			local gpm = GPM{
+		error_func = function()
+			GPM{
 				network = network,
 				origin = farms
 			}
@@ -56,8 +56,8 @@ return {
 			geometry = true
 		}
 
-		local error_func = function()
-			local gpm = GPM{
+		error_func = function()
+			GPM{
 				network = network,
 				origin = farms,
 				distance = "distance",
@@ -70,7 +70,7 @@ return {
 		unitTest:assertError(error_func, incompatibleValueMsg("output", "id or distance", "d"))
 
 		error_func = function()
-			local gpm = GPM{
+			GPM{
 				network = network,
 				origin = 2
 			}
@@ -125,7 +125,7 @@ return {
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("file", "string or File", nameFile))
 
-		local gpm = GPM{
+		gpm = GPM{
 			network = network,
 			origin = farms,
 			distance = "distance",
