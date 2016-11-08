@@ -213,7 +213,7 @@ local function buildPointTarget(lines, target)
 		local distance
 		local minDistance = math.huge
 		local point
-		local target
+		local pointTarget
 
 		forEachCell(lines, function(line)
 			local geometryLine= tl:castGeomToSubtype(line.geom:getGeometryN(0))
@@ -225,7 +225,7 @@ local function buildPointTarget(lines, target)
 				point = tl:castGeomToSubtype(geometryLine:getPointN(i))
 				distance = geometry:distance(point)
 
-				if distancePL < distance and line.geom:contains(pointLine) then
+				if distancePL < distance and line.geom:distance(pointLine) <= 0 then
 					distance = distancePL
 					point = pointLine
 				end
@@ -233,13 +233,13 @@ local function buildPointTarget(lines, target)
 				if distance < minDistance then 
 					minDistance = distance
 					targetLine = line
-					target = point
+					pointTarget = point
 				end
 			end
 		end)
 
 		if targetLine ~= nil then
-			targetLine.targetPoint = target
+			targetLine.targetPoint = pointTarget
 			targetLine.pointDistance = minDistance
 			arrayTargetLine[counterTarget] = targetLine
 			counterTarget = counterTarget + 1
@@ -496,7 +496,8 @@ metaTableNetwork_ = {
 --  target = communities,
 --  lines = roads,
 --  weight = function(distance) return distance end,
---  outside = function(distance) return distance * 2 end
+--  outside = function(distance) return distance * 2 end,
+--  progress = true
 -- }
 function Network(data)
 	verifyNamedTable(data)
