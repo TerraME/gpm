@@ -17,7 +17,7 @@ local csLine = CellularSpace{
 }
 
 local farms = CellularSpace{
-	file = filePath("rfarms_cells2.shp", "gpm"),
+	file = filePath("farms_cells.shp", "gpm"),
 	geometry = true
 }
 
@@ -32,7 +32,8 @@ local network = Network{
 			return distance / 2
 		end
 	end,
-	outside = function(distance, cell) return distance * 2 end
+	outside = function(distance, cell) return distance * 2 end,
+	progress = true
 }
 
 -- creating a GPM with the distance of the entry points for the routes
@@ -44,7 +45,8 @@ local gpm = GPM{
 	output = {
 		id = "id1",
 		distance = "distance"
-	}
+	},
+	progress = true
 }
 
 -- creating Map with values ​​GPM

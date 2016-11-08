@@ -25,7 +25,7 @@ local network = Network{
 return {
 	GPM = function(unitTest)
 		local farms = CellularSpace{
-			file = filePath("rfarms_cells2.shp", "gpm"),
+			file = filePath("farms_cells.shp", "gpm"),
 			geometry = true
 		}
 
@@ -77,7 +77,7 @@ return {
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{
-			file = filePath("rfarms_cells2.shp", "gpm"),
+			file = filePath("farms_cells.shp", "gpm"),
 			geometry = true
 		}
 

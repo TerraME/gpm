@@ -108,6 +108,10 @@ local function createOpenGPM(self)
 
 	self.neighbor = {}
 
+	if self.progress then
+		print("Processing origin 1/4") --SKIP
+	end
+
 	forEachCell(self.origin, function(geometryOrigin)
 		geometryOrigin.code = counterCode
 		geometryOrigin.neighbor = 0
@@ -118,8 +122,10 @@ local function createOpenGPM(self)
 		counterCode = counterCode + 1
 
 		if self.progress then
-			if counterCode >= counterGeometry then --SKIP
-				print("Processing origin "..math.ceil(counterGeometry/numberGeometry).."/4") --SKIP
+			local counterNumber = math.ceil(counterGeometry/numberGeometry) --SKIP
+
+			if counterCode >= counterGeometry and counterNumber <= 3 then --SKIP
+				print("Processing origin "..(math.ceil(counterGeometry/numberGeometry) + 1).."/4") --SKIP
 				counterGeometry = counterGeometry + numberGeometry --SKIP
 			end
 		end
@@ -238,7 +244,7 @@ GPM_ = {
 	-- }
 	--
 	-- farms = CellularSpace{
-	--  file = filePath("farms.shp", "gpm"),
+	--  file = filePath("farms_cells.shp", "gpm"),
 	--  geometry = true
 	-- }
 	--
@@ -321,7 +327,7 @@ metaTableGPM_ = {
 -- }
 --
 -- local farms = CellularSpace{
---  file = filePath("farms.shp", "gpm"),
+--  file = filePath("farms_cells.shp", "gpm"),
 --  geometry = true
 -- }
 --
@@ -339,9 +345,9 @@ metaTableGPM_ = {
 --  relation = "community",
 --  output = {
 --   id = "id1",
---   distance = "distance",
---   progress = true
---  }
+--   distance = "distance"
+--  },
+--  progress = true
 -- }
 function GPM(data)
 	verifyNamedTable(data)

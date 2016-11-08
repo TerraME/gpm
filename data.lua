@@ -17,6 +17,17 @@ data{
 }
 
 data{
+	file = "farms_cells.shp",
+	attributes = {
+		id = "Character identifier",
+		col = "number of columns",
+		row = "number of line"
+	},
+	summary = "A shapefile describing the farms.",
+	source = "TerraME team"
+}
+
+data{
 	file = "censopop2000_bd.shp",
 	attributes = {
 		MSLINK = "?", 
