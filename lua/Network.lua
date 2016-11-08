@@ -386,7 +386,7 @@ local function buildDistanceWeight(target, netpoint, self)
 		local targetLine = target[targetLines]
 
 		if self.progress then
-			print("Reducing distances "..targetLines.."/"..#target)
+			print("Reducing distances "..targetLines.."/"..#target) --SKIP
 		end
 
 		forEachElement(targetLine.insidePoint, function(inTarget)
@@ -402,7 +402,7 @@ local function buildDistanceWeight(target, netpoint, self)
 	end)
 
 	if self.progress then
-		print("It is not possible to reduce distances anymore.")
+		print("It is not possible to reduce distances anymore.") --SKIP
 	end
 
 	while loopRoute do

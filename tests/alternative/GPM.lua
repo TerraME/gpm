@@ -1,34 +1,32 @@
+local roads = CellularSpace{
+	file = filePath("roads.shp", "gpm"),
+	geometry = true
+}
 
+local communities = CellularSpace{
+	file = filePath("communities.shp", "gpm"),
+	geometry = true
+}
+
+local network = Network{
+	lines = roads,
+	target = communities,
+	weight = function(distance, cell)
+		if cell.CD_PAVIMEN == "pavimentada" then
+			return distance / 5
+		else
+			return distance / 2
+		end
+	end,
+	outside = function(distance)
+		return distance * 2
+	end
+}
 return {
 	GPM = function(unitTest)
-		local roads = CellularSpace{
-			file = filePath("roads.shp", "gpm"),
-			geometry = true
-		}
-
-		local communities = CellularSpace{
-			file = filePath("communities.shp", "gpm"),
-			geometry = true
-		}
-		
 		local farms = CellularSpace{
 			file = filePath("rfarms_cells2.shp", "gpm"),
 			geometry = true
-		}
-
-		local network = Network{
-			lines = roads,
-			target = communities,
-			weight = function(distance, cell)
-				if cell.CD_PAVIMEN == "pavimentada" then
-					return distance / 5
-				else
-					return distance / 2
-				end
-			end,
-			outside = function(distance)
-				return distance * 2
-			end
 		}
 
 		local error_func = function()
@@ -78,34 +76,9 @@ return {
 		unitTest:assertError(error_func, incompatibleTypeMsg("origin", "CellularSpace", 2))
 	end,
 	save = function(unitTest)
-		local roads = CellularSpace{
-			file = filePath("roads.shp", "gpm"),
-			geometry = true
-		}
-
-		local communities = CellularSpace{
-			file = filePath("communities.shp", "gpm"),
-			geometry = true
-		}
-		
 		local farms = CellularSpace{
 			file = filePath("rfarms_cells2.shp", "gpm"),
 			geometry = true
-		}
-
-		local network = Network{
-			lines = roads,
-			target = communities,
-			weight = function(distance, cell)
-				if cell.CD_PAVIMEN == "pavimentada" then
-					return distance / 5
-				else
-					return distance / 2
-				end
-			end,
-			outside = function(distance)
-				return distance * 2
-			end
 		}
 
 		local gpm = GPM{
@@ -115,7 +88,6 @@ return {
 			relation = "community",
 			output = {
 				id = "id1",
-				distance = "distance"
 			}
 		}
 		local nameFile = 2
@@ -124,20 +96,10 @@ return {
 			gpm:save(nameFile)
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("file", "string or File", nameFile))
-
-		gpm = GPM{
-			network = network,
-			origin = farms,
-			distance = "distance",
-			relation = "community",
-			output = {
-				id = "id1"
-			}
-		}
     
 		error_func = function()
 			gpm:save("gpm.gpm")
 		end
-		unitTest:assertError(error_func, mandatoryArgumentMsg("output.distance"))
+		unitTest:assertError(error_func, mandatoryArgumentMsg("output.distance and output.id"))
 	end
 }

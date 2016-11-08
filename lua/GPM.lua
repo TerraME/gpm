@@ -118,9 +118,9 @@ local function createOpenGPM(self)
 		counterCode = counterCode + 1
 
 		if self.progress then
-			if counterCode >= counterGeometry then
-				print("Processing origin "..math.ceil(counterGeometry/numberGeometry).."/4")
-				counterGeometry = counterGeometry + numberGeometry
+			if counterCode >= counterGeometry then --SKIP
+				print("Processing origin "..math.ceil(counterGeometry/numberGeometry).."/4") --SKIP
+				counterGeometry = counterGeometry + numberGeometry --SKIP
 			end
 		end
 	end)
@@ -172,10 +172,6 @@ local function saveGPM(self, file)
 	table.insert(outputText, origin.layer)
 	table.insert(outputText, " object_id_\n")
 
-	if self.output.distance == nil then
-		mandatoryArgumentError("output.distance")
-	end
-
 	forEachElement(self.neighbor, function(neighbor)
 		table.insert(outputText, neighbor)
 		table.insert(outputText, " ")
@@ -211,10 +207,6 @@ local function saveGWT(self, file)
 	table.insert(outputText, origin.layer)
 	table.insert(outputText, " object_id_\n")
 
-	if self.output.distance == nil then
-		mandatoryArgumentError("output.distance")
-	end
-
 	forEachElement(self.origin.cells, function(cell)
 		table.insert(outputText, self.origin.cells[cell].neighbor)
 		table.insert(outputText, " ")
@@ -236,44 +228,44 @@ GPM_ = {
 	-- This file can have three extension '.gal', '.gwt' and '.gpm''.
 	-- The values ID_Neighborhood ​​and Attribute are defined by the output parameter.
 	-- @usage roads = CellularSpace{
-	-- 	file = filePath("roads.shp", "gpm"),
-	-- 	geometry = true
+	--  file = filePath("roads.shp", "gpm"),
+	--  geometry = true
 	-- }
 	--
 	-- communities = CellularSpace{
-	-- 	file = filePath("communities.shp", "gpm"),
-	-- 	geometry = true
+	--  file = filePath("communities.shp", "gpm"),
+	--  geometry = true
 	-- }
 	--
 	-- farms = CellularSpace{
-	-- 	file = filePath("farms.shp", "gpm"),
-	-- 	geometry = true
+	--  file = filePath("farms.shp", "gpm"),
+	--  geometry = true
 	-- }
 	--
 	-- network = Network{
-	-- 	lines = roads,
-	-- 	target = communities,
-	-- 	weight = function(distance, cell)
-	-- 		if cell.CD_PAVIMEN == "pavimentada" then
-	-- 			return distance / 5
-	-- 		else
-	-- 			return distance / 2
-	-- 		end
+	--  lines = roads,
+	--  target = communities,
+	--  weight = function(distance, cell)
+	--   if cell.CD_PAVIMEN == "pavimentada" then
+	--    return distance / 5
+	--   else
+	--    return distance / 2
+	--   end
 	-- 	end,
-	-- 	outside = function(distance)
-	-- 		return distance * 2
-	-- 	end
+	--  outside = function(distance)
+	--   return distance * 2
+	--  end
 	-- }
 	--
 	-- gpm = GPM{
-	-- 	network = network,
-	-- 	origin = farms,
-	-- 	distance = "distance",
-	-- 	relation = "community",
-	-- 	output = {
-	-- 		id = "id1",
-	-- 		distance = "distance"
-	-- 	}
+	--  network = network,
+	--  origin = farms,
+	--  distance = "distance",
+	--  relation = "community",
+	--  output = {
+	--   id = "id1",
+	--   distance = "distance"
+	--  }
 	-- }
 	--
 	-- gpm:save("farms.gpm")
@@ -284,6 +276,10 @@ GPM_ = {
 
 		if type(file) ~= "File" then
 			incompatibleTypeError("file", "string or File", file)
+		end
+
+		if self.output.distance == nil or self.output.id == nil then
+			mandatoryArgumentError("output.distance and output.id")
 		end
 
 		local extension = file:extension()
@@ -343,7 +339,8 @@ metaTableGPM_ = {
 --  relation = "community",
 --  output = {
 --   id = "id1",
---   distance = "distance"
+--   distance = "distance",
+--   progress = true
 --  }
 -- }
 function GPM(data)
@@ -370,11 +367,10 @@ function GPM(data)
 				incompatibleValueError("output", "id or distance", output) 
 			end
 		end)
-	else
-		data.output = false
 	end
 
 	data.distance = createOpenGPM(data)
 	setmetatable(data, metaTableGPM_)
+
 	return data
 end
