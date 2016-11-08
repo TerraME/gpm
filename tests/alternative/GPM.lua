@@ -18,10 +18,9 @@ local network = Network{
 			return distance / 2
 		end
 	end,
-	outside = function(distance)
-		return distance * 2
-	end
+	outside = function(distance) return distance * 2 end
 }
+
 return {
 	GPM = function(unitTest)
 		local farms = CellularSpace{

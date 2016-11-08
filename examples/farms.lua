@@ -63,13 +63,12 @@ map = Map{
 	value = {1, 2, 3, 4},
 	color = {"red", "blue", "green", "black"}
 }
-
-local file = File("gpm.gpm")
-
-file:deleteIfExists()
 gpm:save("gpm.gpm")
 
 farms:loadNeighborhood{
 	source = "gpm.gpm"
 }
 
+local file = File("gpm.gpm")
+
+file:deleteIfExists()
