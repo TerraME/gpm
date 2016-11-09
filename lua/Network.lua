@@ -180,7 +180,7 @@ local function checkNetworkDisconnected(lines)
 	end
 end
 
-local function closestPointFromSegment(line, p, lineID)
+local function closestPointFromSegment(line, p)
 	local x, y
 	local points = {getBeginPoint(line), getEndPoint(line)}
 	local p2 = {points[2]:getX() - points[1]:getX(), points[2]:getY() - points[1]:getY()}
@@ -213,19 +213,19 @@ local function buildPointTarget(lines, target)
 		local distance
 		local minDistance = math.huge
 		local point
-		local targetPoint
+		local pointTarget
 
 		forEachCell(lines, function(line)
 			local geometryLine= tl:castGeomToSubtype(line.geom:getGeometryN(0))
 			local counterPoint = geometryLine:getNPoints()
-			local pointLine = closestPointFromSegment(line, geometry, line.FID)
+			local pointLine = closestPointFromSegment(line, geometry)
 			local distancePL = geometry:distance(pointLine)
 
 			for i = 0, counterPoint do
 				point = tl:castGeomToSubtype(geometryLine:getPointN(i))
 				distance = geometry:distance(point)
 
-				if distancePL < distance and line.geom:contains(pointLine) then
+				if distancePL < distance and line.geom:distance(pointLine) <= 0 then
 					distance = distancePL
 					point = pointLine
 				end
@@ -233,13 +233,13 @@ local function buildPointTarget(lines, target)
 				if distance < minDistance then 
 					minDistance = distance
 					targetLine = line
-					targetPoint = point
+					pointTarget = point
 				end
 			end
 		end)
 
 		if targetLine ~= nil then
-			targetLine.targetPoint = targetPoint
+			targetLine.targetPoint = pointTarget
 			targetLine.pointDistance = minDistance
 			arrayTargetLine[counterTarget] = targetLine
 			counterTarget = counterTarget + 1
@@ -251,7 +251,6 @@ end
 
 local function checksInterconnectedNetwork(data)
 	local counterCellRed = 0
-	local warning = false
 	local counterLineError = 0
 	local netpoints = createConnectivity(data.lines)
 
@@ -279,8 +278,8 @@ local function checksInterconnectedNetwork(data)
 				local geometryB = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
 
 				if geometryR:crosses(geometryB) then
-					customWarning("Lines '"..cellRed.FID.."' and '"..cellBlue.FID.."' cross each other.")
 					counterLineError = counterLineError + 1
+					customWarning("Lines '"..cellRed.FID.."' and '"..cellBlue.FID.."' cross each other.")
 				end
 
 				local bePointB = {getBeginPoint(cellBlue), getEndPoint(cellBlue)}
@@ -380,12 +379,15 @@ local function distanceFromRouteToNode(node, netpoint, weight, lines)
 end
 
 local function buildDistanceWeight(target, netpoint, self)
-	local distanceWeight = {}
 	local loopRoute = true
 	local change
 
 	forEachElement(target, function(targetLines)
 		local targetLine = target[targetLines]
+
+		if self.progress then
+			print("Reducing distances "..targetLines.."/"..#target) --SKIP
+		end
 
 		forEachElement(targetLine.insidePoint, function(inTarget)
 			local point = targetLine.insidePoint[inTarget]
@@ -415,8 +417,6 @@ local function buildDistanceWeight(target, netpoint, self)
 end
 
 local function buildDistanceOutside(target, netpoint, self)
-	local distance = math.huge
-
 	forEachElement(netpoint, function(inTarget)
 		local point = netpoint[inTarget].point
 
@@ -434,8 +434,8 @@ local function buildDistanceOutside(target, netpoint, self)
 end
 
 local function buildDistancePointTarget(target, lines, self, netpoint)
-	buildDistanceWeight(target, netpoint, self)
 	buildDistanceOutside(target, netpoint, self)
+	buildDistanceWeight(target, netpoint, self)
 
 	return {
 		netpoint = netpoint,
@@ -458,8 +458,7 @@ Network_ = {
 }
 
 metaTableNetwork_ = {
-	__index = Network_,
-	__tostring = _Gtme.tostring
+	__index = Network_
 }
 
 --- Type for network creation. Given geometry of the line type,
@@ -476,27 +475,29 @@ metaTableNetwork_ = {
 -- If not set a function, will return to own distance.
 -- @arg data.error Error argument to connect the lines in the Network (optional).
 -- If data.error case is not defined , assigned the value 0.
+-- @arg data.progress print as values are being processed(optional).
 -- @output a network based on the geometry.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
---	file = filePath("roads.shp", "gpm"),
---	geometry = true
+--     file = filePath("roads.shp", "gpm"),
+--     geometry = true
 -- }
 --
 -- local communities = CellularSpace{
---	geometry = true,
---	file = filePath("communities.shp", "gpm")
+--     geometry = true,
+--     file = filePath("communities.shp", "gpm")
 -- }
 --
 -- local nt = Network{
---	target = communities,
---	lines = roads,
---	weight = function(distance) return distance end,
---	outside = function(distance) return distance * 2 end
+--     target = communities,
+--     lines = roads,
+--     weight = function(distance) return distance end,
+--     outside = function(distance) return distance * 2 end,
+--     progress = true
 -- }
 function Network(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"target", "lines", "strategy", "weight", "outside", "error"})
+	verifyUnnecessaryArguments(data, {"target", "lines", "strategy", "weight", "outside", "error", "progress"})
 	mandatoryTableArgument(data, "lines", "CellularSpace")
 
 	if data.lines.geometry then
@@ -525,6 +526,10 @@ function Network(data)
 
 	optionalTableArgument(data, "strategy", "open")
 	defaultTableValue(data, "error", 0)
+	defaultTableValue(data, "progress", false)
+
+	mandatoryTableArgument(data, "error", "number")
+	mandatoryTableArgument(data, "progress", "boolean")
 
 	data.distance = createOpenNetwork(data)
 

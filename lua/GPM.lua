@@ -23,7 +23,6 @@
 -------------------------------------------------------------------------------------------
 
 local terralib = getPackage("terralib")
-local binding = _Gtme.terralib_mod_binding_lua
 local tl = terralib.TerraLib{}
 
 local function addOutputID(ID, geometry, polygonID)
@@ -58,25 +57,22 @@ local function addOutput(self, geometry)
 	return reference
 end
 
-local function buildPointTarget(self, reference, network, centroid, ID, geometry)
-	local minimumDistance = math.huge
-	local distancePointTarget
+local function buildPointTarget(self, reference, network, centroid, geometry)
+	local distancePointTarget = math.huge
 	local target
 
 	forEachElement(network.distance.netpoint, function(point)
 		local distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distance
 
-		if distance < minimumDistance then
+		if distance < distancePointTarget then
 			target = network.distance.netpoint[point].targetID
-			minimumDistance = distance
 			distancePointTarget = distance
 		end
 
 		distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distanceOutside
 
-		if distance < minimumDistance then
+		if distance < distancePointTarget then
 			target = network.distance.netpoint[point].targetIDOutside
-			minimumDistance = distance
 			distancePointTarget = distance
 		end
 	end)
@@ -99,14 +95,15 @@ local function buildPointTarget(self, reference, network, centroid, ID, geometry
 	end
 end
 
-local function getDistanceInputPoint(self, centroid, network, ID, geometry)
+local function getDistanceInputPoint(self, centroid, network, geometry)
 	local reference = addOutput(self, geometry)
 
-	buildPointTarget(self, reference, network, centroid, ID, geometry)
+	buildPointTarget(self, reference, network, centroid, geometry)
 end
 
 local function createOpenGPM(self)
 	local counterCode = 0
+	local numberGeometry = #self.origin
 
 	self.neighbor = {}
 
@@ -116,156 +113,185 @@ local function createOpenGPM(self)
 
 		local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 
-		getDistanceInputPoint(self, geometry:getCentroid(), self.network, geometry.FID, geometryOrigin)
+		getDistanceInputPoint(self, geometry:getCentroid(), self.network, geometryOrigin)
 		counterCode = counterCode + 1
+
+		if self.progress then
+			print("Processing origin "..counterCode.."/"..numberGeometry) --SKIP
+		end
 	end)
 end
 
-local function saveGAL(self, fileName)
+local function saveGAL(self, file)
 	local validates = false
 	local origin = self.origin
-	local outputText = "0 "..#self.neighbor.." "..origin.layer.." object_id_\n"
-	local file = File(fileName)
+	local outputText = {}
+
+	table.insert(outputText, "0 ")
+	table.insert(outputText, #self.neighbor)
+	table.insert(outputText, " ")
+	table.insert(outputText, origin.layer)
+	table.insert(outputText, " object_id_\n")
+
 
 	forEachElement(self.neighbor, function(neighbor)
-		outputText = outputText..(neighbor).." "..self.neighbor[neighbor].."\n"
+		table.insert(outputText, neighbor)
+		table.insert(outputText, " ")
+		table.insert(outputText, self.neighbor[neighbor])
+		table.insert(outputText, "\n")
 
 		forEachElement(self.origin.cells, function(cell)
 			if self.origin.cells[cell].neighbor == neighbor then
-				outputText = outputText..self.origin.cells[cell].code.." "
+				table.insert(outputText, self.origin.cells[cell].code)
+				table.insert(outputText, " ")
 				validates = true
 			end
 		end)
 
 		if validates then
-			outputText = outputText.."\n"
+			table.insert(outputText, "\n")
 		end
 	end)
 
-	file:write(outputText)
+	file:write(table.concat(outputText))
 	file:close()
 end
 
-local function saveGPM(self, fileName)
+local function saveGPM(self, file)
 	local validates = false
 	local origin = self.origin
-	local outputText = "0 "..origin.layer.." "..origin.layer.." object_id_\n"
-	local file = File(fileName)
+	local outputText = {}
 
-	if self.output.distance == nil then
-		mandatoryArgumentError("output.distance")
-	end
+	table.insert(outputText, "0 ")
+	table.insert(outputText, origin.layer)
+	table.insert(outputText, " ")
+	table.insert(outputText, origin.layer)
+	table.insert(outputText, " object_id_\n")
 
 	forEachElement(self.neighbor, function(neighbor)
-		outputText = outputText..(neighbor).." "..self.neighbor[neighbor].."\n"
+		table.insert(outputText, neighbor)
+		table.insert(outputText, " ")
+		table.insert(outputText, self.neighbor[neighbor])
+		table.insert(outputText, "\n")
 
 		forEachElement(self.origin.cells, function(cell)
 			if self.origin.cells[cell].neighbor == neighbor then
-				outputText = outputText..self.origin.cells[cell].code.." "..self.origin.cells[cell][self.output.distance].." "
+				table.insert(outputText, self.origin.cells[cell].code)
+				table.insert(outputText, " ")
+				table.insert(outputText, self.origin.cells[cell][self.output.distance])
+				table.insert(outputText, " ")
 				validates = true
 			end
 		end)
 
 		if validates then
-			outputText = outputText.."\n"
+			table.insert(outputText, "\n")
 		end
 	end)
 
-	file:write(outputText)
+	file:write(table.concat(outputText))
 	file:close()
 end
 
-local function saveGWT(self, fileName)
-	local validates = false
+local function saveGWT(self, file)
 	local origin = self.origin
-	local outputText = "0 "..#self.neighbor.." "..origin.layer.." object_id_\n"
-	local file = File(fileName)
+	local outputText = {}
 
-	if self.output.distance == nil then
-		mandatoryArgumentError("output.distance")
-	end
+	table.insert(outputText, "0 ")
+	table.insert(outputText, #self.neighbor)
+	table.insert(outputText, " ")
+	table.insert(outputText, origin.layer)
+	table.insert(outputText, " object_id_\n")
 
 	forEachElement(self.origin.cells, function(cell)
-		outputText = outputText..self.origin.cells[cell].neighbor.." "..self.origin.cells[cell].code.." "..self.origin.cells[cell][self.output.distance].."\n"
+		table.insert(outputText, self.origin.cells[cell].neighbor)
+		table.insert(outputText, " ")
+		table.insert(outputText, self.origin.cells[cell].code)
+		table.insert(outputText, " ")
+		table.insert(outputText, self.origin.cells[cell][self.output.distance])
+		table.insert(outputText, "\n")
 	end)
 
-	file:write(outputText)
+	file:write(table.concat(outputText))
 	file:close()
 end
 
 GPM_ = {
 	type_ = "GPM",
 	--- Save the GPM values ​​for use in '.shp'.
-	-- @arg fileName The names of the attributes to be saved,
-	-- this name is a string.
+	-- @arg file The names of the file to be saved,
+	-- this name is a string or a base::File.
 	-- This file can have three extension '.gal', '.gwt' and '.gpm''.
-	-- @usage roads = CellularSpace{
-	-- 	file = filePath("roads.shp", "gpm"),
-	-- 	geometry = true
+	-- The values ID_Neighborhood ​​and Attribute are defined by the output parameter.
+	-- @usage import("gpm")
+	-- local roads = CellularSpace{
+	--     file = filePath("roads.shp", "gpm"),
+	--     geometry = true
 	-- }
 	--
 	-- communities = CellularSpace{
-	-- 	file = filePath("communities.shp", "gpm"),
-	-- 	geometry = true
+	--     file = filePath("communities.shp", "gpm"),
+	--     geometry = true
 	-- }
 	--
 	-- farms = CellularSpace{
-	-- 	file = filePath("farms.shp", "gpm"),
-	-- 	geometry = true
+	--     file = filePath("farms_cells.shp", "gpm"),
+	--     geometry = true
 	-- }
 	--
 	-- network = Network{
-	-- 	lines = roads,
-	-- 	target = communities,
-	-- 	weight = function(distance, cell)
-	-- 		if cell.CD_PAVIMEN == "pavimentada" then
-	-- 			return distance / 5
-	-- 		else
-	-- 			return distance / 2
-	-- 		end
-	-- 	end,
-	-- 	outside = function(distance)
-	-- 		return distance * 2
-	-- 	end
+	--     lines = roads,
+	--     target = communities,
+	--     weight = function(distance, cell)
+	--         if cell.CD_PAVIMEN == "pavimentada" then
+	--             return distance / 5
+	--         else
+	--             return distance / 2
+	--         end
+	--     end,
+	--     outside = function(distance)
+	--         return distance * 2
+	--     end
 	-- }
 	--
 	-- gpm = GPM{
-	-- 	network = network,
-	-- 	origin = farms,
-	--	distance = "distance",
-	--	relation = "community",
-	--	output = {
-	--		id = "id1",
-	--		distance = "distance"
-	--	}
+	--     network = network,
+	--     origin = farms,
+	--     distance = "distance",
+	--     relation = "community",
+	--     output = {
+	--         id = "id1",
+	--         distance = "distance"
+	--     }
 	-- }
 	--
 	-- gpm:save("farms.gpm")
-	save = function(self, fileName)
-		if type(fileName) ~= "string" then
-			incompatibleTypeError("nameFile", "string", fileName)
+	save = function(self, file)
+		if type(file) == "string" then
+			file = File(file)
 		end
 
-		local file = File(fileName)
-
-		if file:exists() then
-			customError("A file with name '"..fileName.."' already exists.")
+		if type(file) ~= "File" then
+			incompatibleTypeError("file", "string or File", file)
 		end
 
-		local extension = string.sub(fileName, -4)
+		if self.output.distance == nil or self.output.id == nil then
+			mandatoryArgumentError("output.distance and output.id")
+		end
 
-		if extension == ".gpm" then
-			saveGPM(self, fileName)
-		elseif extension == ".gwt" then
-			saveGWT(self, fileName)
-		elseif extension == ".gal" then
-			saveGAL(self, fileName)
+		local extension = file:extension()
+
+		if extension == "gpm" then
+			saveGPM(self, file)
+		elseif extension == "gwt" then
+			saveGWT(self, file)
+		elseif extension == "gal" then
+			saveGAL(self, file)
 		end
 	end
 }
 metaTableGPM_ = {
-	__index = GPM_,
-	__tostring = _Gtme.tostring
+	__index = GPM_
 }
 
 --- Compute a generalised proximity matrix from a Network.
@@ -278,39 +304,45 @@ metaTableGPM_ = {
 -- @arg data.relation --.
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ​​ID and distance.
+-- @arg data.progress print as values are being processed(optional).
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
---	file = filePath("roads.shp", "gpm"),
---	geometry = true
+--     file = filePath("roads.shp", "gpm"),
+--     geometry = true
 -- }
 --
 -- local communities = CellularSpace{
---	file = filePath("communities.shp", "gpm"),
---	geometry = true
+--     file = filePath("communities.shp", "gpm"),
+--     geometry = true
 -- }
 --
 -- local farms = CellularSpace{
---	file = filePath("farms.shp", "gpm"),
---	geometry = true
+--     file = filePath("farms_cells.shp", "gpm"),
+--     geometry = true
 -- }
 --
 -- local network = Network{
---	target = communities,
---	lines = roads,
---	weight = function(distance) return distance end,
---	outside = function(distance) return distance * 2 end
+--     target = communities,
+--     lines = roads,
+--     weight = function(distance) return distance end,
+--     outside = function(distance) return distance * 2 end
 -- }
 --
 -- local gpm = GPM{
---	network = network,
---	origin = farms,
---	distance = "distance",
---	relation = "community"
+--     network = network,
+--     origin = farms,
+--     distance = "distance",
+--     relation = "community",
+--     output = {
+--         id = "id1",
+--         distance = "distance"
+--     },
+--     progress = true
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress"})
 	mandatoryTableArgument(data, "network", "Network")
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
@@ -319,27 +351,23 @@ function GPM(data)
 	end
 
 	defaultTableValue(data, "quantity", 1)
+	defaultTableValue(data, "progress", false)
+
+	mandatoryTableArgument(data, "progress", "boolean")
 
 	optionalTableArgument(data, "distance", "string")
 	optionalTableArgument(data, "relation", "string")
 
 	if data.output ~= nil then
-		local cell = data.origin:sample()
-
 		forEachElement(data.output, function(output)
-			if output ~= 'id' and output ~= 'distance' then
+			if output ~= "id" and output ~= "distance" then
 				incompatibleValueError("output", "id or distance", output) 
 			end
-
-			if cell[output] == nil then
-				customError("Argument '"..data.output[output].."' already exists in the Cell.")
-			end
 		end)
-	else
-		data.output = false
 	end
 
 	data.distance = createOpenGPM(data)
 	setmetatable(data, metaTableGPM_)
+
 	return data
 end

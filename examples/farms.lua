@@ -1,5 +1,9 @@
 -- @example GPM Implementation creating maps.
 -- Creates maps based on distance routes, entry points and exit points.
+-- This example creates a 'gpm.gpm' file if you have another file with this name will be deleted.
+
+-- import gpm
+import("gpm")
 
 -- create the CellularSpace
 local csCenterspt = CellularSpace{
@@ -13,7 +17,7 @@ local csLine = CellularSpace{
 }
 
 local farms = CellularSpace{
-	file = filePath("rfarms_cells2.shp", "gpm"),
+	file = filePath("farms_cells.shp", "gpm"),
 	geometry = true
 }
 
@@ -28,7 +32,8 @@ local network = Network{
 			return distance / 2
 		end
 	end,
-	outside = function(distance, cell) return distance * 2 end
+	outside = function(distance, cell) return distance * 2 end,
+	progress = true
 }
 
 -- creating a GPM with the distance of the entry points for the routes
@@ -38,9 +43,10 @@ local gpm = GPM{
 	distance = "distance",
 	relation = "community",
 	output = {
-		id = "idi",
+		id = "id1",
 		distance = "distance"
-	}
+	},
+	progress = true
 }
 
 -- creating Map with values ​​GPM
@@ -53,7 +59,16 @@ map = Map{
 
 map = Map{
 	target = gpm.origin,
-	select = "idi",
+	select = "id1",
 	value = {1, 2, 3, 4},
 	color = {"red", "blue", "green", "black"}
 }
+gpm:save("gpm.gpm")
+
+farms:loadNeighborhood{
+	source = "gpm.gpm"
+}
+
+local file = File("gpm.gpm")
+
+file:deleteIfExists()

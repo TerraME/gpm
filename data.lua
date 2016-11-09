@@ -1,7 +1,6 @@
 data{
 	file = "farms.shp",
-	attributes = {"id"},
-	description = {"Character identifier"},
+	attributes = {id = "Character identifier"},
 	summary = "A shapefile describing the farms.",
 	source = "TerraME team"
 }
@@ -9,14 +8,20 @@ data{
 data{
 	file = "rfarms_cells2.shp",
 	attributes = {
-		"id",
-		"col",
-		"row"
+		id = "Character identifier",
+		col = "number of columns",
+		row = "number of line"
 	},
-	description = {
-		"Character identifier",
-		"number of columns",
-		"number of line"
+	summary = "A shapefile describing the farms.",
+	source = "TerraME team"
+}
+
+data{
+	file = "farms_cells.shp",
+	attributes = {
+		id = "Character identifier",
+		col = "number of columns",
+		row = "number of line"
 	},
 	summary = "A shapefile describing the farms.",
 	source = "TerraME team"
@@ -25,26 +30,15 @@ data{
 data{
 	file = "censopop2000_bd.shp",
 	attributes = {
-		"MSLINK", 
-		"AREA_1",
-		"PERIMETRO_",
-		"CODIGO",
-		"NOMEMUNI",
-		"RENDIMENTO",
-		"NUMERO_PES",
-		"RENDAPCAPI",
-		"DENS_POP"
-	},
-	description = {
-		"?",
-		"Area of region",
-		"Perimeter of city",
-		"Character code",
-		"Name of city",
-		"Yield of the city",
-		"Number of people",
-		"Income per person",
-		"Population density"
+		MSLINK = "?", 
+		AREA_1 = "Area of region",
+		PERIMETRO_ = "Perimeter of city",
+		CODIGO = "Character code",
+		NOMEMUNI = "Name of city",
+		RENDIMENTO = "Yield of the city",
+		NUMERO_PES = "Number of people",
+		RENDAPCAPI = "Income per person",
+		DENS_POP = "Population density"
 	},
 	summary = "A shapefile describing the population control.",
 	source = "TerraME team"
@@ -53,26 +47,15 @@ data{
 data{
 	file = "communities.shp",
 	attributes = {
-		"LAYER", 
-		"LOCALIDADE",
-		"MUNICIPIO",
-		"ATENDIMENT",
-		"POPULA__O",
-		"UCS_FATURA",
-		"ALIMENTADO",
-		"CONSUMO_FA",
-		"CONSUMO_ME"
-	},
-	description = {
-		"Type of layer",
-		"Location of region",
-		"City of the region",
-		"Atendiment in the region",
-		"Number of population",
-		"?",
-		"Fed communities",
-		"?",
-		"?"
+		LAYER = "Type of layer", 
+		LOCALIDADE = "Location of region",
+		MUNICIPIO = "City of the region",
+		ATENDIMENT = "Atendiment in the region",
+		POPULA__O = "Number of population",
+		UCS_FATURA = "?",
+		ALIMENTADO = "Fed communities",
+		CONSUMO_FA = "?",
+		CONSUMO_ME = "?"
 	},
 	summary = "A shapefile describing the communities states.",
 	source = "TerraME team"
@@ -81,26 +64,15 @@ data{
 data{
 	file = "comunidades_UTM.shp",
 	attributes = {
-		"LAYER", 
-		"LOCALIDADE",
-		"MUNICIPIO",
-		"ATENDIMENT",
-		"POPULA__O",
-		"UCS_FATURA",
-		"ALIMENTADO",
-		"CONSUMO_FA",
-		"CONSUMO_ME"
-	},
-	description = {
-		"Type of layer",
-		"Location of region",
-		"City of the region",
-		"Atendiment in the region",
-		"Number of population",
-		"?",
-		"Fed communities",
-		"?",
-		"?"
+		LAYER = "Type of layer", 
+		LOCALIDADE = "Location of region",
+		MUNICIPIO = "City of the region",
+		ATENDIMENT = "Atendiment in the region",
+		POPULA__O = "Number of population",
+		UCS_FATURA = "?",
+		ALIMENTADO = "Fed communities",
+		CONSUMO_FA = "?",
+		CONSUMO_ME = "?"
 	},
 	summary = "A shapefile describing the population control.",
 	source = "TerraME team"
@@ -108,8 +80,7 @@ data{
 
 data{
 	file = "lotes_UTM.shp",
-	attributes = {"id"},
-	description = {"Character identifier"},
+	attributes = {id = "Character identifier"},
 	summary = "A shapefile describing the lots.",
 	source = "TerraME team"
 }
@@ -117,42 +88,23 @@ data{
 data{
 	file = "roads.shp",
 	attributes = {
-		"GM_LAYER", 
-		"GM_TYPE",
-		"LAYER",
-		"FEATURE_ID",
-		"CD_NUMERO_",
-		"CD_ALINHAM",
-		"CD_CLASSE",
-		"CD_PAVIMEN",
-		"CD_TRAFEGO",
-		"CD_SITUACA",
-		"CD_ADMINIS",
-		"NM_RODOVIA",
-		"NM_SIGLA",
-		"PROJECT_ID",
-		"SHAPE_LENG",
-		"SHAPE_LEN",
-		"OBJET_ID_8"
-	},
-	description = {
-		"Geometry of layer",
-		"Type of geometry",
-		"Type of layer",
-		"Identifier feature",
-		"?",
-		"?",
-		"?",
-		"?",
-		"?",
-		"?",
-		"?",
-		"Number of highway",
-		"Number of acronyms",
-		"Identifier project",
-		"?",
-		"?",
-		"Objects identifier 8"
+		GM_LAYER = "Geometry of layer", 
+		GM_TYPE = "Type of geometry",
+		LAYER = "Type of layer",
+		FEATURE_ID = "Identifier feature",
+		CD_NUMERO_ = "?",
+		CD_ALINHAM = "?",
+		CD_CLASSE = "?",
+		CD_PAVIMEN = "?",
+		CD_TRAFEGO = "?",
+		CD_SITUACA = "?",
+		CD_ADMINIS = "?",
+		NM_RODOVIA = "Number of highway",
+		NM_SIGLA = "Number of acronyms",
+		PROJECT_ID = "Identifier project",
+		SHAPE_LENG = "?",
+		SHAPE_LEN = "?",
+		OBJET_ID_8 = "Objects identifier 8"
 	},
 	summary = "A shapefile describing the lots.",
 	source = "TerraME team"
@@ -161,14 +113,9 @@ data{
 data{
 	file = "rondonia_roads_lin.shp",
 	attributes = { 
-		"SPRPERIMET", 
-		"SPRCLASSE",
-		"objet_id_5"
-	},
-	description = {
-		"?",
-		"?",
-		"Objects identifier 55"
+		SPRPERIMET = "?", 
+		SPRCLASSE = "?",
+		objet_id_5 = "Objects identifier 55"
 	},
 	summary = "A shapefile describing the roads of  rondonia.",
 	source = "TerraME team"
@@ -181,36 +128,20 @@ data{
 		"rondonia_urban_centers_props.txt"
         },
 	attributes = {
-		"SPRROTULO", 
-		"SPRNOME",
-		"MSLINK",
-		"MAPID",
-		"CODIGO",
-		"AREA_1",
-		"PERIMETRO_",
-		"GEOCODIGO",
-		"NOME",
-		"SEDE",
-		"LATITUDESE",
-		"LONGITUDES",
-		"AREA_TOT_G",
-		"objet_id_2"
-	},
-	description = {
-		"?",
-		"?",
-		"?",
-		"Identifier of map",
-		"Character code",
-		"Area of region",
-		"Perimeter of city",
-		"Geografico code",
-		"Name of city",
-		"?",
-		"Latitude of city",
-		"Longitude of city",
-		"?",
-		"Objects identifier 2"
+		SPRROTULO = "?", 
+		SPRNOME = "?",
+		MSLINK = "?",
+		MAPID = "Identifier of map",
+		CODIGO = "Character code",
+		AREA_1 = "Area of region",
+		PERIMETRO_ = "Perimeter of city",
+		GEOCODIGO = "Geografico code",
+		NOME = "Name of city",
+		SEDE = "?",
+		LATITUDESE = "Latitude of city",
+		LONGITUDES = "Longitude of city",
+		AREA_TOT_G = "?",
+		objet_id_2 = "Objects identifier 2"
 	},
 	summary = "A shapefile describing urban centers of Rondonia.",
 	source = "TerraME team"
@@ -219,42 +150,23 @@ data{
 data{
 	file = "rodovias_UTM.shp",
 	attributes = {
-		"GM_LAYER", 
-		"GM_TYPE",
-		"LAYER",
-		"FEATURE_ID",
-		"CD_NUMERO_",
-		"CD_ALINHAM",
-		"CD_CLASSE",
-		"CD_PAVIMEN",
-		"CD_TRAFEGO",
-		"CD_SITUACA",
-		"CD_ADMINIS",
-		"NM_RODOVIA",
-		"NM_SIGLA",
-		"PROJECT_ID",
-		"SHAPE_LENG",
-		"SHAPE_LEN",
-		"OBJET_ID_8"
-	},
-	description = {
-		"Geometry of layer",
-		"Type of geometry",
-		"Type of layer",
-		"Identifier feature",
-		"?",
-		"?",
-		"?",
-		"?",
-		"?",
-		"?",
-		"?",
-		"Number of highway",
-		"Number of acronyms",
-		"Identifier project",
-		"?",
-		"?",
-		"Objects identifier 8"
+		GM_LAYER = "Geometry of layer", 
+		GM_TYPE = "Type of geometry",
+		LAYER = "Type of layer",
+		FEATURE_ID = "Identifier feature",
+		CD_NUMERO_ = "?",
+		CD_ALINHAM = "?",
+		CD_CLASSE = "?",
+		CD_PAVIMEN = "?",
+		CD_TRAFEGO = "?",
+		CD_SITUACA = "?",
+		CD_ADMINIS = "?",
+		NM_RODOVIA = "Number of highway",
+		NM_SIGLA = "Number of acronyms",
+		PROJECT_ID = "Identifier project",
+		SHAPE_LENG = "?",
+		SHAPE_LEN = "?",
+		OBJET_ID_8 = "Objects identifier 8"
 	},
 	summary = "A shapefile describing urban centers of Rondonia.",
 	source = "TerraME team"
