@@ -223,45 +223,46 @@ GPM_ = {
 	-- this name is a string or a base::File.
 	-- This file can have three extension '.gal', '.gwt' and '.gpm''.
 	-- The values ID_Neighborhood ​​and Attribute are defined by the output parameter.
-	-- @usage roads = CellularSpace{
-	--  file = filePath("roads.shp", "gpm"),
-	--  geometry = true
+	-- @usage import("gpm")
+	-- local roads = CellularSpace{
+	--     file = filePath("roads.shp", "gpm"),
+	--     geometry = true
 	-- }
 	--
 	-- communities = CellularSpace{
-	--  file = filePath("communities.shp", "gpm"),
-	--  geometry = true
+	--     file = filePath("communities.shp", "gpm"),
+	--     geometry = true
 	-- }
 	--
 	-- farms = CellularSpace{
-	--  file = filePath("farms_cells.shp", "gpm"),
-	--  geometry = true
+	--     file = filePath("farms_cells.shp", "gpm"),
+	--     geometry = true
 	-- }
 	--
 	-- network = Network{
-	--  lines = roads,
-	--  target = communities,
-	--  weight = function(distance, cell)
-	--   if cell.CD_PAVIMEN == "pavimentada" then
-	--    return distance / 5
-	--   else
-	--    return distance / 2
-	--   end
-	--  end,
-	--  outside = function(distance)
-	--   return distance * 2
-	--  end
+	--     lines = roads,
+	--     target = communities,
+	--     weight = function(distance, cell)
+	--         if cell.CD_PAVIMEN == "pavimentada" then
+	--             return distance / 5
+	--         else
+	--             return distance / 2
+	--         end
+	--     end,
+	--     outside = function(distance)
+	--         return distance * 2
+	--     end
 	-- }
 	--
 	-- gpm = GPM{
-	--  network = network,
-	--  origin = farms,
-	--  distance = "distance",
-	--  relation = "community",
-	--  output = {
-	--   id = "id1",
-	--   distance = "distance"
-	--  }
+	--     network = network,
+	--     origin = farms,
+	--     distance = "distance",
+	--     relation = "community",
+	--     output = {
+	--         id = "id1",
+	--         distance = "distance"
+	--     }
 	-- }
 	--
 	-- gpm:save("farms.gpm")
@@ -307,37 +308,37 @@ metaTableGPM_ = {
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
---  file = filePath("roads.shp", "gpm"),
---  geometry = true
+--     file = filePath("roads.shp", "gpm"),
+--     geometry = true
 -- }
 --
 -- local communities = CellularSpace{
---  file = filePath("communities.shp", "gpm"),
---  geometry = true
+--     file = filePath("communities.shp", "gpm"),
+--     geometry = true
 -- }
 --
 -- local farms = CellularSpace{
---  file = filePath("farms_cells.shp", "gpm"),
---  geometry = true
+--     file = filePath("farms_cells.shp", "gpm"),
+--     geometry = true
 -- }
 --
 -- local network = Network{
---  target = communities,
---  lines = roads,
---  weight = function(distance) return distance end,
---  outside = function(distance) return distance * 2 end
+--     target = communities,
+--     lines = roads,
+--     weight = function(distance) return distance end,
+--     outside = function(distance) return distance * 2 end
 -- }
 --
 -- local gpm = GPM{
---  network = network,
---  origin = farms,
---  distance = "distance",
---  relation = "community",
---  output = {
---   id = "id1",
---   distance = "distance"
---  },
---  progress = true
+--     network = network,
+--     origin = farms,
+--     distance = "distance",
+--     relation = "community",
+--     output = {
+--         id = "id1",
+--         distance = "distance"
+--     },
+--     progress = true
 -- }
 function GPM(data)
 	verifyNamedTable(data)
