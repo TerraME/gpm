@@ -257,7 +257,7 @@ GPM_ = {
 	--   else
 	--    return distance / 2
 	--   end
-	-- 	end,
+	--  end,
 	--  outside = function(distance)
 	--   return distance * 2
 	--  end
