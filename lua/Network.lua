@@ -401,10 +401,6 @@ local function buildDistanceWeight(target, netpoint, self)
 		end)
 	end)
 
-	if self.progress then
-		print("It is not possible to reduce distances anymore.") --SKIP
-	end
-
 	while loopRoute do
 		forEachElement(netpoint, function(node)
 			if distanceFromRouteToNode(netpoint[node], netpoint, self.weight, self.lines) then
