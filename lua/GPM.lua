@@ -103,14 +103,9 @@ end
 
 local function createOpenGPM(self)
 	local counterCode = 0
-	local numberGeometry = math.abs(#self.origin/4) - 1
-	local counterGeometry = numberGeometry
+	local numberGeometry = #self.origin
 
 	self.neighbor = {}
-
-	if self.progress then
-		print("Processing origin 1/4") --SKIP
-	end
 
 	forEachCell(self.origin, function(geometryOrigin)
 		geometryOrigin.code = counterCode
@@ -122,12 +117,7 @@ local function createOpenGPM(self)
 		counterCode = counterCode + 1
 
 		if self.progress then
-			local counterNumber = math.ceil(counterGeometry/numberGeometry) --SKIP
-
-			if counterCode >= counterGeometry and counterNumber <= 3 then --SKIP
-				print("Processing origin "..(math.ceil(counterGeometry/numberGeometry) + 1).."/4") --SKIP
-				counterGeometry = counterGeometry + numberGeometry --SKIP
-			end
+			print("Processing origin "..counterCode.."/"..numberGeometry) --SKIP
 		end
 	end)
 end
