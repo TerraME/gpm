@@ -345,8 +345,7 @@ metaTableGPM_ = {
 --     output = {
 --         id = "id1",
 --         distance = "distance"
---     },
---     progress = true
+--     }
 -- }
 function GPM(data)
 	verifyNamedTable(data)
