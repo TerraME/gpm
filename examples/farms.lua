@@ -26,7 +26,7 @@ local network = Network{
 	target = csCenterspt,
 	lines = csLine,
 	weight = function(distance, cell)
-		if cell.CD_PAVIMEN == "paved" then
+		if cell.STATUS == "paved" then
 			return distance / 5
 		else
 			return distance / 2
