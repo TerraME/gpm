@@ -488,12 +488,19 @@ metaTableNetwork_ = {
 --     file = filePath("communities.shp", "gpm")
 -- }
 --
--- local nt = Network{
---     target = communities,
+-- network = Network{
 --     lines = roads,
---     weight = function(distance) return distance end,
---     outside = function(distance) return distance * 2 end,
---     progress = true
+--     target = communities,
+--     weight = function(distance, cell)
+--         if cell.CD_PAVIMEN == "paved" then
+--             return distance / 5
+--         else
+--             return distance / 2
+--         end
+--     end,
+--     outside = function(distance)
+--         return distance * 2
+--     end
 -- }
 function Network(data)
 	verifyNamedTable(data)
