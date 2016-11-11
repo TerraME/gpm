@@ -243,7 +243,7 @@ GPM_ = {
 	--     lines = roads,
 	--     target = communities,
 	--     weight = function(distance, cell)
-	--         if cell.CD_PAVIMEN == "pavimentada" then
+	--         if cell.STATUS == "paved" then
 	--             return distance / 5
 	--         else
 	--             return distance / 2
@@ -322,11 +322,19 @@ metaTableGPM_ = {
 --     geometry = true
 -- }
 --
--- local network = Network{
---     target = communities,
+-- network = Network{
 --     lines = roads,
---     weight = function(distance) return distance end,
---     outside = function(distance) return distance * 2 end
+--     target = communities,
+--     weight = function(distance, cell)
+--         if cell.STATUS == "paved" then
+--             return distance / 5
+--         else
+--             return distance / 2
+--         end
+--     end,
+--     outside = function(distance)
+--         return distance * 2
+--     end
 -- }
 --
 -- local gpm = GPM{
@@ -337,8 +345,7 @@ metaTableGPM_ = {
 --     output = {
 --         id = "id1",
 --         distance = "distance"
---     },
---     progress = true
+--     }
 -- }
 function GPM(data)
 	verifyNamedTable(data)

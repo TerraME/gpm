@@ -15,7 +15,7 @@ return {
 			lines = roads,
 			target = communities,
 			weight = function(distance, cell)
-				if cell.CD_PAVIMEN == "pavimentada" then
+				if cell.STATUS == "paved" then
 					return distance / 5
 				else
 					return distance / 2
