@@ -75,7 +75,7 @@ return {
 		unitTest:assertError(error_func, incompatibleTypeMsg("origin", "CellularSpace", 2))
 
 		error_func = function()
-			local gpm = GPM{
+			GPM{
 				network = network,
 				origin = farms,
 				distance = "distance",
@@ -90,7 +90,7 @@ return {
 		unitTest:assertError(error_func, incompatibleTypeMsg("distancePoint", "number", "distance"))
 
 		error_func = function()
-			local gpm = GPM{
+			GPM{
 				network = network,
 				origin = farms,
 				distance = "distance",

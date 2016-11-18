@@ -58,7 +58,7 @@ return {
 		}
 		unitTest:assertSnapshot(map, "cellID_farms.bmp")
 
-		local map = Map{
+		map = Map{
 			target = gpm.origin,
 			select = "pointID",
 			value = {1, 2, 3, 4},
@@ -66,7 +66,7 @@ return {
 		}
 		unitTest:assertSnapshot(map, "pointID_farms.bmp")
 
-		local map = Map{
+		map = Map{
 			target = gpm.origin,
 			select = "id1",
 			value = {1, 2, 3, 4},
