@@ -73,6 +73,36 @@ return {
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("origin", "CellularSpace", 2))
+
+		error_func = function()
+			local gpm = GPM{
+				network = network,
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					id = "id1",
+					distance = "distance"
+				},
+            	distancePoint = "distance"
+			}
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg("distancePoint", "number", "distance"))
+
+		error_func = function()
+			local gpm = GPM{
+				network = network,
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					id = "id1",
+					distance = "distance"
+				},
+            	polygonOrigin = "distance"
+			}
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg("polygonOrigin", "CellularSpace", "distance"))
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{

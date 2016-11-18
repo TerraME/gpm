@@ -23,25 +23,48 @@ local network = Network{
 
 return {
 	GPM = function(unitTest)
-		local farms = CellularSpace{
+		local farms_cells = CellularSpace{
 			file = filePath("farms_cells.shp", "gpm"),
+			geometry = true
+		}
+
+		local farms = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
 			geometry = true
 		}
 
 		local gpm = GPM{
 			network = network,
-			origin = farms,
+			origin = farms_cells,
 			distance = "distance",
 			relation = "community",
 			output = {
 				id = "id1",
 				distance = "distance"
-			}
+			},
+			polygonOrigin = farms,
+			distancePoint = 2000
 		}
 
 		local cell = gpm.origin:sample()
 
 		unitTest:assertType(cell.distance, "number")
+
+		local map = Map{
+			target = gpm.origin,
+			select = "cellID",
+			value = {1, 2, 3, 4},
+			color = {"red", "blue", "green", "black"}
+		}
+		unitTest:assertSnapshot(map, "cellID_farms.bmp")
+
+		local map = Map{
+			target = gpm.origin,
+			select = "pointID",
+			value = {1, 2, 3, 4},
+			color = {"red", "blue", "green", "black"}
+		}
+		unitTest:assertSnapshot(map, "pointID_farms.bmp")
 
 		local map = Map{
 			target = gpm.origin,
@@ -52,7 +75,7 @@ return {
 		unitTest:assertSnapshot(map, "id_farms.bmp")
 
 		map = Map{
-			target = farms,
+			target = farms_cells,
 			select = "distance",
 			slices = 20,
 			color = "Blues"

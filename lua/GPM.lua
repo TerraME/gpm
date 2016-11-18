@@ -216,6 +216,64 @@ local function saveGWT(self, file)
 	file:close()
 end
 
+local function geometryClosestToPoint(geometryOrigin, target, distance)
+	local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
+	local distanceTarget = math.huge
+
+	forEachCell(target, function(point)
+		local targetPoint = tl:castGeomToSubtype(point.geom:getGeometryN(0))
+		local  distanceToTarget = geometry:distance(targetPoint)
+
+		if distanceToTarget < distance and distanceToTarget <= distanceTarget then
+			distanceTarget = distanceToTarget
+			geometryOrigin.pointID = point.pointID
+		end
+	end)
+end
+
+local function geometryClosestToCells(geometryOrigin, polygonOrigin)
+	local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
+
+	forEachCell(polygonOrigin, function(polygon)
+		local targetPolygon = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local differenceGeometry = targetPolygon:distance(geometry:getCentroid())
+
+		if targetPolygon:contains(geometry) or differenceGeometry < geometryOrigin.dimensionValue then
+			geometryOrigin.cellID = polygon.valueColor
+			geometryOrigin.dimensionValue = differenceGeometry
+		end
+	end)
+end
+
+local function distancePointToTarget(self)
+	local distancePoint = self.distancePoint
+
+	forEachCell(self.origin, function(geometryOrigin)
+		geometryOrigin.pointID = 0
+		geometryClosestToPoint(geometryOrigin, self.network.target, distancePoint)
+	end)
+end
+
+local function distanceCellToTarget(self)
+	local valueColor = 1
+	local polygonOrigin = self.polygonOrigin
+
+	forEachCell(polygonOrigin, function(polygon)
+		polygon.valueColor = valueColor
+		valueColor = valueColor + 1
+
+		if valueColor == 5 then
+			valueColor = 1
+		end
+	end)
+
+	forEachCell(self.origin, function(geometryOrigin)
+		geometryOrigin.dimensionValue = math.huge
+		geometryOrigin.cellID = 0
+		geometryClosestToCells(geometryOrigin, polygonOrigin)
+	end)
+end
+
 GPM_ = {
 	type_ = "GPM",
 	--- Save the GPM values ​​for use in '.shp'.
@@ -290,6 +348,7 @@ GPM_ = {
 		end
 	end
 }
+
 metaTableGPM_ = {
 	__index = GPM_
 }
@@ -302,6 +361,8 @@ metaTableGPM_ = {
 -- @arg data.quantity Number of points for target.
 -- @arg data.distance --.
 -- @arg data.relation --.
+-- @arg data.distancePoint --.
+-- @arg data.polygonOrigin --.
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ​​ID and distance.
 -- @arg data.progress print as values are being processed(optional).
@@ -349,7 +410,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "distancePoint", "polygonOrigin"})
 	mandatoryTableArgument(data, "network", "Network")
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
@@ -375,6 +436,16 @@ function GPM(data)
 
 	data.distance = createOpenGPM(data)
 	setmetatable(data, metaTableGPM_)
+
+	if data.distancePoint ~= nil then
+		mandatoryTableArgument(data, "distancePoint", "number")
+		distancePointToTarget(data)
+	end
+
+	if data.polygonOrigin ~= nil then
+		mandatoryTableArgument(data, "polygonOrigin", "CellularSpace")
+		distanceCellToTarget(data)
+	end
 
 	return data
 end

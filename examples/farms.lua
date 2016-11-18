@@ -1,5 +1,6 @@
 -- @example GPM Implementation creating maps.
 -- Creates maps based on distance routes, entry points and exit points.
+-- This test has commented lines, to create and validate files.
 -- This example creates a 'gpm.gpm' file if you have another file with this name will be deleted.
 
 -- import gpm
@@ -63,12 +64,13 @@ map = Map{
 	value = {1, 2, 3, 4},
 	color = {"red", "blue", "green", "black"}
 }
-gpm:save("gpm.gpm")
 
-farms:loadNeighborhood{
-	source = "gpm.gpm"
-}
+-- gpm:save("gpm.gpm")
 
-local file = File("gpm.gpm")
+-- farms:loadNeighborhood{
+	-- source = "gpm.gpm"
+-- }
 
-file:deleteIfExists()
+-- local file = File("gpm.gpm")
+
+-- file:deleteIfExists()

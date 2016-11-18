@@ -214,6 +214,7 @@ local function buildPointTarget(lines, target)
 		local minDistance = math.huge
 		local point
 		local pointTarget
+		targetPoint.pointID = counterTarget
 
 		forEachCell(lines, function(line)
 			local geometryLine= tl:castGeomToSubtype(line.geom:getGeometryN(0))
