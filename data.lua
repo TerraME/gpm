@@ -6,7 +6,7 @@ data{
 }
 
 data{
-	file = "rfarms_cells2.shp",
+	file = "farms_cells2.shp",
 	attributes = {
 		id = "Character identifier",
 		col = "number of columns",

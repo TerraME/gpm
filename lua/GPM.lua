@@ -216,6 +216,7 @@ local function saveGWT(self, file)
 	file:close()
 end
 
+-- Strategy 'distanceFromTarget'
 local function geometryClosestToPoint(geometryOrigin, target, distance)
 	local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 	local distanceTarget = math.huge
@@ -224,13 +225,23 @@ local function geometryClosestToPoint(geometryOrigin, target, distance)
 		local targetPoint = tl:castGeomToSubtype(point.geom:getGeometryN(0))
 		local  distanceToTarget = geometry:distance(targetPoint)
 
-		if distanceToTarget < distance and distanceToTarget <= distanceTarget then
+		if distanceToTarget < distance and distanceToTarget < distanceTarget then
 			distanceTarget = distanceToTarget
 			geometryOrigin.pointID = point.pointID
 		end
 	end)
 end
 
+local function distancePointToTarget(self)
+	local distancePoint = self.distancePoint
+
+	forEachCell(self.origin, function(geometryOrigin)
+		geometryOrigin.pointID = 0
+		geometryClosestToPoint(geometryOrigin, self.network.target, distancePoint)
+	end)
+end
+
+-- Strategy 'relations'
 local function geometryClosestToCells(geometryOrigin, polygonOrigin)
 	local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 
@@ -242,15 +253,6 @@ local function geometryClosestToCells(geometryOrigin, polygonOrigin)
 			geometryOrigin.cellID = polygon.valueColor
 			geometryOrigin.dimensionValue = differenceGeometry
 		end
-	end)
-end
-
-local function distancePointToTarget(self)
-	local distancePoint = self.distancePoint
-
-	forEachCell(self.origin, function(geometryOrigin)
-		geometryOrigin.pointID = 0
-		geometryClosestToPoint(geometryOrigin, self.network.target, distancePoint)
 	end)
 end
 
@@ -356,16 +358,25 @@ metaTableGPM_ = {
 --- Compute a generalised proximity matrix from a Network.
 -- It gets a Network and a target as parameters and compute the distance
 -- from the targets to the targets of the Network.
+-- @arg data.distance --.
+-- @arg data.distancePoint Distance around to end points (optional).
 -- @arg data.network CellularSpace that receives end points of the networks.
 -- @arg data.origin CellularSpace with geometry representing entry points on the network.
--- @arg data.quantity Number of points for target.
--- @arg data.distance --.
--- @arg data.relation --.
--- @arg data.distancePoint --.
--- @arg data.polygonOrigin --.
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ​​ID and distance.
--- @arg data.progress print as values are being processed(optional).
+-- @arg data.polygonOrigin CellularSpace with a polignos (optional).
+-- @arg data.progress print as values are being processed (optional).
+-- @arg data.quantity Number of points for target (optional).
+-- @arg data.relation --.
+-- @arg data.strategy A string with the strategy to be used for creating the GPM. 
+-- See the table below.
+-- @tabular strategy
+-- Strategy & Description & Compulsory Arguments & Optional Arguments \
+-- "distanceFromTarget" & Returns the cells within the distance of the target,
+-- the cells will always be related to the nearest car. & 
+-- distancePoint & output, progress, quantity, network, origin, distance, relation \
+-- "relations" & Creates networks between polygons and cells.
+-- & polygonOrigin & output, progress, quantity, network, origin, distance, relation \
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
