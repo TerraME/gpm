@@ -31,8 +31,7 @@ local network = Network{
 			return distance / 2
 		end
 	end,
-	outside = function(distance, cell) return distance * 2 end,
-	progress = true
+	outside = function(distance, cell) return distance * 2 end
 }
 
 -- creating a GPM with the distance of the entry points for the routes
@@ -45,7 +44,6 @@ local gpm = GPM{
 		id = "id1",
 		distance = "distance"
 	},
-	progress = true,
 	distancePoint = 2000
 }
 

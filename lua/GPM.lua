@@ -373,7 +373,7 @@ metaTableGPM_ = {
 -- @tabular strategy
 -- Strategy & Description & Compulsory Arguments & Optional Arguments \
 -- "distanceFromTarget" & Returns the cells within the distance of the target,
--- the cells will always be related to the nearest car. & 
+-- the cells will always be related to the nearest target. & 
 -- distancePoint & output, progress, quantity, network, origin, distance, relation \
 -- "relations" & Creates networks between polygons and cells.
 -- & polygonOrigin & output, progress, quantity, network, origin, distance, relation \
