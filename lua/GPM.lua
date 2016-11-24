@@ -218,11 +218,9 @@ end
 
 GPM_ = {
 	type_ = "GPM",
-	--- Save the GPM values ​​for use in '.shp'.
-	-- @arg file The names of the file to be saved,
-	-- this name is a string or a base::File.
-	-- This file can have three extension '.gal', '.gwt' and '.gpm''.
-	-- The values ID_Neighborhood ​​and Attribute are defined by the output parameter.
+	--- Save the neighborhood into a file.
+	-- @arg file A string or a base::File with the name of the file to be saved.
+	-- The file can have three extension '.gal', '.gwt', or '.gpm'.
 	-- @usage import("gpm")
 	-- local roads = CellularSpace{
 	--     file = filePath("roads.shp", "gpm"),
@@ -294,16 +292,15 @@ metaTableGPM_ = {
 	__index = GPM_
 }
 
---- Compute a generalised proximity matrix from a Network.
--- It gets a Network and a target as parameters and compute the distance
--- from the targets to the targets of the Network.
--- @arg data.network CellularSpace that receives end points of the networks.
--- @arg data.origin CellularSpace with geometry representing entry points on the network.
+--- Type to create a Generalised Proximity Matrix (GPM).
+-- It has several strategies that can use geometry as well as Network.
+-- @arg data.network A base::CellularSpace that receives end points of the networks.
+-- @arg data.origin A base::CellularSpace with geometry representing entry points on the network.
 -- @arg data.quantity Number of points for target.
 -- @arg data.distance --.
 -- @arg data.relation --.
 -- @arg data.output Table to receive the output value of the GPM (optional).
--- This table gets two values ​​ID and distance.
+-- This table gets two values ID and distance.
 -- @arg data.progress print as values are being processed(optional).
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
