@@ -33,6 +33,16 @@ return {
 			geometry = true
 		}
 
+		local farmsPolygon = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
+			geometry = true
+		}
+
+		local farmsNeighbor = CellularSpace{
+			file = filePath("partofbrasil.shp", "gpm"),
+			geometry = true
+		}
+
 		local gpm = GPM{
 			network = network,
 			origin = farms_cells,
@@ -42,9 +52,17 @@ return {
 				id = "id1",
 				distance = "distance"
 			},
-			polygonOrigin = farms,
-			distancePoint = 2000
+			distancePoint = 2000,
+			polygonOrigin = farmsPolygon,
+			polygonNeighbor  = farmsNeighbor
 		}
+
+		forEachCell(gpm.polygonNeighbor, function(polygon)
+			unitTest:assert(#polygon.neighbors > 0)
+			forEachElement(polygon.neighbors, function(polygonNeighbor)
+				unitTest:assert(polygon.borderNeighbors[polygon.neighbors[polygonNeighbor]] > 0)
+			end)
+		end)
 
 		local cell = gpm.origin:sample()
 

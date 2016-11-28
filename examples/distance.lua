@@ -1,4 +1,4 @@
--- @example GPM Implementation strategy 'distanceFromTarget' and creating map.
+-- @example GPM Implementation strategy 'distance' and creating map.
 -- Create a map based on the endpoints, and the cells.
 
 -- import gpm

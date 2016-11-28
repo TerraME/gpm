@@ -25,6 +25,7 @@
 local terralib = getPackage("terralib")
 local tl = terralib.TerraLib{}
 
+-- Strategy 'network'
 local function addOutputID(ID, geometry, polygonID)
 	geometry[polygonID] = ID
 end
@@ -88,7 +89,7 @@ local function buildPointTarget(self, reference, network, centroid, geometry)
 	if reference == 1 then
 		addOutputID(target, geometry, self.output.id)
 	elseif reference == 2 then
-		addOutputDistance(distancePointTarget, geometry, self.output.distance)
+		addOutputDistance(distancePointTarget, geometry, self.output.distance) --SKIP
 	elseif reference == 3 then
 		addOutputID(target, geometry, self.output.id)
 		addOutputDistance(distancePointTarget, geometry, self.output.distance)
@@ -216,6 +217,105 @@ local function saveGWT(self, file)
 	file:close()
 end
 
+-- Strategy 'distance'
+local function geometryClosestToPoint(geometryOrigin, target, distance)
+	local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
+	local distanceTarget = math.huge
+
+	forEachCell(target, function(point)
+		local targetPoint = tl:castGeomToSubtype(point.geom:getGeometryN(0))
+		local  distanceToTarget = geometry:distance(targetPoint)
+
+		if distanceToTarget < distance and distanceToTarget < distanceTarget then
+			distanceTarget = distanceToTarget
+			geometryOrigin.pointID = point.pointID
+		end
+	end)
+end
+
+local function distancePointToTarget(self)
+	local distancePoint = self.distancePoint
+
+	forEachCell(self.origin, function(geometryOrigin)
+		geometryOrigin.pointID = 0
+		geometryClosestToPoint(geometryOrigin, self.network.target, distancePoint)
+	end)
+end
+
+-- Strategy 'area'
+local function geometryClosestToCells(geometryOrigin, polygonOrigin)
+	local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
+
+	forEachCell(polygonOrigin, function(polygon)
+		local targetPolygon = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local differenceGeometry = targetPolygon:distance(geometry:getCentroid())
+
+		if targetPolygon:contains(geometry) or differenceGeometry < geometryOrigin.dimensionValue then
+			geometryOrigin.cellID = polygon.valueColor
+			geometryOrigin.dimensionValue = differenceGeometry
+		end
+	end)
+end
+
+local function distanceCellToTarget(self)
+	local valueColor = 1
+	local polygonOrigin = self.polygonOrigin
+
+	forEachCell(polygonOrigin, function(polygon)
+		polygon.valueColor = valueColor
+		valueColor = valueColor + 1
+
+		if valueColor == 5 then
+			valueColor = 1
+		end
+	end)
+
+	forEachCell(self.origin, function(geometryOrigin)
+		geometryOrigin.dimensionValue = math.huge
+		geometryOrigin.cellID = 0
+		geometryClosestToCells(geometryOrigin, polygonOrigin)
+	end)
+end
+
+-- Strategy 'border'
+local function calculateWeightNeighbors(polygon)
+	local geometry = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+	local geometryPerimeter = geometry:getPerimeter()
+
+	forEachElement(polygon.neighbors, function(polygonNeighbor)
+		local neighbor = polygon.neighbors[polygonNeighbor]
+		local geometryNeighbor = tl:castGeomToSubtype(neighbor.geom:getGeometryN(0))
+		local intersection = geometry:intersection(geometryNeighbor)
+		local geometryBorder = tl:castGeomToSubtype(intersection)
+
+		polygon.borderNeighbors[neighbor] = geometryBorder:getLength()
+	end)
+end
+
+local function definingNeighbors(polygonOrigin, polygon, all)
+	local geometry = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+
+	forEachCell(polygonOrigin, function(polygonBorder)
+		local geometryBorder = tl:castGeomToSubtype(polygonBorder.geom:getGeometryN(0))
+
+		if geometry:touches(geometryBorder) and polygon.FID ~= polygonBorder.FID then
+			table.insert(polygon.neighbors, polygonBorder)
+		end
+	end)
+
+	calculateWeightNeighbors(polygon)
+end
+
+local function neighborhoodOfPolignos(self)
+	local polygonOrigin = self.polygonNeighbor
+
+	forEachCell(polygonOrigin, function(polygon)
+		polygon.neighbors = {}
+		polygon.borderNeighbors = {}
+		definingNeighbors(polygonOrigin, polygon, self.all)
+	end)
+end
+
 GPM_ = {
 	type_ = "GPM",
 	--- Save the neighborhood into a file.
@@ -294,14 +394,31 @@ metaTableGPM_ = {
 
 --- Type to create a Generalised Proximity Matrix (GPM).
 -- It has several strategies that can use geometry as well as Network.
+-- @arg data.distance --.
+-- @arg data.distancePoint Distance around to end points (optional).
 -- @arg data.network A base::CellularSpace that receives end points of the networks.
 -- @arg data.origin A base::CellularSpace with geometry representing entry points on the network.
--- @arg data.quantity Number of points for target.
--- @arg data.distance --.
--- @arg data.relation --.
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ID and distance.
+-- @arg data.polygonNeighbor base::CellularSpace with a polignos (optional).
+-- @arg data.polygonOrigin base::CellularSpace with a polignos (optional).
 -- @arg data.progress print as values are being processed(optional).
+-- @arg data.quantity Number of points for target.
+-- @arg data.relation --.
+-- @arg data.strategy A string with the strategy to be used for creating the GPM. 
+-- See the table below.
+-- @tabular strategy
+-- Strategy & Description & Compulsory Arguments & Optional Arguments \
+-- "area" & Creates relation between polygons and cells.
+-- & polygonOrigin, origin & \
+-- "border" & Creates relation between neighboring polygons,
+-- each poligno reference his neighbors and the area touched. & polygonNeighbor & \
+-- "distance" & Returns the cells within the distance of the target,
+-- the cells will always be related to the nearest target. & 
+-- distancePoint, origin & \
+-- "network" & Creates relation between network and cellularSpace,
+-- each point of the network receives the reference to the nearest destination.
+-- & output, network, distance, origin, relation & progress, quantity \
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
@@ -346,7 +463,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "distancePoint", "polygonOrigin", "polygonNeighbor"})
 	mandatoryTableArgument(data, "network", "Network")
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
@@ -372,6 +489,39 @@ function GPM(data)
 
 	data.distance = createOpenGPM(data)
 	setmetatable(data, metaTableGPM_)
+
+	if data.polygonNeighbor ~= nil then
+		if data.polygonNeighbor.geometry then
+			local cell = data.polygonNeighbor:sample()
+
+			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
+				customError("Argument 'polygonNeighbor' should be composed by MultiPolygon, got '"..cell.geom:getGeometryType().."'.")
+			end
+		else
+			customError("The CellularSpace in argument 'polygonNeighbor' must be loaded with 'geometry = true'.")
+		end
+
+		neighborhoodOfPolignos(data)
+	end
+
+	if data.distancePoint ~= nil then
+		mandatoryTableArgument(data, "distancePoint", "number")
+		distancePointToTarget(data)
+	end
+
+	if data.polygonOrigin ~= nil then
+		if data.polygonOrigin.geometry then
+			local cell = data.polygonOrigin:sample()
+
+			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
+				customError("Argument 'polygonNeighbor' should be composed by MultiPolygon, got '"..cell.geom:getGeometryType().."'.")
+			end
+		else
+			customError("The CellularSpace in argument 'polygonNeighbor' must be loaded with 'geometry = true'.")
+		end
+
+		distanceCellToTarget(data)
+	end
 
 	return data
 end

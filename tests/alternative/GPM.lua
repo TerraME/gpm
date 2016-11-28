@@ -89,6 +89,10 @@ return {
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("distancePoint", "number", "distance"))
 
+		local farmsNeighbor = CellularSpace{
+			file = filePath("partofbrasil.shp", "gpm")
+		}
+
 		error_func = function()
 			GPM{
 				network = network,
@@ -99,10 +103,69 @@ return {
 					id = "id1",
 					distance = "distance"
 				},
-            	polygonOrigin = "distance"
+				polygonNeighbor = "distance"
 			}
 		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("polygonOrigin", "CellularSpace", "distance"))
+		unitTest:assertError(error_func, "The CellularSpace in argument 'polygonNeighbor' must be loaded with 'geometry = true'.")
+
+		local farmsNeighbor = CellularSpace{
+			file = filePath("roads.shp", "gpm"),
+			geometry = true
+		}
+
+		error_func = function()
+			GPM{
+				network = network,
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					id = "id1",
+					distance = "distance"
+				},
+				polygonNeighbor = farmsNeighbor
+			}
+		end
+		unitTest:assertError(error_func, "Argument 'polygonNeighbor' should be composed by MultiPolygon, got 'MultiLineString'.")
+
+		local farmsPolygon = CellularSpace{
+			file = filePath("farms.shp", "gpm")
+		}
+
+		error_func = function()
+			GPM{
+				network = network,
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					id = "id1",
+					distance = "distance"
+				},
+				polygonOrigin = "distance"
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'polygonNeighbor' must be loaded with 'geometry = true'.")
+
+		local farmsPolygon = CellularSpace{
+			file = filePath("roads.shp", "gpm"),
+			geometry = true
+		}
+
+		error_func = function()
+			GPM{
+				network = network,
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					id = "id1",
+					distance = "distance"
+				},
+				polygonOrigin = farmsPolygon
+			}
+		end
+		unitTest:assertError(error_func, "Argument 'polygonNeighbor' should be composed by MultiPolygon, got 'MultiLineString'.")
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{

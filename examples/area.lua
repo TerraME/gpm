@@ -1,5 +1,5 @@
--- @example GPM Implementation strategy 'relations' and creating map.
--- Creates a map based on the cells and polygons.
+-- @example GPM Implementation strategy 'area' and creating map.
+-- Create a map based on the cells and polygons.
 
 -- import gpm
 import("gpm")
@@ -20,7 +20,7 @@ local farms = CellularSpace{
 	geometry = true
 }
 
-local farms2 = CellularSpace{
+local farmsPolygon = CellularSpace{
 	file = filePath("farms.shp", "gpm"),
 	geometry = true
 }
@@ -49,7 +49,7 @@ local gpm = GPM{
 		id = "id1",
 		distance = "distance"
 	},
-	polygonOrigin = farms2
+	polygonOrigin = farmsPolygon
 }
 
 -- creating Map with values ​​GPM
