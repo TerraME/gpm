@@ -5,16 +5,6 @@
 import("gpm")
 
 -- create the CellularSpace
-local csCenterspt = CellularSpace{
-	file = filePath("communities.shp", "gpm"),
-	geometry = true
-}
-
-local csLine = CellularSpace{
-	file = filePath("roads.shp", "gpm"),
-	geometry = true
-}
-
 local farms = CellularSpace{
 	file = filePath("farms_cells.shp", "gpm"),
 	geometry = true
@@ -25,23 +15,8 @@ local farmsPolygon = CellularSpace{
 	geometry = true
 }
 
--- create a Network with the distance of the end points to routes
-local network = Network{
-	target = csCenterspt,
-	lines = csLine,
-	weight = function(distance, cell)
-		if cell.STATUS == "paved" then
-			return distance / 5
-		else
-			return distance / 2
-		end
-	end,
-	outside = function(distance, cell) return distance * 2 end
-}
-
 -- creating a GPM with the distance of the entry points for the routes
 local gpm = GPM{
-	network = network,
 	origin = farms,
 	distance = "distance",
 	relation = "community",
@@ -49,7 +24,7 @@ local gpm = GPM{
 		id = "id1",
 		distance = "distance"
 	},
-	polygonOrigin = farmsPolygon
+	destination = farmsPolygon
 }
 
 -- creating Map with values ​​GPM

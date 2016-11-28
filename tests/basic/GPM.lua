@@ -28,11 +28,6 @@ return {
 			geometry = true
 		}
 
-		local farms = CellularSpace{
-			file = filePath("farms.shp", "gpm"),
-			geometry = true
-		}
-
 		local farmsPolygon = CellularSpace{
 			file = filePath("farms.shp", "gpm"),
 			geometry = true
@@ -52,8 +47,8 @@ return {
 				id = "id1",
 				distance = "distance"
 			},
-			distancePoint = 2000,
-			polygonOrigin = farmsPolygon,
+			maxDist = 2000,
+			destination = farmsPolygon,
 			polygonNeighbor  = farmsNeighbor
 		}
 
@@ -61,6 +56,7 @@ return {
 			unitTest:assert(#polygon.neighbors > 0)
 			forEachElement(polygon.neighbors, function(polygonNeighbor)
 				unitTest:assert(polygon.borderNeighbors[polygon.neighbors[polygonNeighbor]] > 0)
+				unitTest:assertType(polygon.borderNeighbors[polygon.neighbors[polygonNeighbor]], "number")
 			end)
 		end)
 

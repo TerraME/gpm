@@ -33,7 +33,7 @@ local network = Network{
 			return distance / 2
 		end
 	end,
-	outside = function(distance, cell) return distance * 2 end,
+	outside = function(distance) return distance * 2 end,
 	progress = true
 }
 
