@@ -35,7 +35,7 @@ local network = Network{
 }
 
 -- creating a GPM with the distance of the entry points for the routes
-local gpm = GPM{
+GPM{
 	network = network,
 	origin = farms,
 	distance = "distance",
