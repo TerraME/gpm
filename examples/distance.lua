@@ -49,7 +49,7 @@ local gpm = GPM{
 
 -- creating Map with values ​​GPM
 map = Map{
-	target = gpm.origin,
+	target = farms,
 	select = "pointID",
 	value = {1, 2, 3, 4},
 	color = {"red", "blue", "green", "black"}
