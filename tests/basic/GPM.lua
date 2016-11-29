@@ -56,7 +56,7 @@ return {
 			unitTest:assert(#polygon.neighbors > 0)
 			forEachElement(polygon.neighbors, function(polygonNeighbor)
 				unitTest:assert(polygon.borderNeighbors[polygon.neighbors[polygonNeighbor]] > 0)
-				unitTest:assertType(polygon.borderNeighbors[polygon.neighbors[polygonNeighbor]], "number")
+				unitTest:assertType(polygon.perimeterBorder[polygon.neighbors[polygonNeighbor]], "number")
 			end)
 		end)
 

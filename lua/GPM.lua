@@ -418,7 +418,7 @@ metaTableGPM_ = {
 -- each poligno reference his neighbors and the area touched. & polygonNeighbor & \
 -- "distance" & Returns the cells within the distance of the target,
 -- the cells will always be related to the nearest target. & 
--- maxDist, origin & \
+-- maxDist, origin, network & progress \
 -- "network" & Creates relation between network and cellularSpace,
 -- each point of the network receives the reference to the nearest destination.
 -- & output, network, distance, origin, relation & progress, quantity \
