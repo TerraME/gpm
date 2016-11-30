@@ -396,10 +396,10 @@ metaTableGPM_ = {
 }
 
 --- Type to create a Generalised Proximity Matrix (GPM).
--- It has several strategies that can use geometry as well as Network (optional).
+-- It has several strategies that can use geometry as well as Area, Border, Distance and Network.
 -- @arg data.distance --.
 -- @arg data.maxDist Distance around to end points (optional).
--- @arg data.network A base::CellularSpace that receives end points of the networks.
+-- @arg data.network A base::CellularSpace that receives end points of the networks (optional).
 -- @arg data.origin A base::CellularSpace with geometry representing entry points on the network.
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ID and distance.
