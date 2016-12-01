@@ -1,4 +1,22 @@
 data{
+	file = "partofbrasil.shp",
+	attributes = {
+		SPRAREA = "Polygon area", 
+		SPRPERIMET = "Polygon perimeter", 
+		SPRROTULO = "A name for the state", 
+		SPRNOME = "A name for the state", 
+		NOME_UF = "Name of the state",
+		SIGLA = "A name for the state", 
+		CAPITAL = "Name of the state's capital", 
+		CODIGO = "A code for the state", 
+		REGIAO = "Name of the region the state belongs", 
+		POPUL = "Population of the state"
+	},
+	summary = "A shapefile describing the some Brazilian states.",
+	source = "TerraME team"
+}
+
+data{
 	file = "farms.shp",
 	attributes = {id = "Character identifier"},
 	summary = "A shapefile describing the farms.",
@@ -6,7 +24,7 @@ data{
 }
 
 data{
-	file = "rfarms_cells2.shp",
+	file = "farms_cells2.shp",
 	attributes = {
 		id = "Character identifier",
 		col = "number of columns",

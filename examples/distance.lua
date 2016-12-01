@@ -1,7 +1,5 @@
--- @example GPM Implementation creating maps.
--- Creates maps based on distance routes, entry points and exit points.
--- This test has commented lines, to create and validate files.
--- This example creates a 'gpm.gpm' file if you have another file with this name will be deleted.
+-- @example GPM Implementation strategy 'distance' and creating map.
+-- Create a map based on the endpoints, and the cells.
 
 -- import gpm
 import("gpm")
@@ -33,12 +31,11 @@ local network = Network{
 			return distance / 2
 		end
 	end,
-	outside = function(distance) return distance * 2 end,
-	progress = true
+	outside = function(distance) return distance * 2 end
 }
 
 -- creating a GPM with the distance of the entry points for the routes
-local gpm = GPM{
+GPM{
 	network = network,
 	origin = farms,
 	distance = "distance",
@@ -47,30 +44,13 @@ local gpm = GPM{
 		id = "id1",
 		distance = "distance"
 	},
-	progress = true
+	maxDist = 2000
 }
 
 -- creating Map with values ​​GPM
 map = Map{
-	target = gpm.origin,
-	select = "distance",
-	slices = 20,
-	color = "Blues"
-}
-
-map = Map{
-	target = gpm.origin,
-	select = "id1",
+	target = farms,
+	select = "pointID",
 	value = {1, 2, 3, 4},
 	color = {"red", "blue", "green", "black"}
 }
-
--- gpm:save("gpm.gpm")
-
--- farms:loadNeighborhood{
-	-- source = "gpm.gpm"
--- }
-
--- local file = File("gpm.gpm")
-
--- file:deleteIfExists()

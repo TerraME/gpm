@@ -214,6 +214,7 @@ local function buildPointTarget(lines, target)
 		local minDistance = math.huge
 		local point
 		local pointTarget
+		targetPoint.pointID = counterTarget
 
 		forEachCell(lines, function(line)
 			local geometryLine= tl:castGeomToSubtype(line.geom:getGeometryN(0))
@@ -463,19 +464,17 @@ metaTableNetwork_ = {
 
 --- Type for network creation. Given geometry of the line type,
 -- constructs a geometry network. This type is used to calculate the best path.
--- @arg data.target CellularSpace that receives end points of the networks.
--- @arg data.lines CellularSpace that receives a network.
--- this CellularSpace receives a projet with geometry, a layer,
--- and geometry boolean argument, indicating whether the project has a geometry.
--- @arg data.strategy Strategy to be used in the network (optional).
--- @arg data.weight User defined function to change the network distance.
--- If not set a function, will return to own distance.
+-- @arg data.error Error argument to connect the lines in the Network (optional).
+-- If data.error case is not defined , assigned the value 0.
+-- @arg data.lines CellularSpace with routes to create network.
 -- @arg data.outside User-defined function that computes the distance based on an
 -- Euclidean to enter and to leave the Network.
 -- If not set a function, will return to own distance.
--- @arg data.error Error argument to connect the lines in the Network (optional).
--- If data.error case is not defined , assigned the value 0.
--- @arg data.progress print as values are being processed(optional).
+-- @arg data.progress print as values are being processed (optional).
+-- @arg data.strategy Strategy to be used in the network (optional).
+-- @arg data.target CellularSpace that receives end points of the networks.
+-- @arg data.weight User defined function to change the network distance.
+-- If not set a function, will return to own distance.
 -- @output a network based on the geometry.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
