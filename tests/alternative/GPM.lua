@@ -112,7 +112,7 @@ return {
 		end
 		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
 
-		local farmsNeighbor = CellularSpace{
+		farmsNeighbor = CellularSpace{
 			file = filePath("roads.shp", "gpm"),
 			geometry = true
 		}
@@ -126,6 +126,21 @@ return {
 			}
 		end
 		unitTest:assertError(error_func, "Argument 'origin' should be composed by MultiPolygon, got 'MultiLineString'.")
+
+		local farmsNeighbor = CellularSpace{
+			file = filePath("partofbrasil.shp", "gpm"),
+			geometry = true
+		}
+
+		error_func = function()
+			GPM{
+				origin = farmsNeighbor,
+				distance = "distance",
+				relation = "community",
+				strategy = 2
+			}
+		end
+		unitTest:assertError(error_func, incompatibleValueMsg("strategy", "border", 2))
 
 		error_func = function()
 			GPM{

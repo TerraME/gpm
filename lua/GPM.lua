@@ -503,6 +503,9 @@ function GPM(data)
 		end
 
 		neighborhoodOfPolygon(data)
+
+	elseif data.strategy ~= nil then
+		incompatibleValueError("strategy", "border", data.strategy)
 	end
 
 	if data.maxDist ~= nil then
