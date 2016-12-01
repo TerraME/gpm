@@ -39,6 +39,21 @@ return {
 		}
 
 		local gpm = GPM{
+			origin = farmsNeighbor,
+			distance = "distance",
+			relation = "community",
+			strategy = "border"
+		}
+
+		forEachCell(gpm.origin, function(polygon)
+			unitTest:assert(#polygon.neighbors > 0)
+			forEachElement(polygon.neighbors, function(polygonNeighbor)
+				unitTest:assert(polygon.borderNeighbors[polygon.neighbors[polygonNeighbor]] > 0)
+				unitTest:assertType(polygon.perimeterBorder[polygon.neighbors[polygonNeighbor]], "number")
+			end)
+		end)
+
+		gpm = GPM{
 			network = network,
 			origin = farms_cells,
 			distance = "distance",
@@ -48,17 +63,8 @@ return {
 				distance = "distance"
 			},
 			maxDist = 2000,
-			destination = farmsPolygon,
-			polygonNeighbor  = farmsNeighbor
+			destination = farmsPolygon
 		}
-
-		forEachCell(gpm.polygonNeighbor, function(polygon)
-			unitTest:assert(#polygon.neighbors > 0)
-			forEachElement(polygon.neighbors, function(polygonNeighbor)
-				unitTest:assert(polygon.borderNeighbors[polygon.neighbors[polygonNeighbor]] > 0)
-				unitTest:assertType(polygon.perimeterBorder[polygon.neighbors[polygonNeighbor]], "number")
-			end)
-		end)
 
 		local cell = gpm.origin:sample()
 

@@ -308,14 +308,14 @@ local function definingNeighbors(polygonOrigin, polygon)
 	calculateWeightNeighbors(polygon)
 end
 
-local function neighborhoodOfPolignos(self)
-	local polygonOrigin = self.polygonNeighbor
+local function neighborhoodOfPolygon(self)
+	local polygonOrigin = self.origin
 
 	forEachCell(polygonOrigin, function(polygon)
 		polygon.neighbors = {}
 		polygon.borderNeighbors = {}
 		polygon.perimeterBorder = {}
-		definingNeighbors(polygonOrigin, polygon, self.all)
+		definingNeighbors(polygonOrigin, polygon)
 	end)
 end
 
@@ -403,20 +403,19 @@ metaTableGPM_ = {
 -- @arg data.origin A base::CellularSpace with geometry representing entry points on the network.
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ID and distance.
--- @arg data.polygonNeighbor base::CellularSpace with a polignos (optional).
--- @arg data.destination base::CellularSpace with a polignos (optional).
--- @arg data.progress print as values are being processed(optional).
+-- @arg data.destination base::CellularSpace with polygons (optional).
+-- @arg data.progress print as values are being processed (optional).
 -- @arg data.quantity Number of points for target.
 -- @arg data.relation --.
--- @arg data.strategy A string with the strategy to be used for creating the GPM. 
+-- @arg data.strategy A string with the strategy to be used for creating the GPM (optional). 
 -- See the table below.
 -- @tabular strategy
 -- Strategy & Description & Compulsory Arguments & Optional Arguments \
--- "area" & Creates relation between polygons and cells.
+-- "area" & Creates relation between two layer using the intersection areas of their polygons.
 -- & destination, origin & \
 -- "border" & Creates relation between neighboring polygons,
--- each poligno reference his neighbors and the area touched. & polygonNeighbor & \
--- "distance" & Returns the cells within the distance of the target,
+-- each polygon reference his neighbors and the area touched. & strategy, origin & \
+-- "distance" & Returns the cells within the distance to the nearest centroid,
 -- the cells will always be related to the nearest target. & 
 -- maxDist, origin, network & progress \
 -- "network" & Creates relation between network and cellularSpace,
@@ -466,7 +465,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "maxDist", "destination", "polygonNeighbor"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "maxDist", "destination", "strategy"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if not data.origin.geometry then
@@ -494,18 +493,16 @@ function GPM(data)
 		end)
 	end
 
-	if data.polygonNeighbor ~= nil then
-		if data.polygonNeighbor.geometry then
-			local cell = data.polygonNeighbor:sample()
+	if data.strategy == "border" then
+		if data.origin.geometry then
+			local cell = data.origin:sample()
 
 			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
-				customError("Argument 'polygonNeighbor' should be composed by MultiPolygon, got '"..cell.geom:getGeometryType().."'.")
+				customError("Argument 'origin' should be composed by MultiPolygon, got '"..cell.geom:getGeometryType().."'.")
 			end
-		else
-			customError("The CellularSpace in argument 'polygonNeighbor' must be loaded with 'geometry = true'.")
 		end
 
-		neighborhoodOfPolignos(data)
+		neighborhoodOfPolygon(data)
 	end
 
 	if data.maxDist ~= nil then
