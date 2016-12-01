@@ -127,7 +127,7 @@ return {
 		end
 		unitTest:assertError(error_func, "Argument 'origin' should be composed by MultiPolygon, got 'MultiLineString'.")
 
-		local farmsNeighbor = CellularSpace{
+		farmsNeighbor = CellularSpace{
 			file = filePath("partofbrasil.shp", "gpm"),
 			geometry = true
 		}
