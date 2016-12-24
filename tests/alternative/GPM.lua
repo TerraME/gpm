@@ -174,6 +174,126 @@ return {
 			}
 		end
 		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPolygon, got 'MultiLineString'.")
+
+		error_func = function()
+			GPM{
+				origin = farms_cells,
+				distance = "distance",
+				relation = "community",
+				strategy = "contains",
+				targetPoints = communities,
+				destination = farmsPolygon
+			}
+		end
+		unitTest:assertError(error_func, mandatoryArgumentMsg("origin"))
+
+		local farms_cells = CellularSpace{
+			file = filePath("farms_cells.shp", "gpm")
+		}
+
+		error_func = function()
+			GPM{
+				origin = farms_cells,
+				distance = "distance",
+				relation = "community",
+				strategy = "contains",
+				targetPoints = communities,
+				destination = farmsPolygon
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
+
+		farms_cells = CellularSpace{
+			file = filePath("farms_cells.shp", "gpm"),
+			geometry = true
+		}
+
+		error_func = function()
+			GPM{
+				origin = farms_cells,
+				distance = "distance",
+				relation = "community",
+				strategy = "contains",
+				targetPoints = communities,
+				destination = farmsPolygon
+			}
+		end
+		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPolygon, got 'MultiLineString'.")
+
+		error_func = function()
+			GPM{
+				origin = farms_cells,
+				distance = "distance",
+				relation = "community",
+				strategy = "contains",
+				targetPoints = communities,
+				destination = farmsPolygon
+			}
+		end
+		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPolygon, got 'MultiLineString'.")
+
+		local farmsPolygon = CellularSpace{
+			file = filePath("farms.shp", "gpm")
+		}
+
+		error_func = function()
+			GPM{
+				origin = farms_cells,
+				distance = "distance",
+				relation = "community",
+				strategy = "contains",
+				targetPoints = communities,
+				destination = farmsPolygon
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'polygonNeighbor' must be loaded with 'geometry = true'.")
+
+		communities = ""
+
+		error_func = function()
+			GPM{
+				origin = farms_cells,
+				distance = "distance",
+				relation = "community",
+				strategy = "contains",
+				targetPoints = communities,
+				destination = farmsPolygon
+			}
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg("targetPoints", "CellularSpace", ""))
+
+		communities = CellularSpace{
+			file = filePath("communities.shp", "gpm")
+		}
+
+		error_func = function()
+			GPM{
+				origin = farms_cells,
+				distance = "distance",
+				relation = "community",
+				strategy = "contains",
+				targetPoints = communities,
+				destination = farmsPolygon
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'targetPoints' must be loaded with 'geometry = true'.")
+
+		communities = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
+			geometry = true
+		}
+
+		error_func = function()
+			GPM{
+				origin = farms_cells,
+				distance = "distance",
+				relation = "community",
+				strategy = "contains",
+				targetPoints = communities,
+				destination = farmsPolygon
+			}
+		end
+		unitTest:assertError(error_func, "Argument 'targetPoints' should be composed by points, got 'MultiPolygon'.")
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{

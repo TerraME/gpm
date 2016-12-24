@@ -102,6 +102,22 @@ return {
 		}
 		unitTest:assertSnapshot(map, "distance_farms.bmp")
 
+		gpm = GPM{
+			origin = farms_cells,
+			distance = "distance",
+			relation = "community",
+			strategy = "contains",
+			targetPoints = communities,
+			destination = farmsPolygon
+		}
+
+		map = Map{
+			target = gpm.origin,
+			select = "contains",
+			value = {1, 2, 3, 4},
+			color = {"red", "blue", "green", "black"}
+		}
+		unitTest:assertSnapshot(map, "contains_farms.bmp")
 		unitTest:assertType(gpm, "GPM")
 	end,
 	save = function(unitTest)

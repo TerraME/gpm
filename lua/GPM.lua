@@ -319,6 +319,41 @@ local function neighborhoodOfPolygon(self)
 	end)
 end
 
+-- 'contains'
+local function relationBetweenPolygonsAndPoints(self)
+	local polygonOrigin = self.origin
+	local points = self.targetPoints
+	local valueColor = 1
+	local destination = self.destination
+
+	forEachCell(destination, function(polygonDestination)
+		local geometryDestination = tl:castGeomToSubtype(polygonDestination.geom:getGeometryN(0))
+
+		forEachCell(points, function(point)
+			local geometryPoints = tl:castGeomToSubtype(point.geom:getGeometryN(0))
+
+			if geometryDestination:contains(geometryPoints) then
+				forEachCell(polygonOrigin, function(polygonOrigin)
+					if polygonOrigin.contains == nil then
+						polygonOrigin.contains = 0
+					end
+
+					local geometryOrigin = tl:castGeomToSubtype(polygonOrigin.geom:getGeometryN(0))
+
+					if geometryDestination:contains(geometryOrigin) or geometryDestination:distance(geometryOrigin) == 0 then
+						polygonOrigin.contains = valueColor
+					end
+				end)
+				valueColor = valueColor + 1
+
+				if valueColor == 5 then
+					valueColor = 1
+				end
+			end
+		end)
+	end)
+end
+
 GPM_ = {
 	type_ = "GPM",
 	--- Save the neighborhood into a file.
@@ -404,6 +439,7 @@ metaTableGPM_ = {
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ID and distance.
 -- @arg data.destination base::CellularSpace with polygons (optional).
+-- @arg data.referencePoint base::CellularSpace with points (optional).
 -- @arg data.progress print as values are being processed (optional).
 -- @arg data.quantity Number of points for target.
 -- @arg data.relation --.
@@ -415,6 +451,8 @@ metaTableGPM_ = {
 -- & destination, origin & \
 -- "border" & Creates relation between neighboring polygons,
 -- each polygon reference his neighbors and the area touched. & strategy, origin & \
+-- "contains" & Returns which polygons contain the reference points.
+-- & destination, strategy, targetPoints & \
 -- "distance" & Returns the cells within the distance to the nearest centroid,
 -- the cells will always be related to the nearest target. & 
 -- maxDist, origin, network & progress \
@@ -465,7 +503,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "maxDist", "destination", "strategy"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "maxDist", "destination", "strategy", "targetPoints"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if not data.origin.geometry then
@@ -493,7 +531,7 @@ function GPM(data)
 		end)
 	end
 
-	if data.strategy == "border" then
+	if data.strategy == "border" or data.strategy == "contains" then
 		if data.origin.geometry then
 			local cell = data.origin:sample()
 
@@ -502,7 +540,34 @@ function GPM(data)
 			end
 		end
 
-		neighborhoodOfPolygon(data)
+		if data.strategy == "border" then
+			neighborhoodOfPolygon(data)
+		else
+			mandatoryTableArgument(data, "targetPoints", "CellularSpace")
+			mandatoryTableArgument(data, "destination", "CellularSpace")
+
+			if data.targetPoints.geometry then
+				local cell = data.targetPoints:sample()
+
+				if not string.find(cell.geom:getGeometryType(), "Point") then
+					customError("Argument 'targetPoints' should be composed by points, got '"..cell.geom:getGeometryType().."'.")
+				end
+			else
+				customError("The CellularSpace in argument 'targetPoints' must be loaded with 'geometry = true'.")
+			end
+
+			if data.destination.geometry then
+				local cell = data.destination:sample()
+
+				if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
+					customError("Argument 'destination' should be composed by MultiPolygon, got '"..cell.geom:getGeometryType().."'.")
+				end
+			else
+				customError("The CellularSpace in argument 'polygonNeighbor' must be loaded with 'geometry = true'.")
+			end
+
+			relationBetweenPolygonsAndPoints(data)
+		end
 
 	elseif data.strategy ~= nil then
 		incompatibleValueError("strategy", "border", data.strategy)
