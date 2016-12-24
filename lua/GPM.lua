@@ -89,7 +89,7 @@ local function buildPointTarget(self, reference, network, centroid, geometry)
 	if reference == 1 then
 		addOutputID(target, geometry, self.output.id)
 	elseif reference == 2 then
-		addOutputDistance(distancePointTarget, geometry, self.output.distance) --SKIP
+		addOutputDistance(distancePointTarget, geometry, self.output.distance) -- SKIP
 	elseif reference == 3 then
 		addOutputID(target, geometry, self.output.id)
 		addOutputDistance(distancePointTarget, geometry, self.output.distance)
@@ -118,7 +118,7 @@ local function createOpenGPM(self)
 		counterCode = counterCode + 1
 
 		if self.progress then
-			print("Processing origin "..counterCode.."/"..numberGeometry) --SKIP
+			print("Processing origin "..counterCode.."/"..numberGeometry) -- SKIP
 		end
 	end)
 end
@@ -321,7 +321,7 @@ end
 
 -- 'contains'
 local function relationBetweenPolygonsAndPoints(self)
-	local polygonOrigin = self.origin
+	local polygon_cells = self.origin
 	local points = self.targetPoints
 	local valueColor = 1
 	local destination = self.destination
@@ -333,7 +333,7 @@ local function relationBetweenPolygonsAndPoints(self)
 			local geometryPoints = tl:castGeomToSubtype(point.geom:getGeometryN(0))
 
 			if geometryDestination:contains(geometryPoints) then
-				forEachCell(polygonOrigin, function(polygonOrigin)
+				forEachCell(polygon_cells, function(polygonOrigin)
 					if polygonOrigin.contains == nil then
 						polygonOrigin.contains = 0
 					end
@@ -347,7 +347,7 @@ local function relationBetweenPolygonsAndPoints(self)
 				valueColor = valueColor + 1
 
 				if valueColor == 5 then
-					valueColor = 1
+					valueColor = 1 -- SKIP
 				end
 			end
 		end)
@@ -439,7 +439,6 @@ metaTableGPM_ = {
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ID and distance.
 -- @arg data.destination base::CellularSpace with polygons (optional).
--- @arg data.referencePoint base::CellularSpace with points (optional).
 -- @arg data.progress print as values are being processed (optional).
 -- @arg data.quantity Number of points for target.
 -- @arg data.relation --.
@@ -459,6 +458,7 @@ metaTableGPM_ = {
 -- "network" & Creates relation between network and cellularSpace,
 -- each point of the network receives the reference to the nearest destination.
 -- & output, network, distance, origin, relation & progress, quantity \
+-- @arg data.targetPoints base::CellularSpace with points (optional).
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{

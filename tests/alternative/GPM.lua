@@ -232,7 +232,7 @@ return {
 		end
 		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPolygon, got 'MultiLineString'.")
 
-		local farmsPolygon = CellularSpace{
+		farmsPolygon = CellularSpace{
 			file = filePath("farms.shp", "gpm")
 		}
 
