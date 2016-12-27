@@ -66,9 +66,9 @@ return {
 			destination = farmsPolygon
 		}
 
-		local cell = gpm.origin:sample()
+		local cellOrigin = gpm.origin:sample()
 
-		unitTest:assertType(cell.distance, "number")
+		unitTest:assertType(cellOrigin.distance, "number")
 
 		local map = Map{
 			target = gpm.origin,
@@ -125,7 +125,7 @@ return {
 			geometry = true
 		}
 
-		gpm = GPM{
+		GPM{
 			origin = farms,
 			distance = "distance",
 			relation = "community",
@@ -137,7 +137,7 @@ return {
 			unitTest:assert(cell.intersection ~= nil)
 		end)
 
-		gpm = GPM{
+		GPM{
 			origin = farms,
 			distance = "distance",
 			relation = "community",

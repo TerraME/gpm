@@ -372,6 +372,18 @@ return {
 			}
 		end
 		unitTest:assertError(error_func, "Argument 'geometricObject' should be composed by MultiPolygon or MultiLineString, got 'MultiPoint'.")
+
+		error_func = function()
+			GPM{
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				minimumLength = 2,
+				maximumQuantity = 2,
+				geometricObject = farms
+			}
+		end
+		unitTest:assertError(error_func, "Use maximumQuantity or minimumLength as parameters, not both.")
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{
