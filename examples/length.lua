@@ -16,7 +16,7 @@ local farms = CellularSpace{
 }
 
 -- creating a GPM
-local gpm = GPM{
+GPM{
 	origin = farms,
 	distance = "distance",
 	relation = "community",
@@ -24,7 +24,7 @@ local gpm = GPM{
 	geometricObject = roads
 }
 
-gpm = GPM{
+GPM{
 	origin = farms,
 	distance = "distance",
 	relation = "community",
