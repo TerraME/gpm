@@ -119,6 +119,35 @@ return {
 		}
 		unitTest:assertSnapshot(map, "contains_farms.bmp")
 		unitTest:assertType(gpm, "GPM")
+
+		local farms = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
+			geometry = true
+		}
+
+		gpm = GPM{
+			origin = farms,
+			distance = "distance",
+			relation = "community",
+			maximumQuantity = 2,
+			geometricObject = farms_cells
+		}
+
+		forEachCell(farms, function(cell)
+			unitTest:assert(cell.intersection ~= nil)
+		end)
+
+		gpm = GPM{
+			origin = farms,
+			distance = "distance",
+			relation = "community",
+			minimumLength = 400,
+			geometricObject = roads
+		}
+
+		forEachCell(farms, function(cell)
+			unitTest:assert(cell.intersection ~= nil)
+		end)
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{

@@ -154,7 +154,7 @@ return {
 				destination = "distance"
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'polygonNeighbor' must be loaded with 'geometry = true'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
 
 		local farmsPolygon = CellularSpace{
 			file = filePath("roads.shp", "gpm"),
@@ -246,7 +246,7 @@ return {
 				destination = farmsPolygon
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'polygonNeighbor' must be loaded with 'geometry = true'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
 
 		communities = ""
 
@@ -294,6 +294,84 @@ return {
 			}
 		end
 		unitTest:assertError(error_func, "Argument 'targetPoints' should be composed by points, got 'MultiPolygon'.")
+
+		error_func = function()
+			GPM{
+				origin = farms_cells,
+				distance = "distance",
+				relation = "community",
+				maximumQuantity = "",
+				geometricObject = farms_cells
+			}
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg("maximumQuantity", "number", ""))
+
+		error_func = function()
+			GPM{
+				origin = farms_cells,
+				distance = "distance",
+				relation = "community",
+				minimumLength = "",
+				geometricObject = farms_cells
+			}
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg("minimumLength", "number", ""))
+
+		farmsPolygon = CellularSpace{
+			file = filePath("farms.shp", "gpm")
+		}
+
+		error_func = function()
+			GPM{
+				origin = farmsPolygon,
+				distance = "distance",
+				relation = "community",
+				minimumLength = "",
+				geometricObject = farms_cells
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
+
+		farms = CellularSpace{
+			file = filePath("farms.shp", "gpm")
+		}
+
+		communities = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
+			geometry = true
+		}
+
+		error_func = function()
+			GPM{
+				origin = communities,
+				distance = "distance",
+				relation = "community",
+				minimumLength = "",
+				geometricObject = farms
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'geometricObject' must be loaded with 'geometry = true'.")
+
+		farms = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
+			geometry = true
+		}
+
+		local communitiesCs = CellularSpace{
+			file = filePath("communities.shp", "gpm"),
+			geometry = true
+		}
+
+		error_func = function()
+			GPM{
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				minimumLength = 2,
+				geometricObject = communitiesCs
+			}
+		end
+		unitTest:assertError(error_func, "Argument 'geometricObject' should be composed by MultiPolygon or MultiLineString, got 'MultiPoint'.")
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{
