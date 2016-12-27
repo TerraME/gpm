@@ -15,7 +15,7 @@ local farmsPolygon = CellularSpace{
 	geometry = true
 }
 
--- creating a GPM with the distance of the entry points for the routes
+-- creating a GPM
 local gpm = GPM{
 	origin = farms,
 	distance = "distance",
