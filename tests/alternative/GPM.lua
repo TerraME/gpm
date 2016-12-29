@@ -137,6 +137,17 @@ return {
 				origin = farmsNeighbor,
 				distance = "distance",
 				relation = "community",
+				strategy = "border",
+				maximumQuantity = ""
+			}
+		end
+		unitTest:assertError(error_func, "Incompatible types. Argument 'maximumQuantity' expected number, got string.")
+
+		error_func = function()
+			GPM{
+				origin = farmsNeighbor,
+				distance = "distance",
+				relation = "community",
 				strategy = 2
 			}
 		end

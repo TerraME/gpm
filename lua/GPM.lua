@@ -294,13 +294,13 @@ local function calculateWeightNeighbors(polygon)
 	end)
 end
 
-local function definingNeighbors(polygonOrigin, polygon)
+local function definingNeighbors(polygonOrigin, polygon, quantity)
 	local geometry = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
 
 	forEachCell(polygonOrigin, function(polygonBorder)
 		local geometryBorder = tl:castGeomToSubtype(polygonBorder.geom:getGeometryN(0))
 
-		if geometry:touches(geometryBorder) and polygon.FID ~= polygonBorder.FID then
+		if geometry:touches(geometryBorder) and polygon.FID ~= polygonBorder.FID and quantity > #polygon.neighbors then
 			table.insert(polygon.neighbors, polygonBorder)
 		end
 	end)
@@ -310,12 +310,17 @@ end
 
 local function neighborhoodOfPolygon(self)
 	local polygonOrigin = self.origin
+    local quantity = math.huge
+
+	if self.maximumQuantity ~= nil then
+		quantity = self.maximumQuantity
+	end
 
 	forEachCell(polygonOrigin, function(polygon)
 		polygon.neighbors = {}
 		polygon.borderNeighbors = {}
 		polygon.perimeterBorder = {}
-		definingNeighbors(polygonOrigin, polygon)
+		definingNeighbors(polygonOrigin, polygon, quantity)
 	end)
 end
 
@@ -502,7 +507,7 @@ metaTableGPM_ = {
 -- "area" & Creates relation between two layer using the intersection areas of their polygons.
 -- & destination, origin & \
 -- "border" & Creates relation between neighboring polygons,
--- each polygon reference his neighbors and the area touched. & strategy, origin & \
+-- each polygon reference his neighbors and the area touched. & strategy, origin & maximumQuantity \
 -- "contains" & Returns which polygons contain the reference points.
 -- & destination,origin, strategy, targetPoints & \
 -- "distance" & Returns the cells within the distance to the nearest centroid,
@@ -558,7 +563,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "maxDist", "destination", "strategy", "targetPoints", "maximumQuantity", "minimumLength", "maximumQuantity", "minimumLength", "geometricObject"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "maxDist", "destination", "strategy", "targetPoints", "maximumQuantity", "minimumLength", "geometricObject"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if not data.origin.geometry then
@@ -618,6 +623,10 @@ function GPM(data)
 		end
 
 		if data.strategy == "border" then
+			if data.maximumQuantity ~= nil then
+				mandatoryTableArgument(data, "maximumQuantity", "number")
+			end
+
 			neighborhoodOfPolygon(data)
 		else
 			mandatoryTableArgument(data, "targetPoints", "CellularSpace")

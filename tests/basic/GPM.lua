@@ -42,7 +42,8 @@ return {
 			origin = farmsNeighbor,
 			distance = "distance",
 			relation = "community",
-			strategy = "border"
+			strategy = "border",
+			maximumQuantity = 2
 		}
 
 		forEachCell(gpm.origin, function(polygon)
