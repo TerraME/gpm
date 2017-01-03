@@ -90,6 +90,92 @@ return {
 
 		error_func = function()
 			GPM{
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					id = "id1",
+					distance = "distance"
+				},
+				maxDist = 100,
+				targetPolygons = 2
+			}
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg("targetPolygons", "CellularSpace", 2))
+
+		local polygons = CellularSpace{
+			file = filePath("farms.shp", "gpm")
+		}
+
+		error_func = function()
+			GPM{
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					id = "id1",
+					distance = "distance"
+				},
+				maxDist = 100,
+				targetPolygons = polygons
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'targetPolygons' must be loaded with 'geometry = true'.")
+
+		polygons = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
+			geometry = true
+		}
+
+		error_func = function()
+			GPM{
+				network = network,
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					id = "id1",
+					distance = "distance"
+				},
+				maxDist = 100,
+				maximumQuantity = 2,
+				targetPolygons = polygons
+			}
+		end
+		unitTest:assertError(error_func, "Use maximumQuantity or maxDist as parameters, not both.")
+
+		error_func = function()
+			GPM{
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					id = "id1",
+					distance = "distance"
+				},
+				maximumQuantity = " ",
+				targetPolygons = polygons
+			}
+		end
+		unitTest:assertError(error_func, incompatibleTypeMsg("maximumQuantity", "number", " "))
+
+		error_func = function()
+			GPM{
+				origin = farms,
+				distance = "distance",
+				relation = "community",
+				output = {
+					id = "id1",
+					distance = "distance"
+				},
+				maxDist = 100,
+				targetPolygons = roads
+			}
+		end
+		unitTest:assertError(error_func, "Argument 'targetPolygons' should be composed by MultiPolygon, got 'MultiLineString'.")
+
+		error_func = function()
+			GPM{
 				origin = 2,
 				distance = "distance",
 				relation = "community",

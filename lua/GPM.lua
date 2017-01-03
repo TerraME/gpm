@@ -38,13 +38,13 @@ local function addOutput(self, geometry)
 	local reference = 0
 
 	if self.output then
-		if self.output.id ~= nil then
+		if self.output.id then
 			reference = 1
 
 			geometry[self.output.id] = {}
 		end
 
-		if self.output.distance ~= nil then
+		if self.output.distance then
 			geometry[self.output.distance] = {}
 
 			if reference == 1 then
@@ -224,7 +224,7 @@ local function geometryClosestToPoint(geometryOrigin, target, maxDist)
 
 	forEachCell(target, function(point)
 		local targetPoint = tl:castGeomToSubtype(point.geom:getGeometryN(0))
-		local  distanceToTarget = geometry:distance(targetPoint)
+		local distanceToTarget = geometry:distance(targetPoint)
 
 		if distanceToTarget < maxDist and distanceToTarget < distanceTarget then
 			distanceTarget = distanceToTarget
@@ -233,15 +233,83 @@ local function geometryClosestToPoint(geometryOrigin, target, maxDist)
 	end)
 end
 
-local function distancePointToTarget(self)
-	local maxDist = self.maxDist
-
+local function buildRelationBetweenPolygons(self, polygon, pointID, targetPoint)
 	forEachCell(self.origin, function(geometryOrigin)
-		geometryOrigin.pointID = 0
-		geometryClosestToPoint(geometryOrigin, self.network.target, maxDist)
+		local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
+		local distanceToTarget = geometry:distance(targetPoint)
+
+		if polygon:contains(geometry) or polygon:intersects(geometry) and geometryOrigin.distanceToTarget > distanceToTarget then
+			geometryOrigin.pointID = pointID
+			geometryOrigin.distanceToTarget = distanceToTarget
+		end
 	end)
 end
 
+local function distancePointToTarget(self)
+	local maxDist = self.maxDist
+
+	if self.destination2 == nil then
+		forEachCell(self.origin, function(geometryOrigin)
+			geometryOrigin.pointID = 0
+			geometryClosestToPoint(geometryOrigin, self.network.target, maxDist)
+		end)
+	else
+		forEachCell(self.origin, function(geometryOrigin)
+			geometryOrigin.pointID = 0
+			geometryOrigin.distanceToTarget = math.huge
+		end)
+
+		forEachCell(self.targetPolygons, function(polygon)
+			local geometryPolygon = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+			local centroid = geometryPolygon:getCentroid()
+
+			polygon.distance = math.huge
+
+			forEachCell(self.network.target, function(point)
+				local targetPoint = tl:castGeomToSubtype(point.geom:getGeometryN(0))
+				local distanceToTarget = centroid:distance(targetPoint)
+
+				if distanceToTarget <= maxDist and polygon.distance > distanceToTarget then
+					buildRelationBetweenPolygons(self, geometryPolygon, point.pointID, targetPoint)
+					polygon.distance = distanceToTarget
+				end
+			end)
+		end)
+	end
+end
+
+local function createRelationByQuantity(self)
+	forEachCell(self.origin, function(geometryOrigin)
+		geometryOrigin.pointID = 0
+		geometryOrigin.distanceToTarget = math.huge
+	end)
+
+	local quantity = self.maximumQuantity
+
+	forEachCell(self.network.target, function(point)
+		local targetPoint = tl:castGeomToSubtype(point.geom:getGeometryN(0))
+
+		point.vectorKeysOfPolygons = {}
+		point.polygonVector = {}
+
+		forEachCell(self.targetPolygons, function(polygon)
+			local geometryPolygon = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+			local centroid = geometryPolygon:getCentroid()
+			local distanceToTarget = centroid:distance(targetPoint)
+
+			point.polygonVector[distanceToTarget] = geometryPolygon
+			table.insert(point.vectorKeysOfPolygons, distanceToTarget)
+		end)
+
+		table.sort(point.vectorKeysOfPolygons)
+
+		forEachElement(point.vectorKeysOfPolygons, function(keyToPolygon)
+			if quantity >= keyToPolygon then
+				buildRelationBetweenPolygons(self, point.polygonVector[point.vectorKeysOfPolygons[keyToPolygon]], point.pointID, targetPoint)
+			end
+		end)
+	end)
+end
 -- Strategy 'area'
 local function geometryClosestToCells(geometryOrigin, destination)
 	local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
@@ -312,7 +380,7 @@ local function neighborhoodOfPolygon(self)
 	local polygonOrigin = self.origin
     local quantity = math.huge
 
-	if self.maximumQuantity ~= nil then
+	if self.maximumQuantity then
 		quantity = self.maximumQuantity
 	end
 
@@ -512,13 +580,14 @@ metaTableGPM_ = {
 -- & destination,origin, strategy, targetPoints & \
 -- "distance" & Returns the cells within the distance to the nearest centroid,
 -- the cells will always be related to the nearest target. & 
--- maxDist, origin, network & progress \
+-- maxDist, origin, network, targetPolygons, output, maximumQuantity & progress \
 -- "length" & Create relations between objects whose intersection is a line.
 -- & maximumQuantity, minimumLength, origin, geometricObject & \
 -- "network" & Creates relation between network and cellularSpace,
 -- each point of the network receives the reference to the nearest destination.
 -- & output, network, distance, origin, relation & progress, quantity \
 -- @arg data.targetPoints base::CellularSpace with points (optional).
+-- @arg data.targetPolygons base::CellularSpace with polygons (optional).
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
@@ -563,14 +632,14 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "maxDist", "destination", "strategy", "targetPoints", "maximumQuantity", "minimumLength", "geometricObject"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "maxDist", "destination", "strategy", "targetPoints", "maximumQuantity", "minimumLength", "geometricObject", "targetPolygons"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if not data.origin.geometry then
 		customError("The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
 	end
 
-	if data.network ~= nil then
+	if data.network then
 		mandatoryTableArgument(data, "network", "Network")
 		data.distance = createOpenGPM(data)	
 	end
@@ -583,7 +652,7 @@ function GPM(data)
 	optionalTableArgument(data, "distance", "string")
 	optionalTableArgument(data, "relation", "string")
 
-	if data.output ~= nil then
+	if data.output then
 		forEachElement(data.output, function(output)
 			if output ~= "id" and output ~= "distance" then
 				incompatibleValueError("output", "id or distance", output) 
@@ -591,7 +660,7 @@ function GPM(data)
 		end)
 	end
 
-	if data.geometricObject ~= nil and data.maximumQuantity ~= nil or data.minimumLength ~= nil then
+	if data.geometricObject and data.maximumQuantity or data.minimumLength then
 		if data.geometricObject.geometry then
 			local cell = data.geometricObject:sample()
 
@@ -602,10 +671,10 @@ function GPM(data)
 			customError("The CellularSpace in argument 'geometricObject' must be loaded with 'geometry = true'.")
 		end
 
-		if data.maximumQuantity ~= nil and data.minimumLength == nil then
+		if data.maximumQuantity and data.minimumLength == nil then
 			mandatoryTableArgument(data, "maximumQuantity", "number")
 			buildRelation(data, false)
-		elseif data.minimumLength ~= nil and data.maximumQuantity == nil then
+		elseif data.minimumLength and data.maximumQuantity == nil then
 			mandatoryTableArgument(data, "minimumLength", "number")
 			buildRelation(data, true)
 		else
@@ -623,7 +692,7 @@ function GPM(data)
 		end
 
 		if data.strategy == "border" then
-			if data.maximumQuantity ~= nil then
+			if data.maximumQuantity then
 				mandatoryTableArgument(data, "maximumQuantity", "number")
 			end
 
@@ -655,16 +724,37 @@ function GPM(data)
 			relationBetweenPolygonsAndPoints(data)
 		end
 
-	elseif data.strategy ~= nil then
+	elseif data.strategy then
 		incompatibleValueError("strategy", "border", data.strategy)
 	end
 
-	if data.maxDist ~= nil then
-		mandatoryTableArgument(data, "maxDist", "number")
-		distancePointToTarget(data)
+	if data.maxDist or data.maximumQuantity and data.targetPolygons then
+		if data.targetPolygons then
+		mandatoryTableArgument(data, "targetPolygons", "CellularSpace")
+
+			if data.targetPolygons.geometry then
+				local cell = data.targetPolygons:sample()
+
+				if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
+					customError("Argument 'targetPolygons' should be composed by MultiPolygon, got '"..cell.geom:getGeometryType().."'.")
+				end
+			else
+				customError("The CellularSpace in argument 'targetPolygons' must be loaded with 'geometry = true'.")
+			end
+		end
+
+		if data.maxDist and data.maximumQuantity == nil then
+			mandatoryTableArgument(data, "maxDist", "number")
+			distancePointToTarget(data)
+		elseif data.maximumQuantity and data.maxDist == nil and data.targetPolygons then
+			mandatoryTableArgument(data, "maximumQuantity", "number")
+			createRelationByQuantity(data)
+		else
+			customError("Use maximumQuantity or maxDist as parameters, not both.")
+		end
 	end
 
-	if data.destination ~= nil then
+	if data.destination then
 		if data.destination.geometry then
 			local cell = data.destination:sample()
 

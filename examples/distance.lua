@@ -20,6 +20,11 @@ local farms = CellularSpace{
 	geometry = true
 }
 
+local farms_polygons = CellularSpace{
+	file = filePath("farms.shp", "gpm"),
+	geometry = true
+}
+
 -- create a Network with the distance of the end points to routes
 local network = Network{
 	target = csCenterspt,
@@ -34,7 +39,7 @@ local network = Network{
 	outside = function(distance) return distance * 2 end
 }
 
--- creating a GPM
+-- creating a GPM Only with distance
 GPM{
 	network = network,
 	origin = farms,
@@ -45,6 +50,28 @@ GPM{
 		distance = "distance"
 	},
 	maxDist = 2000
+}
+
+-- creating Map with values ​​GPM
+map = Map{
+	target = farms,
+	select = "pointID",
+	value = {1, 2, 3, 4},
+	color = {"red", "blue", "green", "black"}
+}
+
+-- creating a GPM with the maximum quantity the polygons
+GPM{
+	network = network,
+	origin = farms,
+	distance = "distance",
+	relation = "community",
+	output = {
+		id = "id1",
+		distance = "distance"
+	},
+	maximumQuantity = 4,
+	targetPolygons = farms_polygons
 }
 
 -- creating Map with values ​​GPM

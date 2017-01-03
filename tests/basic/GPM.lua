@@ -63,6 +63,48 @@ return {
 				id = "id1",
 				distance = "distance"
 			},
+			maxDist = 200,
+			targetPolygons = farmsPolygon
+		}
+
+		local map = Map{
+			target = gpm.origin,
+			select = "pointID",
+			value = {1, 2, 3, 4},
+			color = {"red", "blue", "green", "black"}
+		}
+		unitTest:assertSnapshot(map, "polygon_farms_distance.bmp")
+
+		gpm = GPM{
+			network = network,
+			origin = farms_cells,
+			distance = "distance",
+			relation = "community",
+			output = {
+				id = "id1",
+				distance = "distance"
+			},
+			maximumQuantity = 3,
+			targetPolygons = farmsPolygon
+		}
+
+		map = Map{
+			target = gpm.origin,
+			select = "pointID",
+			value = {1, 2, 3, 4},
+			color = {"red", "blue", "green", "black"}
+		}
+		unitTest:assertSnapshot(map, "polygon_farms_quantity.bmp")
+
+		gpm = GPM{
+			network = network,
+			origin = farms_cells,
+			distance = "distance",
+			relation = "community",
+			output = {
+				id = "id1",
+				distance = "distance"
+			},
 			maxDist = 2000,
 			destination = farmsPolygon
 		}
@@ -71,7 +113,7 @@ return {
 
 		unitTest:assertType(cellOrigin.distance, "number")
 
-		local map = Map{
+		map = Map{
 			target = gpm.origin,
 			select = "cellID",
 			value = {1, 2, 3, 4},
