@@ -248,7 +248,7 @@ end
 local function distancePointToTarget(self)
 	local maxDist = self.maxDist
 
-	if self.destination2 == nil then
+	if self.targetPolygons == nil then
 		forEachCell(self.origin, function(geometryOrigin)
 			geometryOrigin.pointID = 0
 			geometryClosestToPoint(geometryOrigin, self.network.target, maxDist)
