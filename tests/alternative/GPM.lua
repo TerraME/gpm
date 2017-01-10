@@ -503,7 +503,7 @@ return {
 			gpm:save(nameFile)
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("file", "string or File", nameFile))
-    
+
 		error_func = function()
 			gpm:save("gpm.gpm")
 		end

@@ -568,7 +568,7 @@ metaTableGPM_ = {
 -- @arg data.progress print as values are being processed (optional).
 -- @arg data.quantity Number of points for target.
 -- @arg data.relation --.
--- @arg data.strategy A string with the strategy to be used for creating the GPM (optional). 
+-- @arg data.strategy A string with the strategy to be used for creating the GPM (optional).
 -- See the table below.
 -- @tabular strategy
 -- Strategy & Description & Compulsory Arguments & Optional Arguments \
@@ -579,7 +579,7 @@ metaTableGPM_ = {
 -- "contains" & Returns which polygons contain the reference points.
 -- & destination,origin, strategy, targetPoints & \
 -- "distance" & Returns the cells within the distance to the nearest centroid,
--- the cells will always be related to the nearest target. & 
+-- the cells will always be related to the nearest target. &
 -- maxDist, origin, network, targetPolygons, output, maximumQuantity & progress \
 -- "length" & Create relations between objects whose intersection is a line.
 -- & maximumQuantity, minimumLength, origin, geometricObject & \
@@ -641,7 +641,7 @@ function GPM(data)
 
 	if data.network then
 		mandatoryTableArgument(data, "network", "Network")
-		data.distance = createOpenGPM(data)	
+		data.distance = createOpenGPM(data)
 	end
 
 	defaultTableValue(data, "quantity", 1)
@@ -655,7 +655,7 @@ function GPM(data)
 	if data.output then
 		forEachElement(data.output, function(output)
 			if output ~= "id" and output ~= "distance" then
-				incompatibleValueError("output", "id or distance", output) 
+				incompatibleValueError("output", "id or distance", output)
 			end
 		end)
 	end
@@ -767,7 +767,7 @@ function GPM(data)
 
 		distanceCellToTarget(data)
 	end
-    
+
 	setmetatable(data, metaTableGPM_)
 
 	return data
