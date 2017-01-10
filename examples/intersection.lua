@@ -13,7 +13,6 @@ local farmsNeighbor = CellularSpace{
 -- creating a GPM
 local gpm = GPM{
 	origin = farmsNeighbor,
-	distance = "distance",
 	relation = "community",
 	strategy = "intersection"
 }

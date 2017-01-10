@@ -13,7 +13,6 @@ local farms = CellularSpace{
 -- creating a GPM
 local gpm = GPM{
 	origin = farms,
-	distance = "distance",
 	relation = "community",
 	strategy = "length",
 	geometricObject = farms

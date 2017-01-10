@@ -18,7 +18,6 @@ local farmsPolygon = CellularSpace{
 -- creating a GPM
 local gpm = GPM{
 	origin = farms,
-	distance = "distance",
 	relation = "community",
 	output = {
 		id = "id1",

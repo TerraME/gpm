@@ -43,13 +43,12 @@ local network = Network{
 GPM{
 	network = network,
 	origin = farms,
-	distance = "distance",
 	relation = "community",
 	output = {
 		id = "id1",
 		distance = "distance"
 	},
-	maxDist = 2000
+	distance = 2000
 }
 
 -- creating Map with values ​​GPM
@@ -64,7 +63,6 @@ map = Map{
 GPM{
 	network = network,
 	origin = farms,
-	distance = "distance",
 	relation = "community",
 	output = {
 		id = "id1",

@@ -57,7 +57,6 @@ return {
 			GPM{
 				network = network,
 				origin = farms,
-				distance = "distance",
 				relation = "community",
 				output = {
 					d = "distance"
@@ -77,27 +76,25 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				distance = "distance",
 				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
 				},
-				maxDist = "distance"
+				distance = "distance"
 			}
 		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("maxDist", "number", "distance"))
+		unitTest:assertError(error_func, incompatibleTypeMsg("distance", "number", "distance"))
 
 		error_func = function()
 			GPM{
 				origin = farms,
-				distance = "distance",
 				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
 				},
-				maxDist = 100,
+				distance = 100,
 				destination = 2
 			}
 		end
@@ -110,13 +107,12 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				distance = "distance",
 				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
 				},
-				maxDist = 100,
+				distance = 100,
 				destination = polygons
 			}
 		end
@@ -131,23 +127,21 @@ return {
 			GPM{
 				network = network,
 				origin = farms,
-				distance = "distance",
 				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
 				},
-				maxDist = 100,
+				distance = 100,
 				quantity = 2,
 				destination = polygons
 			}
 		end
-		unitTest:assertError(error_func, "Use quantity or maxDist as parameters, not both.")
+		unitTest:assertError(error_func, "Use quantity or distance as parameters, not both.")
 
 		error_func = function()
 			GPM{
 				origin = farms,
-				distance = "distance",
 				relation = "community",
 				output = {
 					id = "id1",
@@ -162,13 +156,12 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				distance = "distance",
 				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
 				},
-				maxDist = 100,
+				distance = 100,
 				destination = roads
 			}
 		end
@@ -177,7 +170,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = 2,
-				distance = "distance",
 				relation = "community",
 				strategy = "intersection"
 			}
@@ -191,7 +183,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farmsNeighbor,
-				distance = "distance",
 				relation = "community",
 				strategy = "intersection"
 			}
@@ -206,7 +197,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farmsNeighbor,
-				distance = "distance",
 				relation = "community",
 				strategy = "intersection"
 			}
@@ -221,7 +211,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farmsNeighbor,
-				distance = "distance",
 				relation = "community",
 				strategy = "intersection",
 				quantity = ""
@@ -232,7 +221,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				distance = "distance",
 				relation = "community",
 				output = {
 					id = "id1",
@@ -251,7 +239,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				distance = "distance",
 				relation = "community",
 				output = {
 					id = "id1",
@@ -265,7 +252,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms_cells,
-				distance = "distance",
 				relation = "community",
 				strategy = "contains",
 				destination = farmsPolygon
@@ -280,7 +266,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms_cells,
-				distance = "distance",
 				relation = "community",
 				strategy = "contains",
 				destination = farmsPolygon
@@ -296,7 +281,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms_cells,
-				distance = "distance",
 				relation = "community",
 				strategy = "contains",
 				destination = farmsPolygon
@@ -311,7 +295,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms_cells,
-				distance = "distance",
 				relation = "community",
 				strategy = "contains",
 				destination = farmsPolygon
@@ -335,7 +318,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farmsPolygon,
-				distance = "distance",
 				relation = "community",
 				strategy = "length",
 				geometricObject = farms_cells
@@ -355,7 +337,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = communities,
-				distance = "distance",
 				relation = "community",
 				strategy = "length",
 				geometricObject = farms
@@ -376,7 +357,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				distance = "distance",
 				relation = "community",
 				strategy = "length",
 				geometricObject = communitiesCs
@@ -393,7 +373,6 @@ return {
 		local gpm = GPM{
 			network = network,
 			origin = farms,
-			distance = "distance",
 			relation = "community",
 			output = {
 				id = "id1",

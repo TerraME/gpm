@@ -246,7 +246,7 @@ local function buildRelationBetweenPolygons(self, polygon, pointID, targetPoint)
 end
 
 local function distancePointToTarget(self)
-	local maxDist = self.maxDist
+	local maxDist = self.distance
 
 	if self.destination == nil then
 		forEachCell(self.origin, function(geometryOrigin)
@@ -528,10 +528,9 @@ metaTableGPM_ = {
 
 --- Type to create a Generalised Proximity Matrix (GPM).
 -- It has several strategies that can use geometry as well as Area, Intersection, Distance and Network.
--- @arg data.distance --.
+-- @arg data.distance Distance around to end points (optional).
 -- @arg data.destination base::CellularSpace with polygons (optional).
 -- @arg data.geometricObject base::CellularSpace with polygons or lines (optional).
--- @arg data.maxDist Distance around to end points (optional).
 -- @arg data.network A base::CellularSpace that receives end points of the networks (optional).
 -- @arg data.origin A base::CellularSpace with geometry representing entry points on the network.
 -- @arg data.output Table to receive the output value of the GPM (optional).
@@ -551,7 +550,7 @@ metaTableGPM_ = {
 -- & destination, origin, strategy & \
 -- "distance" & Returns the cells within the distance to the nearest centroid,
 -- the cells will always be related to the nearest target. &
--- maxDist, origin, network, destination, output, quantity & progress \
+-- distance, origin, network, destination, output, quantity & progress \
 -- "length" & Create relations between objects whose intersection is a line.
 -- & strategy, origin, geometricObject & \
 -- "network" & Creates relation between network and cellularSpace,
@@ -592,7 +591,6 @@ metaTableGPM_ = {
 -- local gpm = GPM{
 --     network = network,
 --     origin = farms,
---     distance = "distance",
 --     relation = "community",
 --     output = {
 --         id = "id1",
@@ -601,7 +599,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "maxDist", "destination", "strategy", "geometricObject"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "destination", "strategy", "geometricObject"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if not data.origin.geometry then
@@ -610,14 +608,13 @@ function GPM(data)
 
 	if data.network then
 		mandatoryTableArgument(data, "network", "Network")
-		data.distance = createOpenGPM(data)
+		data.neighbors = createOpenGPM(data)
 	end
 
 	defaultTableValue(data, "progress", false)
 
 	mandatoryTableArgument(data, "progress", "boolean")
 
-	optionalTableArgument(data, "distance", "string")
 	optionalTableArgument(data, "relation", "string")
 
 	if data.output then
@@ -674,7 +671,7 @@ function GPM(data)
 		end
 	end
 
-	if data.maxDist or data.quantity and data.destination then
+	if data.distance or data.quantity and data.destination then
 		if data.destination then
 		mandatoryTableArgument(data, "destination", "CellularSpace")
 
@@ -689,14 +686,14 @@ function GPM(data)
 			end
 		end
 
-		if data.maxDist and data.quantity == nil then
-			mandatoryTableArgument(data, "maxDist", "number")
+		if data.distance and data.quantity == nil then
+			mandatoryTableArgument(data, "distance", "number")
 			distancePointToTarget(data)
-		elseif data.quantity and data.maxDist == nil and data.destination then
+		elseif data.quantity and data.distance == nil and data.destination then
 			mandatoryTableArgument(data, "quantity", "number")
 			createRelationByQuantity(data)
 		else
-			customError("Use quantity or maxDist as parameters, not both.")
+			customError("Use quantity or distance as parameters, not both.")
 		end
 	end
 

@@ -40,7 +40,6 @@ return {
 
 		local gpm = GPM{
 			origin = farmsNeighbor,
-			distance = "distance",
 			relation = "community",
 			strategy = "intersection",
 			quantity = 2
@@ -57,13 +56,12 @@ return {
 		gpm = GPM{
 			network = network,
 			origin = farms_cells,
-			distance = "distance",
 			relation = "community",
 			output = {
 				id = "id1",
 				distance = "distance"
 			},
-			maxDist = 200,
+			distance = 200,
 			destination = farmsPolygon
 		}
 
@@ -78,7 +76,6 @@ return {
 		gpm = GPM{
 			network = network,
 			origin = farms_cells,
-			distance = "distance",
 			relation = "community",
 			output = {
 				id = "id1",
@@ -99,13 +96,12 @@ return {
 		gpm = GPM{
 			network = network,
 			origin = farms_cells,
-			distance = "distance",
 			relation = "community",
 			output = {
 				id = "id1",
 				distance = "distance"
 			},
-			maxDist = 2000,
+			distance = 2000,
 			destination = farmsPolygon
 		}
 
@@ -147,7 +143,6 @@ return {
 
 		gpm = GPM{
 			origin = farmsPolygon,
-			distance = "distance",
 			relation = "community",
 			strategy = "contains",
 			destination = communities
@@ -170,7 +165,6 @@ return {
 
 		GPM{
 			origin = farms,
-			distance = "distance",
 			relation = "community",
 			strategy = "length",
 			geometricObject = farms
@@ -189,7 +183,6 @@ return {
 		local gpm = GPM{
 			network = network,
 			origin = farms,
-			distance = "distance",
 			relation = "community",
 			output = {
 				id = "id1",
