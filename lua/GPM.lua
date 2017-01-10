@@ -248,7 +248,7 @@ end
 local function distancePointToTarget(self)
 	local maxDist = self.maxDist
 
-	if self.targetPolygons == nil then
+	if self.destination == nil then
 		forEachCell(self.origin, function(geometryOrigin)
 			geometryOrigin.pointID = 0
 			geometryClosestToPoint(geometryOrigin, self.network.target, maxDist)
@@ -259,7 +259,7 @@ local function distancePointToTarget(self)
 			geometryOrigin.distanceToTarget = math.huge
 		end)
 
-		forEachCell(self.targetPolygons, function(polygon)
+		forEachCell(self.destination, function(polygon)
 			local geometryPolygon = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
 			local centroid = geometryPolygon:getCentroid()
 
@@ -284,7 +284,7 @@ local function createRelationByQuantity(self)
 		geometryOrigin.distanceToTarget = math.huge
 	end)
 
-	local quantity = self.maximumQuantity
+	local quantity = self.quantity
 
 	forEachCell(self.network.target, function(point)
 		local targetPoint = tl:castGeomToSubtype(point.geom:getGeometryN(0))
@@ -292,7 +292,7 @@ local function createRelationByQuantity(self)
 		point.vectorKeysOfPolygons = {}
 		point.polygonVector = {}
 
-		forEachCell(self.targetPolygons, function(polygon)
+		forEachCell(self.destination, function(polygon)
 			local geometryPolygon = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
 			local centroid = geometryPolygon:getCentroid()
 			local distanceToTarget = centroid:distance(targetPoint)
@@ -345,7 +345,7 @@ local function distanceCellToTarget(self)
 	end)
 end
 
--- Strategy 'border'
+-- Strategy 'intersection'
 local function calculateWeightNeighbors(polygon)
 	local geometry = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
 	local geometryPerimeter = geometry:getPerimeter()
@@ -358,7 +358,7 @@ local function calculateWeightNeighbors(polygon)
 		local lengthBorder = geometryBorder:getLength()
 
 		polygon.perimeterBorder[neighbor] = (math.modf((lengthBorder / geometryPerimeter) * 100)) / 100
-		polygon.borderNeighbors[neighbor] = lengthBorder
+		polygon.intersectionNeighbors[neighbor] = lengthBorder
 	end)
 end
 
@@ -380,13 +380,13 @@ local function neighborhoodOfPolygon(self)
 	local polygonOrigin = self.origin
     local quantity = math.huge
 
-	if self.maximumQuantity then
-		quantity = self.maximumQuantity
+	if self.quantity then
+		quantity = self.quantity
 	end
 
 	forEachCell(polygonOrigin, function(polygon)
 		polygon.neighbors = {}
-		polygon.borderNeighbors = {}
+		polygon.intersectionNeighbors = {}
 		polygon.perimeterBorder = {}
 		definingNeighbors(polygonOrigin, polygon, quantity)
 	end)
@@ -394,51 +394,30 @@ end
 
 -- 'contains'
 local function relationBetweenPolygonsAndPoints(self)
-	local polygon_cells = self.origin
-	local points = self.targetPoints
-	local valueColor = 1
-	local destination = self.destination
+	local polygonOrigin = self.origin
+	local points = self.destination
 
-	forEachCell(destination, function(polygonDestination)
-		local geometryDestination = tl:castGeomToSubtype(polygonDestination.geom:getGeometryN(0))
+	forEachCell(polygonOrigin, function(polygon)
+		local geometryDestination = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+
+		polygon.contains = {}
 
 		forEachCell(points, function(point)
 			local geometryPoints = tl:castGeomToSubtype(point.geom:getGeometryN(0))
 
 			if geometryDestination:contains(geometryPoints) then
-				forEachCell(polygon_cells, function(polygonOrigin)
-					if polygonOrigin.contains == nil then
-						polygonOrigin.contains = 0
-					end
-
-					local geometryOrigin = tl:castGeomToSubtype(polygonOrigin.geom:getGeometryN(0))
-
-					if geometryDestination:contains(geometryOrigin) or geometryDestination:distance(geometryOrigin) == 0 then
-						polygonOrigin.contains = valueColor
-					end
-				end)
-				valueColor = valueColor + 1
-
-				if valueColor == 5 then
-					valueColor = 1 -- SKIP
-				end
+				table.insert(polygon.contains, point)
 			end
 		end)
 	end)
 end
 
 -- 'length'
-local function buildRelation(self, key)
+local function buildRelation(self)
 	local polygonOrigin = self.origin
 	local geometricObject = self.geometricObject
 	local geometricCounter = 0
 	local length
-
-	if key then
-		length = self.minimumLength
-	else
-		length = self.maximumQuantity
-	end
 
 	forEachCell(polygonOrigin, function(polygon)
 		local geometryOrigin = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
@@ -454,26 +433,20 @@ local function buildRelation(self, key)
 				local geometryIntersection = tl:castGeomToSubtype(intersection)
 				local lengthIntersection
 
-				if string.find(geometryObject:getGeometryType(), "LineString") then
+				if string.find(geometryIntersection:getGeometryType(), "LineString") then
 					lengthIntersection = geometryIntersection:getLength()
-				else
+				elseif string.find(geometryIntersection:getGeometryType(),"Polygon") then
 					lengthIntersection = geometryIntersection:getArea()
+                else
+                    return
 				end
 
-				if key then
-					if lengthIntersection >= length then
-						table.insert(polygon.intersection, intersection)
-						polygon.lengthIntersection[intersection] = lengthIntersection
-					end
-				else
-					if geometricCounter < length then
-						table.insert(polygon.intersection, intersection)
-						polygon.lengthIntersection[intersection] = lengthIntersection
-						geometricCounter = geometricCounter + 1
-					end
-				end
+				table.insert(polygon.intersection, intersection)
+				polygon.lengthIntersection[intersection] = lengthIntersection
 			end
 		end)
+
+	geometricCounter = 0
 	end)
 end
 
@@ -554,19 +527,17 @@ metaTableGPM_ = {
 }
 
 --- Type to create a Generalised Proximity Matrix (GPM).
--- It has several strategies that can use geometry as well as Area, Border, Distance and Network.
+-- It has several strategies that can use geometry as well as Area, Intersection, Distance and Network.
 -- @arg data.distance --.
 -- @arg data.destination base::CellularSpace with polygons (optional).
 -- @arg data.geometricObject base::CellularSpace with polygons or lines (optional).
 -- @arg data.maxDist Distance around to end points (optional).
--- @arg data.maximumQuantity Maximum amount of relation between geometries (optional).
--- @arg data.minimumLength Minimum length to create a relationship between two geometries (optional).
 -- @arg data.network A base::CellularSpace that receives end points of the networks (optional).
 -- @arg data.origin A base::CellularSpace with geometry representing entry points on the network.
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ID and distance.
 -- @arg data.progress print as values are being processed (optional).
--- @arg data.quantity Number of points for target.
+-- @arg data.quantity relation between geometries (optional).
 -- @arg data.relation --.
 -- @arg data.strategy A string with the strategy to be used for creating the GPM (optional).
 -- See the table below.
@@ -574,20 +545,18 @@ metaTableGPM_ = {
 -- Strategy & Description & Compulsory Arguments & Optional Arguments \
 -- "area" & Creates relation between two layer using the intersection areas of their polygons.
 -- & destination, origin & \
--- "border" & Creates relation between neighboring polygons,
--- each polygon reference his neighbors and the area touched. & strategy, origin & maximumQuantity \
+-- "intersection" & Creates relation between neighboring polygons,
+-- each polygon reference his neighbors and the area touched. & strategy, origin & quantity \
 -- "contains" & Returns which polygons contain the reference points.
--- & destination,origin, strategy, targetPoints & \
+-- & destination, origin, strategy & \
 -- "distance" & Returns the cells within the distance to the nearest centroid,
 -- the cells will always be related to the nearest target. &
--- maxDist, origin, network, targetPolygons, output, maximumQuantity & progress \
+-- maxDist, origin, network, destination, output, quantity & progress \
 -- "length" & Create relations between objects whose intersection is a line.
--- & maximumQuantity, minimumLength, origin, geometricObject & \
+-- & strategy, origin, geometricObject & \
 -- "network" & Creates relation between network and cellularSpace,
 -- each point of the network receives the reference to the nearest destination.
 -- & output, network, distance, origin, relation & progress, quantity \
--- @arg data.targetPoints base::CellularSpace with points (optional).
--- @arg data.targetPolygons base::CellularSpace with polygons (optional).
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
@@ -632,7 +601,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "maxDist", "destination", "strategy", "targetPoints", "maximumQuantity", "minimumLength", "geometricObject", "targetPolygons"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "maxDist", "destination", "strategy", "geometricObject"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if not data.origin.geometry then
@@ -644,7 +613,6 @@ function GPM(data)
 		data.distance = createOpenGPM(data)
 	end
 
-	defaultTableValue(data, "quantity", 1)
 	defaultTableValue(data, "progress", false)
 
 	mandatoryTableArgument(data, "progress", "boolean")
@@ -660,7 +628,7 @@ function GPM(data)
 		end)
 	end
 
-	if data.geometricObject and data.maximumQuantity or data.minimumLength then
+	if data.geometricObject and data.strategy == "length" then
 		if data.geometricObject.geometry then
 			local cell = data.geometricObject:sample()
 
@@ -671,18 +639,10 @@ function GPM(data)
 			customError("The CellularSpace in argument 'geometricObject' must be loaded with 'geometry = true'.")
 		end
 
-		if data.maximumQuantity and data.minimumLength == nil then
-			mandatoryTableArgument(data, "maximumQuantity", "number")
-			buildRelation(data, false)
-		elseif data.minimumLength and data.maximumQuantity == nil then
-			mandatoryTableArgument(data, "minimumLength", "number")
-			buildRelation(data, true)
-		else
-			customError("Use maximumQuantity or minimumLength as parameters, not both.")
-		end
+		buildRelation(data)
 	end
 
-	if data.strategy == "border" or data.strategy == "contains" then
+	if data.strategy == "intersection" or data.strategy == "contains" then
 		if data.origin.geometry then
 			local cell = data.origin:sample()
 
@@ -691,25 +651,32 @@ function GPM(data)
 			end
 		end
 
-		if data.strategy == "border" then
-			if data.maximumQuantity then
-				mandatoryTableArgument(data, "maximumQuantity", "number")
+		if data.strategy == "intersection" then
+			if data.quantity then
+				mandatoryTableArgument(data, "quantity", "number")
 			end
 
 			neighborhoodOfPolygon(data)
 		else
-			mandatoryTableArgument(data, "targetPoints", "CellularSpace")
 			mandatoryTableArgument(data, "destination", "CellularSpace")
 
-			if data.targetPoints.geometry then
-				local cell = data.targetPoints:sample()
+			if data.destination.geometry then
+				local cell = data.destination:sample()
 
-				if not string.find(cell.geom:getGeometryType(), "Point") then
-					customError("Argument 'targetPoints' should be composed by points, got '"..cell.geom:getGeometryType().."'.")
+				if  not string.find(cell.geom:getGeometryType(), "MultiPoint") then
+					customError("Argument 'destination' should be composed by MultiPoint, got '"..cell.geom:getGeometryType().."'.")
 				end
 			else
-				customError("The CellularSpace in argument 'targetPoints' must be loaded with 'geometry = true'.")
+				customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
 			end
+
+			relationBetweenPolygonsAndPoints(data)
+		end
+	end
+
+	if data.maxDist or data.quantity and data.destination then
+		if data.destination then
+		mandatoryTableArgument(data, "destination", "CellularSpace")
 
 			if data.destination.geometry then
 				local cell = data.destination:sample()
@@ -720,41 +687,20 @@ function GPM(data)
 			else
 				customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
 			end
-
-			relationBetweenPolygonsAndPoints(data)
 		end
 
-	elseif data.strategy then
-		incompatibleValueError("strategy", "border", data.strategy)
-	end
-
-	if data.maxDist or data.maximumQuantity and data.targetPolygons then
-		if data.targetPolygons then
-		mandatoryTableArgument(data, "targetPolygons", "CellularSpace")
-
-			if data.targetPolygons.geometry then
-				local cell = data.targetPolygons:sample()
-
-				if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
-					customError("Argument 'targetPolygons' should be composed by MultiPolygon, got '"..cell.geom:getGeometryType().."'.")
-				end
-			else
-				customError("The CellularSpace in argument 'targetPolygons' must be loaded with 'geometry = true'.")
-			end
-		end
-
-		if data.maxDist and data.maximumQuantity == nil then
+		if data.maxDist and data.quantity == nil then
 			mandatoryTableArgument(data, "maxDist", "number")
 			distancePointToTarget(data)
-		elseif data.maximumQuantity and data.maxDist == nil and data.targetPolygons then
-			mandatoryTableArgument(data, "maximumQuantity", "number")
+		elseif data.quantity and data.maxDist == nil and data.destination then
+			mandatoryTableArgument(data, "quantity", "number")
 			createRelationByQuantity(data)
 		else
-			customError("Use maximumQuantity or maxDist as parameters, not both.")
+			customError("Use quantity or maxDist as parameters, not both.")
 		end
 	end
 
-	if data.destination then
+	if data.destination and data.strategy ~= "contains" then
 		if data.destination.geometry then
 			local cell = data.destination:sample()
 

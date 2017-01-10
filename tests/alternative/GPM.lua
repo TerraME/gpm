@@ -98,10 +98,10 @@ return {
 					distance = "distance"
 				},
 				maxDist = 100,
-				targetPolygons = 2
+				destination = 2
 			}
 		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("targetPolygons", "CellularSpace", 2))
+		unitTest:assertError(error_func, incompatibleTypeMsg("destination", "CellularSpace", 2))
 
 		local polygons = CellularSpace{
 			file = filePath("farms.shp", "gpm")
@@ -117,10 +117,10 @@ return {
 					distance = "distance"
 				},
 				maxDist = 100,
-				targetPolygons = polygons
+				destination = polygons
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'targetPolygons' must be loaded with 'geometry = true'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
 
 		polygons = CellularSpace{
 			file = filePath("farms.shp", "gpm"),
@@ -138,11 +138,11 @@ return {
 					distance = "distance"
 				},
 				maxDist = 100,
-				maximumQuantity = 2,
-				targetPolygons = polygons
+				quantity = 2,
+				destination = polygons
 			}
 		end
-		unitTest:assertError(error_func, "Use maximumQuantity or maxDist as parameters, not both.")
+		unitTest:assertError(error_func, "Use quantity or maxDist as parameters, not both.")
 
 		error_func = function()
 			GPM{
@@ -153,11 +153,11 @@ return {
 					id = "id1",
 					distance = "distance"
 				},
-				maximumQuantity = " ",
-				targetPolygons = polygons
+				quantity = " ",
+				destination = polygons
 			}
 		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("maximumQuantity", "number", " "))
+		unitTest:assertError(error_func, incompatibleTypeMsg("quantity", "number", " "))
 
 		error_func = function()
 			GPM{
@@ -169,17 +169,17 @@ return {
 					distance = "distance"
 				},
 				maxDist = 100,
-				targetPolygons = roads
+				destination = roads
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'targetPolygons' should be composed by MultiPolygon, got 'MultiLineString'.")
+		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPolygon, got 'MultiLineString'.")
 
 		error_func = function()
 			GPM{
 				origin = 2,
 				distance = "distance",
 				relation = "community",
-				strategy = "border"
+				strategy = "intersection"
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("origin", "CellularSpace", 2))
@@ -193,7 +193,7 @@ return {
 				origin = farmsNeighbor,
 				distance = "distance",
 				relation = "community",
-				strategy = "border"
+				strategy = "intersection"
 			}
 		end
 		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
@@ -208,7 +208,7 @@ return {
 				origin = farmsNeighbor,
 				distance = "distance",
 				relation = "community",
-				strategy = "border"
+				strategy = "intersection"
 			}
 		end
 		unitTest:assertError(error_func, "Argument 'origin' should be composed by MultiPolygon, got 'MultiLineString'.")
@@ -223,21 +223,11 @@ return {
 				origin = farmsNeighbor,
 				distance = "distance",
 				relation = "community",
-				strategy = "border",
-				maximumQuantity = ""
+				strategy = "intersection",
+				quantity = ""
 			}
 		end
-		unitTest:assertError(error_func, "Incompatible types. Argument 'maximumQuantity' expected number, got string.")
-
-		error_func = function()
-			GPM{
-				origin = farmsNeighbor,
-				distance = "distance",
-				relation = "community",
-				strategy = 2
-			}
-		end
-		unitTest:assertError(error_func, incompatibleValueMsg("strategy", "border", 2))
+		unitTest:assertError(error_func, "Incompatible types. Argument 'quantity' expected number, got string.")
 
 		error_func = function()
 			GPM{
@@ -278,7 +268,6 @@ return {
 				distance = "distance",
 				relation = "community",
 				strategy = "contains",
-				targetPoints = communities,
 				destination = farmsPolygon
 			}
 		end
@@ -294,7 +283,6 @@ return {
 				distance = "distance",
 				relation = "community",
 				strategy = "contains",
-				targetPoints = communities,
 				destination = farmsPolygon
 			}
 		end
@@ -311,23 +299,10 @@ return {
 				distance = "distance",
 				relation = "community",
 				strategy = "contains",
-				targetPoints = communities,
 				destination = farmsPolygon
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPolygon, got 'MultiLineString'.")
-
-		error_func = function()
-			GPM{
-				origin = farms_cells,
-				distance = "distance",
-				relation = "community",
-				strategy = "contains",
-				targetPoints = communities,
-				destination = farmsPolygon
-			}
-		end
-		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPolygon, got 'MultiLineString'.")
+		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPoint, got 'MultiLineString'.")
 
 		farmsPolygon = CellularSpace{
 			file = filePath("farms.shp", "gpm")
@@ -339,80 +314,19 @@ return {
 				distance = "distance",
 				relation = "community",
 				strategy = "contains",
-				targetPoints = communities,
 				destination = farmsPolygon
 			}
 		end
 		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
 
-		communities = ""
-
-		error_func = function()
-			GPM{
-				origin = farms_cells,
-				distance = "distance",
-				relation = "community",
-				strategy = "contains",
-				targetPoints = communities,
-				destination = farmsPolygon
-			}
-		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("targetPoints", "CellularSpace", ""))
-
 		communities = CellularSpace{
 			file = filePath("communities.shp", "gpm")
 		}
-
-		error_func = function()
-			GPM{
-				origin = farms_cells,
-				distance = "distance",
-				relation = "community",
-				strategy = "contains",
-				targetPoints = communities,
-				destination = farmsPolygon
-			}
-		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'targetPoints' must be loaded with 'geometry = true'.")
 
 		communities = CellularSpace{
 			file = filePath("farms.shp", "gpm"),
 			geometry = true
 		}
-
-		error_func = function()
-			GPM{
-				origin = farms_cells,
-				distance = "distance",
-				relation = "community",
-				strategy = "contains",
-				targetPoints = communities,
-				destination = farmsPolygon
-			}
-		end
-		unitTest:assertError(error_func, "Argument 'targetPoints' should be composed by points, got 'MultiPolygon'.")
-
-		error_func = function()
-			GPM{
-				origin = farms_cells,
-				distance = "distance",
-				relation = "community",
-				maximumQuantity = "",
-				geometricObject = farms_cells
-			}
-		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("maximumQuantity", "number", ""))
-
-		error_func = function()
-			GPM{
-				origin = farms_cells,
-				distance = "distance",
-				relation = "community",
-				minimumLength = "",
-				geometricObject = farms_cells
-			}
-		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("minimumLength", "number", ""))
 
 		farmsPolygon = CellularSpace{
 			file = filePath("farms.shp", "gpm")
@@ -423,7 +337,7 @@ return {
 				origin = farmsPolygon,
 				distance = "distance",
 				relation = "community",
-				minimumLength = "",
+				strategy = "length",
 				geometricObject = farms_cells
 			}
 		end
@@ -443,7 +357,7 @@ return {
 				origin = communities,
 				distance = "distance",
 				relation = "community",
-				minimumLength = "",
+				strategy = "length",
 				geometricObject = farms
 			}
 		end
@@ -464,23 +378,11 @@ return {
 				origin = farms,
 				distance = "distance",
 				relation = "community",
-				minimumLength = 2,
+				strategy = "length",
 				geometricObject = communitiesCs
 			}
 		end
 		unitTest:assertError(error_func, "Argument 'geometricObject' should be composed by MultiPolygon or MultiLineString, got 'MultiPoint'.")
-
-		error_func = function()
-			GPM{
-				origin = farms,
-				distance = "distance",
-				relation = "community",
-				minimumLength = 2,
-				maximumQuantity = 2,
-				geometricObject = farms
-			}
-		end
-		unitTest:assertError(error_func, "Use maximumQuantity or minimumLength as parameters, not both.")
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{

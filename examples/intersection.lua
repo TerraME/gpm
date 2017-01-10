@@ -1,4 +1,4 @@
--- @example GPM Implementation strategy 'border' and creating map.
+-- @example GPM Implementation strategy 'intersection' and creating map.
 -- Returns neighbor states and the relationship of borders.
 
 -- import gpm
@@ -15,7 +15,7 @@ local gpm = GPM{
 	origin = farmsNeighbor,
 	distance = "distance",
 	relation = "community",
-	strategy = "border"
+	strategy = "intersection"
 }
 
 forEachCell(gpm.origin, function(polygon)

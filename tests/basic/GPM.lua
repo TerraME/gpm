@@ -42,14 +42,14 @@ return {
 			origin = farmsNeighbor,
 			distance = "distance",
 			relation = "community",
-			strategy = "border",
-			maximumQuantity = 2
+			strategy = "intersection",
+			quantity = 2
 		}
 
 		forEachCell(gpm.origin, function(polygon)
 			unitTest:assert(#polygon.neighbors > 0)
 			forEachElement(polygon.neighbors, function(polygonNeighbor)
-				unitTest:assert(polygon.borderNeighbors[polygon.neighbors[polygonNeighbor]] > 0)
+				unitTest:assert(polygon.intersectionNeighbors[polygon.neighbors[polygonNeighbor]] > 0)
 				unitTest:assertType(polygon.perimeterBorder[polygon.neighbors[polygonNeighbor]], "number")
 			end)
 		end)
@@ -64,7 +64,7 @@ return {
 				distance = "distance"
 			},
 			maxDist = 200,
-			targetPolygons = farmsPolygon
+			destination = farmsPolygon
 		}
 
 		local map = Map{
@@ -84,8 +84,8 @@ return {
 				id = "id1",
 				distance = "distance"
 			},
-			maximumQuantity = 3,
-			targetPolygons = farmsPolygon
+			quantity = 3,
+			destination = farmsPolygon
 		}
 
 		map = Map{
@@ -146,22 +146,22 @@ return {
 		unitTest:assertSnapshot(map, "distance_farms.bmp")
 
 		gpm = GPM{
-			origin = farms_cells,
+			origin = farmsPolygon,
 			distance = "distance",
 			relation = "community",
 			strategy = "contains",
-			targetPoints = communities,
-			destination = farmsPolygon
+			destination = communities
 		}
 
-		map = Map{
-			target = gpm.origin,
-			select = "contains",
-			value = {1, 2, 3, 4},
-			color = {"red", "blue", "green", "black"}
-		}
-		unitTest:assertSnapshot(map, "contains_farms.bmp")
-		unitTest:assertType(gpm, "GPM")
+		local counterCommunities = 0
+
+		forEachCell(farmsPolygon, function(cell)
+			if #cell.contains > 0 then
+				counterCommunities = counterCommunities + 1
+			end
+		end)
+
+		unitTest:assertEquals(counterCommunities, 2)
 
 		local farms = CellularSpace{
 			file = filePath("farms.shp", "gpm"),
@@ -172,20 +172,8 @@ return {
 			origin = farms,
 			distance = "distance",
 			relation = "community",
-			maximumQuantity = 2,
-			geometricObject = farms_cells
-		}
-
-		forEachCell(farms, function(cell)
-			unitTest:assert(cell.intersection ~= nil)
-		end)
-
-		GPM{
-			origin = farms,
-			distance = "distance",
-			relation = "community",
-			minimumLength = 400,
-			geometricObject = roads
+			strategy = "length",
+			geometricObject = farms
 		}
 
 		forEachCell(farms, function(cell)

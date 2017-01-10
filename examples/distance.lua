@@ -70,8 +70,8 @@ GPM{
 		id = "id1",
 		distance = "distance"
 	},
-	maximumQuantity = 4,
-	targetPolygons = farms_polygons
+	quantity = 4,
+	destination = farms_polygons
 }
 
 -- creating Map with values ​​GPM
