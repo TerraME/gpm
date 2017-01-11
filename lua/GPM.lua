@@ -333,7 +333,7 @@ local function distanceCellToTarget(self)
 		polygon.valueColor = valueColor
 		valueColor = valueColor + 1
 
-		if valueColor == 5 then
+		if valueColor == 11 then
 			valueColor = 1
 		end
 	end)
@@ -489,7 +489,6 @@ GPM_ = {
 	-- gpm = GPM{
 	--     network = network,
 	--     origin = farms,
-	--     relation = "community",
 	--     output = {
 	--         id = "id1",
 	--         distance = "distance"
@@ -535,7 +534,6 @@ metaTableGPM_ = {
 -- This table gets two values ID and distance.
 -- @arg data.progress print as values are being processed (optional).
 -- @arg data.quantity relation between geometries (optional).
--- @arg data.relation --.
 -- @arg data.strategy A string with the strategy to be used for creating the GPM (optional).
 -- See the table below.
 -- @tabular strategy
@@ -553,7 +551,7 @@ metaTableGPM_ = {
 -- & strategy, origin, destination & \
 -- "network" & Creates relation between network and cellularSpace,
 -- each point of the network receives the reference to the nearest destination.
--- & output, network, distance, origin, relation & progress, quantity \
+-- & output, network, distance, origin & progress, quantity \
 -- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
@@ -589,7 +587,6 @@ metaTableGPM_ = {
 -- local gpm = GPM{
 --     network = network,
 --     origin = farms,
---     relation = "community",
 --     output = {
 --         id = "id1",
 --         distance = "distance"
@@ -597,7 +594,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "destination", "strategy"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "output", "progress", "destination", "strategy"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if not data.origin.geometry then
@@ -612,8 +609,6 @@ function GPM(data)
 	defaultTableValue(data, "progress", false)
 
 	mandatoryTableArgument(data, "progress", "boolean")
-
-	optionalTableArgument(data, "relation", "string")
 
 	if data.output then
 		forEachElement(data.output, function(output)

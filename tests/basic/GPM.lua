@@ -40,7 +40,6 @@ return {
 
 		local gpm = GPM{
 			origin = farmsNeighbor,
-			relation = "community",
 			strategy = "intersection",
 			quantity = 2
 		}
@@ -56,7 +55,6 @@ return {
 		gpm = GPM{
 			network = network,
 			origin = farms_cells,
-			relation = "community",
 			output = {
 				id = "id1",
 				distance = "distance"
@@ -76,7 +74,6 @@ return {
 		gpm = GPM{
 			network = network,
 			origin = farms_cells,
-			relation = "community",
 			output = {
 				id = "id1",
 				distance = "distance"
@@ -96,7 +93,6 @@ return {
 		gpm = GPM{
 			network = network,
 			origin = farms_cells,
-			relation = "community",
 			output = {
 				id = "id1",
 				distance = "distance"
@@ -112,8 +108,8 @@ return {
 		map = Map{
 			target = gpm.origin,
 			select = "cellID",
-			value = {1, 2, 3, 4},
-			color = {"red", "blue", "green", "black"}
+			slices = 10,
+			color = "RdYlGn"
 		}
 		unitTest:assertSnapshot(map, "cellID_farms.bmp")
 
@@ -143,7 +139,6 @@ return {
 
 		gpm = GPM{
 			origin = farmsPolygon,
-			relation = "community",
 			strategy = "contains",
 			destination = communities
 		}
@@ -165,7 +160,6 @@ return {
 
 		GPM{
 			origin = farms,
-			relation = "community",
 			strategy = "length",
 			destination = farms
 		}
@@ -183,7 +177,6 @@ return {
 		local gpm = GPM{
 			network = network,
 			origin = farms,
-			relation = "community",
 			output = {
 				id = "id1",
 				distance = "distance"

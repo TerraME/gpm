@@ -13,13 +13,12 @@ local farmsNeighbor = CellularSpace{
 -- creating a GPM
 local gpm = GPM{
 	origin = farmsNeighbor,
-	relation = "community",
 	strategy = "intersection"
 }
 
 forEachCell(gpm.origin, function(polygon)
 	print(polygon.NOME_UF)
 	forEachElement(polygon.neighbors, function(polygonNeighbor)
-		print("	"..polygon.neighbors[polygonNeighbor].NOME_UF.."("..polygon.perimeterBorder[polygon.neighbors[polygonNeighbor]]..")")
+		print("	"..polygon.neighbors[polygonNeighbor].NOME_UF.." ("..polygon.perimeterBorder[polygon.neighbors[polygonNeighbor]]..")")
 	end)
 end)

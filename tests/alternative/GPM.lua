@@ -57,7 +57,6 @@ return {
 			GPM{
 				network = network,
 				origin = farms,
-				relation = "community",
 				output = {
 					d = "distance"
 				}
@@ -76,7 +75,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
@@ -89,7 +87,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
@@ -107,7 +104,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
@@ -127,7 +123,6 @@ return {
 			GPM{
 				network = network,
 				origin = farms,
-				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
@@ -142,7 +137,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
@@ -156,7 +150,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
@@ -170,7 +163,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = 2,
-				relation = "community",
 				strategy = "intersection"
 			}
 		end
@@ -183,7 +175,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farmsNeighbor,
-				relation = "community",
 				strategy = "intersection"
 			}
 		end
@@ -197,7 +188,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farmsNeighbor,
-				relation = "community",
 				strategy = "intersection"
 			}
 		end
@@ -211,7 +201,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farmsNeighbor,
-				relation = "community",
 				strategy = "intersection",
 				quantity = ""
 			}
@@ -221,7 +210,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
@@ -239,7 +227,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				relation = "community",
 				output = {
 					id = "id1",
 					distance = "distance"
@@ -252,7 +239,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms_cells,
-				relation = "community",
 				strategy = "contains",
 				destination = farmsPolygon
 			}
@@ -266,7 +252,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms_cells,
-				relation = "community",
 				strategy = "contains",
 				destination = farmsPolygon
 			}
@@ -281,7 +266,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms_cells,
-				relation = "community",
 				strategy = "contains",
 				destination = farmsPolygon
 			}
@@ -295,7 +279,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms_cells,
-				relation = "community",
 				strategy = "contains",
 				destination = farmsPolygon
 			}
@@ -318,7 +301,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farmsPolygon,
-				relation = "community",
 				strategy = "length",
 				destination = farms_cells
 			}
@@ -337,7 +319,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = communities,
-				relation = "community",
 				strategy = "length",
 				destination = farms
 			}
@@ -357,7 +338,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				relation = "community",
 				strategy = "length",
 				destination = communitiesCs
 			}
@@ -373,7 +353,6 @@ return {
 		local gpm = GPM{
 			network = network,
 			origin = farms,
-			relation = "community",
 			output = {
 				id = "id1",
 			}

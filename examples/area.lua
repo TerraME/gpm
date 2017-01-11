@@ -6,7 +6,7 @@ import("gpm")
 
 -- create the CellularSpace
 local farms = CellularSpace{
-	file = filePath("farms_cells.shp", "gpm"),
+	file = filePath("farms_cells3.shp", "gpm"),
 	geometry = true
 }
 
@@ -18,7 +18,6 @@ local farmsPolygon = CellularSpace{
 -- creating a GPM
 local gpm = GPM{
 	origin = farms,
-	relation = "community",
 	output = {
 		id = "id1",
 		distance = "distance"
@@ -30,6 +29,6 @@ local gpm = GPM{
 map = Map{
 	target = gpm.origin,
 	select = "cellID",
-	value = {1, 2, 3, 4},
-	color = {"red", "blue", "green", "black"}
+	slices = 10,
+	color = "RdYlGn"
 }

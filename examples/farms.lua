@@ -41,7 +41,6 @@ local network = Network{
 local gpm = GPM{
 	network = network,
 	origin = farms,
-	relation = "community",
 	output = {
 		id = "id1",
 		distance = "distance"
