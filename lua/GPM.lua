@@ -415,7 +415,7 @@ end
 -- 'length'
 local function buildRelation(self)
 	local polygonOrigin = self.origin
-	local geometricObject = self.geometricObject
+	local geometricObject = self.destination
 	local geometricCounter = 0
 	local length
 
@@ -489,7 +489,6 @@ GPM_ = {
 	-- gpm = GPM{
 	--     network = network,
 	--     origin = farms,
-	--     distance = "distance",
 	--     relation = "community",
 	--     output = {
 	--         id = "id1",
@@ -529,8 +528,7 @@ metaTableGPM_ = {
 --- Type to create a Generalised Proximity Matrix (GPM).
 -- It has several strategies that can use geometry as well as Area, Intersection, Distance and Network.
 -- @arg data.distance Distance around to end points (optional).
--- @arg data.destination base::CellularSpace with polygons (optional).
--- @arg data.geometricObject base::CellularSpace with polygons or lines (optional).
+-- @arg data.destination base::CellularSpace (optional).
 -- @arg data.network A base::CellularSpace that receives end points of the networks (optional).
 -- @arg data.origin A base::CellularSpace with geometry representing entry points on the network.
 -- @arg data.output Table to receive the output value of the GPM (optional).
@@ -552,7 +550,7 @@ metaTableGPM_ = {
 -- the cells will always be related to the nearest target. &
 -- distance, origin, network, destination, output, quantity & progress \
 -- "length" & Create relations between objects whose intersection is a line.
--- & strategy, origin, geometricObject & \
+-- & strategy, origin, destination & \
 -- "network" & Creates relation between network and cellularSpace,
 -- each point of the network receives the reference to the nearest destination.
 -- & output, network, distance, origin, relation & progress, quantity \
@@ -599,7 +597,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "destination", "strategy", "geometricObject"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "relation", "output", "progress", "destination", "strategy"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if not data.origin.geometry then
@@ -625,15 +623,15 @@ function GPM(data)
 		end)
 	end
 
-	if data.geometricObject and data.strategy == "length" then
-		if data.geometricObject.geometry then
-			local cell = data.geometricObject:sample()
+	if data.destination and data.strategy == "length" then
+		if data.destination.geometry then
+			local cell = data.destination:sample()
 
 			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") and not string.find(cell.geom:getGeometryType(), "MultiLineString") then
-				customError("Argument 'geometricObject' should be composed by MultiPolygon or MultiLineString, got '"..cell.geom:getGeometryType().."'.")
+				customError("Argument 'destination' should be composed by MultiPolygon or MultiLineString, got '"..cell.geom:getGeometryType().."'.")
 			end
 		else
-			customError("The CellularSpace in argument 'geometricObject' must be loaded with 'geometry = true'.")
+			customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
 		end
 
 		buildRelation(data)

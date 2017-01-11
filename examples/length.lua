@@ -15,5 +15,5 @@ local gpm = GPM{
 	origin = farms,
 	relation = "community",
 	strategy = "length",
-	geometricObject = farms
+	destination = farms
 }

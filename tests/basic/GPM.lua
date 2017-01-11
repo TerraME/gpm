@@ -167,7 +167,7 @@ return {
 			origin = farms,
 			relation = "community",
 			strategy = "length",
-			geometricObject = farms
+			destination = farms
 		}
 
 		forEachCell(farms, function(cell)

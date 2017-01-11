@@ -320,7 +320,7 @@ return {
 				origin = farmsPolygon,
 				relation = "community",
 				strategy = "length",
-				geometricObject = farms_cells
+				destination = farms_cells
 			}
 		end
 		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
@@ -339,10 +339,10 @@ return {
 				origin = communities,
 				relation = "community",
 				strategy = "length",
-				geometricObject = farms
+				destination = farms
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'geometricObject' must be loaded with 'geometry = true'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
 
 		farms = CellularSpace{
 			file = filePath("farms.shp", "gpm"),
@@ -359,10 +359,10 @@ return {
 				origin = farms,
 				relation = "community",
 				strategy = "length",
-				geometricObject = communitiesCs
+				destination = communitiesCs
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'geometricObject' should be composed by MultiPolygon or MultiLineString, got 'MultiPoint'.")
+		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPolygon or MultiLineString, got 'MultiPoint'.")
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{
