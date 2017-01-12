@@ -44,8 +44,7 @@ local gpm = GPM{
 	output = {
 		id = "id1",
 		distance = "distance"
-	},
-	progress = true
+	}
 }
 
 -- creating Map with values ​​GPM

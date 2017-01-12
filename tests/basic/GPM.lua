@@ -41,7 +41,8 @@ return {
 		local gpm = GPM{
 			origin = farmsNeighbor,
 			strategy = "intersection",
-			quantity = 2
+			quantity = 2,
+			progress = false
 		}
 
 		forEachCell(gpm.origin, function(polygon)
@@ -60,7 +61,8 @@ return {
 				distance = "distance"
 			},
 			distance = 200,
-			destination = farmsPolygon
+			destination = farmsPolygon,
+			progress = false
 		}
 
 		local map = Map{
@@ -79,7 +81,8 @@ return {
 				distance = "distance"
 			},
 			quantity = 3,
-			destination = farmsPolygon
+			destination = farmsPolygon,
+			progress = false
 		}
 
 		map = Map{
@@ -98,7 +101,8 @@ return {
 				distance = "distance"
 			},
 			distance = 2000,
-			destination = farmsPolygon
+			destination = farmsPolygon,
+			progress = false
 		}
 
 		local cellOrigin = gpm.origin:sample()
@@ -140,7 +144,8 @@ return {
 		gpm = GPM{
 			origin = farmsPolygon,
 			strategy = "contains",
-			destination = communities
+			destination = communities,
+			progress = false
 		}
 
 		local counterCommunities = 0
@@ -161,7 +166,8 @@ return {
 		GPM{
 			origin = farms,
 			strategy = "length",
-			destination = farms
+			destination = farms,
+			progress = false
 		}
 
 		forEachCell(farms, function(cell)
@@ -180,7 +186,8 @@ return {
 			output = {
 				id = "id1",
 				distance = "distance"
-			}
+			},
+			progress = false
 		}
 
 		gpm:save("farms.gpm")
@@ -206,4 +213,3 @@ return {
 		fileGWT:deleteIfExists()
 	end
 }
-

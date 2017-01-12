@@ -227,8 +227,8 @@ local function geometryClosestToPoint(geometryOrigin, target, maxDist)
 		local distanceToTarget = geometry:distance(targetPoint)
 
 		if distanceToTarget < maxDist and distanceToTarget < distanceTarget then
-			distanceTarget = distanceToTarget
-			geometryOrigin.pointID = point.pointID
+			geometryOrigin.pointID = point.pointID -- SKIP
+			distanceTarget = distanceToTarget -- SKIP
 		end
 	end)
 end
@@ -285,9 +285,17 @@ local function createRelationByQuantity(self)
 	end)
 
 	local quantity = self.quantity
+	local counterCode = 0
+	local numberGeometry = #self.network.target
 
 	forEachCell(self.network.target, function(point)
 		local targetPoint = tl:castGeomToSubtype(point.geom:getGeometryN(0))
+
+		counterCode = counterCode + 1
+
+		if self.progress then
+			print("Processing distance "..counterCode.."/"..numberGeometry) -- SKIP
+		end
 
 		point.vectorKeysOfPolygons = {}
 		point.polygonVector = {}
@@ -310,6 +318,7 @@ local function createRelationByQuantity(self)
 		end)
 	end)
 end
+
 -- Strategy 'area'
 local function geometryClosestToCells(geometryOrigin, destination)
 	local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
@@ -338,7 +347,16 @@ local function distanceCellToTarget(self)
 		end
 	end)
 
+	local counterCode = 0
+	local numberGeometry = #self.origin
+
 	forEachCell(self.origin, function(geometryOrigin)
+		counterCode = counterCode + 1
+
+		if self.progress then
+			print("Processing area "..counterCode.."/"..numberGeometry) -- SKIP
+		end
+
 		geometryOrigin.dimensionValue = math.huge
 		geometryOrigin.cellID = 0
 		geometryClosestToCells(geometryOrigin, destination)
@@ -384,7 +402,16 @@ local function neighborhoodOfPolygon(self)
 		quantity = self.quantity
 	end
 
+	local counterCode = 0
+	local numberGeometry = #polygonOrigin
+
 	forEachCell(polygonOrigin, function(polygon)
+		counterCode = counterCode + 1
+
+		if self.progress then
+			print("Processing intersection "..counterCode.."/"..numberGeometry) -- SKIP
+		end
+
 		polygon.neighbors = {}
 		polygon.intersectionNeighbors = {}
 		polygon.perimeterBorder = {}
@@ -396,9 +423,17 @@ end
 local function relationBetweenPolygonsAndPoints(self)
 	local polygonOrigin = self.origin
 	local points = self.destination
+	local counterCode = 0
+	local numberGeometry = #polygonOrigin
 
 	forEachCell(polygonOrigin, function(polygon)
 		local geometryDestination = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+
+		counterCode = counterCode + 1
+
+		if self.progress then
+			print("Processing contains "..counterCode.."/"..numberGeometry) -- SKIP
+		end
 
 		polygon.contains = {}
 
@@ -418,9 +453,17 @@ local function buildRelation(self)
 	local geometricObject = self.destination
 	local geometricCounter = 0
 	local length
+	local counterCode = 0
+	local numberGeometry = #polygonOrigin
 
 	forEachCell(polygonOrigin, function(polygon)
 		local geometryOrigin = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+
+		counterCode = counterCode + 1
+
+		if self.progress then
+			print("Processing length "..counterCode.."/"..numberGeometry) -- SKIP
+		end
 
 		polygon.intersection = {}
 		polygon.lengthIntersection = {}
@@ -532,23 +575,23 @@ metaTableGPM_ = {
 -- @arg data.origin A base::CellularSpace with geometry representing entry points on the network.
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ID and distance.
--- @arg data.progress print as values are being processed (optional).
+-- @arg data.progress print as values are being processed default is true (optional).
 -- @arg data.quantity relation between geometries (optional).
 -- @arg data.strategy A string with the strategy to be used for creating the GPM (optional).
 -- See the table below.
 -- @tabular strategy
 -- Strategy & Description & Compulsory Arguments & Optional Arguments \
 -- "area" & Creates relation between two layer using the intersection areas of their polygons.
--- & destination, origin & \
+-- & destination, origin & progress \
 -- "intersection" & Creates relation between neighboring polygons,
--- each polygon reference his neighbors and the area touched. & strategy, origin & quantity \
+-- each polygon reference his neighbors and the area touched. & strategy, origin & quantity, progress \
 -- "contains" & Returns which polygons contain the reference points.
--- & destination, origin, strategy & \
+-- & destination, origin, strategy & progress \
 -- "distance" & Returns the cells within the distance to the nearest centroid,
 -- the cells will always be related to the nearest target. &
 -- distance, origin, network, destination, output, quantity & progress \
 -- "length" & Create relations between objects whose intersection is a line.
--- & strategy, origin, destination & \
+-- & strategy, origin, destination & progress \
 -- "network" & Creates relation between network and cellularSpace,
 -- each point of the network receives the reference to the nearest destination.
 -- & output, network, distance, origin & progress, quantity \
@@ -606,7 +649,7 @@ function GPM(data)
 		data.neighbors = createOpenGPM(data)
 	end
 
-	defaultTableValue(data, "progress", false)
+	defaultTableValue(data, "progress", true)
 
 	mandatoryTableArgument(data, "progress", "boolean")
 
