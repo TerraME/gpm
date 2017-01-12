@@ -210,10 +210,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				output = {
-					id = "id1",
-					distance = "distance"
-				},
 				destination = "distance"
 			}
 		end
@@ -227,10 +223,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				output = {
-					id = "id1",
-					distance = "distance"
-				},
 				destination = farmsPolygon
 			}
 		end

@@ -13,7 +13,8 @@ local farmsNeighbor = CellularSpace{
 -- creating a GPM
 local gpm = GPM{
 	origin = farmsNeighbor,
-	strategy = "intersection"
+	strategy = "intersection",
+	progress = false
 }
 
 forEachCell(gpm.origin, function(polygon)

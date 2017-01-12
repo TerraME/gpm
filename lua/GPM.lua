@@ -595,7 +595,6 @@ metaTableGPM_ = {
 -- "network" & Creates relation between network and cellularSpace,
 -- each point of the network receives the reference to the nearest destination.
 -- & output, network, distance, origin & progress, quantity \
--- @output GPM based on network and target points.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
 --     file = filePath("roads.shp", "gpm"),
@@ -733,7 +732,7 @@ function GPM(data)
 		end
 	end
 
-	if data.destination and data.strategy ~= "contains" then
+	if data.destination and data.strategy ~= "contains" and data.output == nil and data.strategy ~= "length" then
 		if data.destination.geometry then
 			local cell = data.destination:sample()
 

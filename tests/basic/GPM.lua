@@ -96,10 +96,6 @@ return {
 		gpm = GPM{
 			network = network,
 			origin = farms_cells,
-			output = {
-				id = "id1",
-				distance = "distance"
-			},
 			distance = 2000,
 			destination = farmsPolygon,
 			progress = false
@@ -124,6 +120,18 @@ return {
 			color = {"red", "blue", "green", "black"}
 		}
 		unitTest:assertSnapshot(map, "pointID_farms.bmp")
+
+		gpm = GPM{
+			network = network,
+			origin = farms_cells,
+			output = {
+				id = "id1",
+				distance = "distance"
+			},
+			distance = 2000,
+			destination = farmsPolygon,
+			progress = false
+		}
 
 		map = Map{
 			target = gpm.origin,

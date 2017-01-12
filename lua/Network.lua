@@ -475,7 +475,6 @@ metaTableNetwork_ = {
 -- @arg data.target CellularSpace that receives end points of the networks.
 -- @arg data.weight User defined function to change the network distance.
 -- If not set a function, will return to own distance.
--- @output a network based on the geometry.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
 --     file = filePath("roads.shp", "gpm"),
