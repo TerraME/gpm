@@ -2,6 +2,7 @@
 -- Creates maps based on distance routes, entry points and exit points.
 -- This test has commented lines, to create and validate files.
 -- This example creates a 'gpm.gpm' file if you have another file with this name will be deleted.
+-- @image id_farms.bmp
 
 -- import gpm
 import("gpm")

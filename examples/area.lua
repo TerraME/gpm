@@ -1,5 +1,6 @@
 -- @example GPM Implementation strategy 'area' and creating map.
 -- Create a map based on the cells and polygons.
+-- @image cellID_farms.bmp
 
 -- import gpm
 import("gpm")

@@ -1,5 +1,6 @@
 -- @example GPM Implementation strategy 'distance' and creating map.
 -- Create a map based on the endpoints, and the cells.
+-- @image polygon_farms_quantity.bmp
 
 -- import gpm
 import("gpm")
