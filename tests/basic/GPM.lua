@@ -40,15 +40,15 @@ return {
 
 		local gpm = GPM{
 			origin = farmsNeighbor,
-			distance = "distance",
-			relation = "community",
-			strategy = "border"
+			strategy = "border",
+			quantity = 2,
+			progress = false
 		}
 
 		forEachCell(gpm.origin, function(polygon)
 			unitTest:assert(#polygon.neighbors > 0)
 			forEachElement(polygon.neighbors, function(polygonNeighbor)
-				unitTest:assert(polygon.borderNeighbors[polygon.neighbors[polygonNeighbor]] > 0)
+				unitTest:assert(polygon.intersectionNeighbors[polygon.neighbors[polygonNeighbor]] > 0)
 				unitTest:assertType(polygon.perimeterBorder[polygon.neighbors[polygonNeighbor]], "number")
 			end)
 		end)
@@ -56,25 +56,60 @@ return {
 		gpm = GPM{
 			network = network,
 			origin = farms_cells,
-			distance = "distance",
-			relation = "community",
 			output = {
 				id = "id1",
 				distance = "distance"
 			},
-			maxDist = 2000,
-			destination = farmsPolygon
+			distance = 500,
+			destination = farmsPolygon,
+			progress = false
 		}
-
-		local cell = gpm.origin:sample()
-
-		unitTest:assertType(cell.distance, "number")
 
 		local map = Map{
 			target = gpm.origin,
-			select = "cellID",
+			select = "pointID",
 			value = {1, 2, 3, 4},
 			color = {"red", "blue", "green", "black"}
+		}
+		unitTest:assertSnapshot(map, "polygon_farms_distance.bmp")
+
+		gpm = GPM{
+			network = network,
+			origin = farms_cells,
+			output = {
+				id = "id1",
+				distance = "distance"
+			},
+			quantity = 4,
+			destination = farmsPolygon,
+			progress = false
+		}
+
+		map = Map{
+			target = gpm.origin,
+			select = "pointID",
+			value = {1, 2, 3, 4},
+			color = {"red", "blue", "green", "black"}
+		}
+		unitTest:assertSnapshot(map, "polygon_farms_quantity.bmp")
+
+		gpm = GPM{
+			network = network,
+			origin = farms_cells,
+			distance = 2000,
+			destination = farmsPolygon,
+			progress = false
+		}
+
+		local cellOrigin = gpm.origin:sample()
+
+		unitTest:assertType(cellOrigin.distance, "number")
+
+		map = Map{
+			target = gpm.origin,
+			select = "cellID",
+			slices = 10,
+			color = "RdYlGn"
 		}
 		unitTest:assertSnapshot(map, "cellID_farms.bmp")
 
@@ -85,6 +120,18 @@ return {
 			color = {"red", "blue", "green", "black"}
 		}
 		unitTest:assertSnapshot(map, "pointID_farms.bmp")
+
+		gpm = GPM{
+			network = network,
+			origin = farms_cells,
+			output = {
+				id = "id1",
+				distance = "distance"
+			},
+			distance = 2000,
+			destination = farmsPolygon,
+			progress = false
+		}
 
 		map = Map{
 			target = gpm.origin,
@@ -102,7 +149,38 @@ return {
 		}
 		unitTest:assertSnapshot(map, "distance_farms.bmp")
 
-		unitTest:assertType(gpm, "GPM")
+		GPM{
+			origin = farmsPolygon,
+			strategy = "contains",
+			destination = communities,
+			progress = false
+		}
+
+		local counterCommunities = 0
+
+		forEachCell(farmsPolygon, function(cell)
+			if #cell.contains > 0 then
+				counterCommunities = counterCommunities + 1
+			end
+		end)
+
+		unitTest:assertEquals(counterCommunities, 2)
+
+		local farms = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
+			geometry = true
+		}
+
+		GPM{
+			origin = farms,
+			strategy = "length",
+			destination = farms,
+			progress = false
+		}
+
+		forEachCell(farms, function(cell)
+			unitTest:assert(cell.intersection ~= nil)
+		end)
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{
@@ -113,12 +191,11 @@ return {
 		local gpm = GPM{
 			network = network,
 			origin = farms,
-			distance = "distance",
-			relation = "community",
 			output = {
 				id = "id1",
 				distance = "distance"
-			}
+			},
+			progress = false
 		}
 
 		gpm:save("farms.gpm")
@@ -144,4 +221,3 @@ return {
 		fileGWT:deleteIfExists()
 	end
 }
-

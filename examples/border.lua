@@ -10,17 +10,16 @@ local farmsNeighbor = CellularSpace{
 	geometry = true
 }
 
--- creating a GPM with the distance of the entry points for the routes
+-- creating a GPM
 local gpm = GPM{
 	origin = farmsNeighbor,
-	distance = "distance",
-	relation = "community",
-	strategy = "border"
+	strategy = "border",
+	progress = false
 }
 
 forEachCell(gpm.origin, function(polygon)
 	print(polygon.NOME_UF)
 	forEachElement(polygon.neighbors, function(polygonNeighbor)
-		print("	"..polygon.neighbors[polygonNeighbor].NOME_UF.."("..polygon.perimeterBorder[polygon.neighbors[polygonNeighbor]]..")")
+		print("	"..polygon.neighbors[polygonNeighbor].NOME_UF.." ("..polygon.perimeterBorder[polygon.neighbors[polygonNeighbor]]..")")
 	end)
 end)

@@ -1,5 +1,6 @@
 -- @example GPM Implementation strategy 'distance' and creating map.
 -- Create a map based on the endpoints, and the cells.
+-- @image polygon_farms_quantity.bmp
 
 -- import gpm
 import("gpm")
@@ -34,23 +35,21 @@ local network = Network{
 	outside = function(distance) return distance * 2 end
 }
 
--- creating a GPM with the distance of the entry points for the routes
+-- creating a GPM Only with distance
 GPM{
 	network = network,
 	origin = farms,
-	distance = "distance",
-	relation = "community",
 	output = {
 		id = "id1",
 		distance = "distance"
 	},
-	maxDist = 2000
+	distance = 2000
 }
 
 -- creating Map with values ​​GPM
 map = Map{
 	target = farms,
 	select = "pointID",
-	value = {1, 2, 3, 4},
-	color = {"red", "blue", "green", "black"}
+	value = {0, 1, 2, 3, 4},
+	color = {"lightGray", "red", "blue", "green", "black"}
 }

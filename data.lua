@@ -27,8 +27,19 @@ data{
 	file = "farms_cells2.shp",
 	attributes = {
 		id = "Character identifier",
-		col = "number of columns",
-		row = "number of line"
+		col = "Number of columns",
+		row = "Number of line"
+	},
+	summary = "A shapefile describing the farms.",
+	source = "TerraME team"
+}
+
+data{
+	file = "farms_cells3.shp",
+	attributes = {
+		id = "Character identifier",
+		col = "Number of columns",
+		row = "Number of line"
 	},
 	summary = "A shapefile describing the farms.",
 	source = "TerraME team"
@@ -38,8 +49,8 @@ data{
 	file = "farms_cells.shp",
 	attributes = {
 		id = "Character identifier",
-		col = "number of columns",
-		row = "number of line"
+		col = "Number of columns",
+		row = "Number of line"
 	},
 	summary = "A shapefile describing the farms.",
 	source = "TerraME team"

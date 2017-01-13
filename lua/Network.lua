@@ -36,7 +36,7 @@ local function getEndPoint(cell)
 	local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
 	local counterPoint = geometry:getNPoints()
 	local point = binding.te.gm.Point(geometry:getX(counterPoint - 1), geometry:getY(counterPoint - 1), geometry:getSRID())
-    
+
 	return point
 end
 
@@ -68,10 +68,10 @@ local function createConnectivity(lines)
 			local afterPoint = tl:castGeomToSubtype(geometry:getPointN(i + 1))
 
 			netpoints[nameNodes] = {
-				point = point, 
-				route = {}, 
-				distance = math.huge, 
-				distanceOutside = math.huge,    
+				point = point,
+				route = {},
+				distance = math.huge,
+				distanceOutside = math.huge,
 				cell = line
 			}
 
@@ -231,7 +231,7 @@ local function buildPointTarget(lines, target)
 					point = pointLine
 				end
 
-				if distance < minDistance then 
+				if distance < minDistance then
 					minDistance = distance
 					targetLine = line
 					pointTarget = point
@@ -293,7 +293,7 @@ local function checksInterconnectedNetwork(data)
 						bluePoint = tl:castGeomToSubtype(bePointB[2])
 					end
 
-					if counterCellRed == counterCellBlue then break end 
+					if counterCellRed == counterCellBlue then break end
 
 					distance = redPoint:distance(bluePoint)
 
@@ -348,7 +348,7 @@ local function distanceFromRouteToNode(node, netpoint, weight, lines)
 
 			if checkInsidePoints(line, node.point, netpoint[point].point) then
 				local distance = weight(netpoint[point].point:distance(node.point), line)
-    
+
 				if node.distance > netpoint[point].distance + distance then
 					node.distance = netpoint[point].distance + distance
 					node.targetID = netpoint[point].targetID
@@ -361,7 +361,7 @@ local function distanceFromRouteToNode(node, netpoint, weight, lines)
 				end
 			elseif bePointLine[1]:equals(node.point) and bePointLine[2]:equals(netpoint[point].point) or bePointLine[2]:equals(node.point) and bePointLine[1]:equals(netpoint[point].point) then
 				local distance = weight(netpoint[point].point:distance(node.point), line)
-    
+
 				if node.distance > netpoint[point].distance + distance then
 					node.distance = netpoint[point].distance + distance
 					node.targetID = netpoint[point].targetID
@@ -475,7 +475,6 @@ metaTableNetwork_ = {
 -- @arg data.target CellularSpace that receives end points of the networks.
 -- @arg data.weight User defined function to change the network distance.
 -- If not set a function, will return to own distance.
--- @output a network based on the geometry.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
 --     file = filePath("roads.shp", "gpm"),
