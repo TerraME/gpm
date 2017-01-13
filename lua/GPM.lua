@@ -250,8 +250,8 @@ local function distancePointToTarget(self)
 
 	if self.destination == nil then
 		forEachCell(self.origin, function(geometryOrigin)
-			geometryOrigin.pointID = 0
-			geometryClosestToPoint(geometryOrigin, self.network.target, maxDist)
+			geometryOrigin.pointID = 0 -- SKIP
+			geometryClosestToPoint(geometryOrigin, self.network.target, maxDist) -- SKIP
 		end)
 	else
 		forEachCell(self.origin, function(geometryOrigin)
@@ -451,8 +451,6 @@ end
 local function buildRelation(self)
 	local polygonOrigin = self.origin
 	local geometricObject = self.destination
-	local geometricCounter = 0
-	local length
 	local counterCode = 0
 	local numberGeometry = #polygonOrigin
 
@@ -488,8 +486,6 @@ local function buildRelation(self)
 				polygon.lengthIntersection[intersection] = lengthIntersection
 			end
 		end)
-
-	geometricCounter = 0
 	end)
 end
 

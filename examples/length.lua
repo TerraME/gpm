@@ -11,7 +11,7 @@ local farms = CellularSpace{
 }
 
 -- creating a GPM
-local gpm = GPM{
+GPM{
 	origin = farms,
 	strategy = "length",
 	destination = farms

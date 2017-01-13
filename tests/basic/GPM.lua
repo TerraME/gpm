@@ -149,7 +149,7 @@ return {
 		}
 		unitTest:assertSnapshot(map, "distance_farms.bmp")
 
-		gpm = GPM{
+		GPM{
 			origin = farmsPolygon,
 			strategy = "contains",
 			destination = communities,

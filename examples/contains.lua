@@ -16,7 +16,7 @@ local communitiesPoints = CellularSpace{
 }
 
 -- creating a GPM with the distance of the entry points for the routes
-local gpm = GPM{
+GPM{
 	origin = farms,
 	strategy = "contains",
 	destination = communitiesPoints
