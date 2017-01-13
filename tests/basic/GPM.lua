@@ -40,7 +40,7 @@ return {
 
 		local gpm = GPM{
 			origin = farmsNeighbor,
-			strategy = "intersection",
+			strategy = "border",
 			quantity = 2,
 			progress = false
 		}

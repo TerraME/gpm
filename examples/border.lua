@@ -1,4 +1,4 @@
--- @example GPM Implementation strategy 'intersection' and creating map.
+-- @example GPM Implementation strategy 'border' and creating map.
 -- Returns neighbor states and the relationship of borders.
 
 -- import gpm
@@ -13,7 +13,7 @@ local farmsNeighbor = CellularSpace{
 -- creating a GPM
 local gpm = GPM{
 	origin = farmsNeighbor,
-	strategy = "intersection",
+	strategy = "border",
 	progress = false
 }
 

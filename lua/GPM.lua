@@ -363,7 +363,7 @@ local function distanceCellToTarget(self)
 	end)
 end
 
--- Strategy 'intersection'
+-- Strategy 'border'
 local function calculateWeightNeighbors(polygon)
 	local geometry = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
 	local geometryPerimeter = geometry:getPerimeter()
@@ -583,7 +583,7 @@ metaTableGPM_ = {
 -- Strategy & Description & Compulsory Arguments & Optional Arguments \
 -- "area" & Creates relation between two layer using the intersection areas of their polygons.
 -- & destination, origin & progress \
--- "intersection" & Creates relation between neighboring polygons,
+-- "border" & Creates relation between neighboring polygons,
 -- each polygon reference his neighbors and the area touched. & strategy, origin & quantity, progress \
 -- "contains" & Returns which polygons contain the reference points.
 -- & destination, origin, strategy & progress \
@@ -674,7 +674,7 @@ function GPM(data)
 		buildRelation(data)
 	end
 
-	if data.strategy == "intersection" or data.strategy == "contains" then
+	if data.strategy == "border" or data.strategy == "contains" then
 		if data.origin.geometry then
 			local cell = data.origin:sample()
 
@@ -683,7 +683,7 @@ function GPM(data)
 			end
 		end
 
-		if data.strategy == "intersection" then
+		if data.strategy == "border" then
 			if data.quantity then
 				mandatoryTableArgument(data, "quantity", "number")
 			end

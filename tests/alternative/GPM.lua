@@ -163,7 +163,7 @@ return {
 		error_func = function()
 			GPM{
 				origin = 2,
-				strategy = "intersection"
+				strategy = "border"
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("origin", "CellularSpace", 2))
@@ -175,7 +175,7 @@ return {
 		error_func = function()
 			GPM{
 				origin = farmsNeighbor,
-				strategy = "intersection"
+				strategy = "border"
 			}
 		end
 		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
@@ -188,7 +188,7 @@ return {
 		error_func = function()
 			GPM{
 				origin = farmsNeighbor,
-				strategy = "intersection"
+				strategy = "border"
 			}
 		end
 		unitTest:assertError(error_func, "Argument 'origin' should be composed by MultiPolygon, got 'MultiLineString'.")
@@ -201,7 +201,7 @@ return {
 		error_func = function()
 			GPM{
 				origin = farmsNeighbor,
-				strategy = "intersection",
+				strategy = "border",
 				quantity = ""
 			}
 		end
