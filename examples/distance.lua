@@ -41,17 +41,6 @@ local network = Network{
 }
 
 -- creating a GPM Only with distance
---GPM{
---	network = network,
---	origin = farms,
---	output = {
---		id = "id1",
---		distance = "distance"
---	},
---	distance = 100
---}
-
--- creating a GPM with the maximum quantity the polygons
 GPM{
 	network = network,
 	origin = farms,
@@ -59,14 +48,13 @@ GPM{
 		id = "id1",
 		distance = "distance"
 	},
-	quantity = 4,
-	destination = farms_polygons
+	distance = 2000
 }
 
 -- creating Map with values ​​GPM
 map = Map{
 	target = farms,
 	select = "pointID",
-	value = {1, 2, 3, 4},
-	color = {"red", "blue", "green", "black"}
+	value = {0, 1, 2, 3, 4},
+	color = {"lightGray", "red", "blue", "green", "black"}
 }

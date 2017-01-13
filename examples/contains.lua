@@ -27,6 +27,6 @@ GPM{
 map = Map{
 	target = farms,
 	select = "counterContains",
-	value = {1, 2},
-	color = {"blue", "black"}
+	value = {0, 1},
+	color = {"lightGray", "blue"}
 }
