@@ -21,11 +21,6 @@ local farms = CellularSpace{
 	geometry = true
 }
 
-local farms_polygons = CellularSpace{
-	file = filePath("farms.shp", "gpm"),
-	geometry = true
-}
-
 -- create a Network with the distance of the end points to routes
 local network = Network{
 	target = csCenterspt,
