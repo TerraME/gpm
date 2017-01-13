@@ -247,9 +247,17 @@ end
 
 local function distancePointToTarget(self)
 	local maxDist = self.distance
+	local counterCode = 0
+	local numberGeometry = #self.origin
 
 	if self.destination == nil then
 		forEachCell(self.origin, function(geometryOrigin)
+			counterCode = counterCode + 1
+
+			if self.progress then -- SKIP
+				print("Processing distance "..counterCode.."/"..numberGeometry) -- SKIP
+			end -- SKIP
+
 			geometryOrigin.pointID = 0 -- SKIP
 			geometryClosestToPoint(geometryOrigin, self.network.target, maxDist) -- SKIP
 		end)
