@@ -158,7 +158,7 @@ return {
 				destination = roads
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPolygon, got 'MultiLineString'.")
+		unitTest:assertError(error_func, "Argument 'destination' should be composed by 'MultiPolygon', got 'MultiLineString'.")
 
 		error_func = function()
 			GPM{
@@ -191,7 +191,7 @@ return {
 				strategy = "border"
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'origin' should be composed by MultiPolygon, got 'MultiLineString'.")
+		unitTest:assertError(error_func, "Argument 'origin' should be composed by 'MultiPolygon', got 'MultiLineString'.")
 
 		farmsNeighbor = CellularSpace{
 			file = filePath("partofbrasil.shp", "gpm"),
@@ -202,10 +202,10 @@ return {
 			GPM{
 				origin = farmsNeighbor,
 				strategy = "border",
-				quantity = ""
+				quantity = " "
 			}
 		end
-		unitTest:assertError(error_func, "Incompatible types. Argument 'quantity' expected number, got string.")
+		unitTest:assertError(error_func, incompatibleTypeMsg("quantity", "number", " "))
 
 		error_func = function()
 			GPM{
@@ -226,7 +226,7 @@ return {
 				destination = farmsPolygon
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPolygon, got 'MultiLineString'.")
+		unitTest:assertError(error_func, "Argument 'destination' should be composed by 'MultiPolygon', got 'MultiLineString'.")
 
 		error_func = function()
 			GPM{
@@ -262,7 +262,7 @@ return {
 				destination = farmsPolygon
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPoint, got 'MultiLineString'.")
+		unitTest:assertError(error_func, "Argument 'destination' should be composed by 'MultiPoint', got 'MultiLineString'.")
 
 		farmsPolygon = CellularSpace{
 			file = filePath("farms.shp", "gpm")
@@ -334,7 +334,7 @@ return {
 				destination = communitiesCs
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'destination' should be composed by MultiPolygon or MultiLineString, got 'MultiPoint'.")
+		unitTest:assertError(error_func, "Argument 'destination' should be composed by 'MultiPolygon' or 'MultiLineString', got 'MultiPoint'.")
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{

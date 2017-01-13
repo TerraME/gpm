@@ -436,12 +436,14 @@ local function relationBetweenPolygonsAndPoints(self)
 		end
 
 		polygon.contains = {}
+		polygon.counterContains = 0
 
 		forEachCell(points, function(point)
 			local geometryPoints = tl:castGeomToSubtype(point.geom:getGeometryN(0))
 
 			if geometryDestination:contains(geometryPoints) then
 				table.insert(polygon.contains, point)
+				polygon.counterContains = polygon.counterContains + 1
 			end
 		end)
 	end)
@@ -465,6 +467,7 @@ local function buildRelation(self)
 
 		polygon.intersection = {}
 		polygon.lengthIntersection = {}
+		polygon.length = 1
 
 		forEachCell(geometricObject, function(geometric)
 			local geometryObject = tl:castGeomToSubtype(geometric.geom:getGeometryN(0))
@@ -473,6 +476,8 @@ local function buildRelation(self)
 				local intersection = geometryOrigin:intersection(geometryObject)
 				local geometryIntersection = tl:castGeomToSubtype(intersection)
 				local lengthIntersection
+
+				polygon.length = 2
 
 				if string.find(geometryIntersection:getGeometryType(), "LineString") then
 					lengthIntersection = geometryIntersection:getLength()
@@ -661,7 +666,7 @@ function GPM(data)
 			local cell = data.destination:sample()
 
 			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") and not string.find(cell.geom:getGeometryType(), "MultiLineString") then
-				customError("Argument 'destination' should be composed by MultiPolygon or MultiLineString, got '"..cell.geom:getGeometryType().."'.")
+				customError("Argument 'destination' should be composed by 'MultiPolygon' or 'MultiLineString', got '"..cell.geom:getGeometryType().."'.")
 			end
 		else
 			customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
@@ -675,7 +680,7 @@ function GPM(data)
 			local cell = data.origin:sample()
 
 			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
-				customError("Argument 'origin' should be composed by MultiPolygon, got '"..cell.geom:getGeometryType().."'.")
+				customError("Argument 'origin' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
 			end
 		end
 
@@ -692,7 +697,7 @@ function GPM(data)
 				local cell = data.destination:sample()
 
 				if  not string.find(cell.geom:getGeometryType(), "MultiPoint") then
-					customError("Argument 'destination' should be composed by MultiPoint, got '"..cell.geom:getGeometryType().."'.")
+					customError("Argument 'destination' should be composed by 'MultiPoint', got '"..cell.geom:getGeometryType().."'.")
 				end
 			else
 				customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
@@ -710,7 +715,7 @@ function GPM(data)
 				local cell = data.destination:sample()
 
 				if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
-					customError("Argument 'destination' should be composed by MultiPolygon, got '"..cell.geom:getGeometryType().."'.")
+					customError("Argument 'destination' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
 				end
 			else
 				customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
@@ -733,7 +738,7 @@ function GPM(data)
 			local cell = data.destination:sample()
 
 			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
-				customError("Argument 'destination' should be composed by MultiPolygon, got '"..cell.geom:getGeometryType().."'.")
+				customError("Argument 'destination' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
 			end
 		else
 			customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")

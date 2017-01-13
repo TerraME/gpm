@@ -60,7 +60,7 @@ return {
 				id = "id1",
 				distance = "distance"
 			},
-			distance = 200,
+			distance = 500,
 			destination = farmsPolygon,
 			progress = false
 		}
@@ -80,7 +80,7 @@ return {
 				id = "id1",
 				distance = "distance"
 			},
-			quantity = 3,
+			quantity = 4,
 			destination = farmsPolygon,
 			progress = false
 		}
