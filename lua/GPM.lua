@@ -381,10 +381,13 @@ local function calculateWeightNeighbors(polygon)
 		local geometryNeighbor = tl:castGeomToSubtype(neighbor.geom:getGeometryN(0))
 		local intersection = geometry:intersection(geometryNeighbor)
 		local geometryBorder = tl:castGeomToSubtype(intersection)
-		local lengthBorder = geometryBorder:getLength()
 
-		polygon.perimeterBorder[neighbor] = (math.modf((lengthBorder / geometryPerimeter) * 100)) / 100
-		polygon.intersectionNeighbors[neighbor] = lengthBorder
+		if geometryBorder.getLength then
+			local lengthBorder = geometryBorder:getLength()
+
+			polygon.perimeterBorder[neighbor] = (math.modf((lengthBorder / geometryPerimeter) * 100)) / 100
+			polygon.intersectionNeighbors[neighbor] = lengthBorder
+		end
 	end)
 end
 
