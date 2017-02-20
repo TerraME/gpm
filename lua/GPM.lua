@@ -128,14 +128,14 @@ local function saveGAL(self, file)
 	local origin = self.origin
 	local outputText = {}
 
-	table.insert(outputText, "0 ")
+	table.insert(outputText, "0")
 	table.insert(outputText, #self.neighbor)
-	table.insert(outputText, " ")
 	table.insert(outputText, origin.layer)
-	table.insert(outputText, " object_id_\n")
-
+	table.insert(outputText, "object_id_")
+	file:writeLine(outputText, " ")
 
 	forEachElement(self.neighbor, function(neighbor)
+		outputText = {}
 		table.insert(outputText, neighbor)
 		table.insert(outputText, " ")
 		table.insert(outputText, self.neighbor[neighbor])
@@ -150,11 +150,10 @@ local function saveGAL(self, file)
 		end)
 
 		if validates then
-			table.insert(outputText, "\n")
+			file:writeLine(table.concat(outputText))
 		end
 	end)
 
-	file:write(table.concat(outputText))
 	file:close()
 end
 
@@ -167,9 +166,11 @@ local function saveGPM(self, file)
 	table.insert(outputText, origin.layer)
 	table.insert(outputText, " ")
 	table.insert(outputText, origin.layer)
-	table.insert(outputText, " object_id_\n")
+	table.insert(outputText, " object_id_")
+	file:writeLine(table.concat(outputText))
 
 	forEachElement(self.neighbor, function(neighbor)
+		outputText = {}
 		table.insert(outputText, neighbor)
 		table.insert(outputText, " ")
 		table.insert(outputText, self.neighbor[neighbor])
@@ -186,11 +187,10 @@ local function saveGPM(self, file)
 		end)
 
 		if validates then
-			table.insert(outputText, "\n")
+			file:writeLine(table.concat(outputText))
 		end
 	end)
 
-	file:write(table.concat(outputText))
 	file:close()
 end
 
@@ -202,18 +202,19 @@ local function saveGWT(self, file)
 	table.insert(outputText, #self.neighbor)
 	table.insert(outputText, " ")
 	table.insert(outputText, origin.layer)
-	table.insert(outputText, " object_id_\n")
+	table.insert(outputText, " object_id_")
+	file:writeLine(table.concat(outputText))
 
 	forEachElement(self.origin.cells, function(cell)
+		outputText = {}
 		table.insert(outputText, self.origin.cells[cell].neighbor)
 		table.insert(outputText, " ")
 		table.insert(outputText, self.origin.cells[cell].code)
 		table.insert(outputText, " ")
 		table.insert(outputText, self.origin.cells[cell][self.output.distance])
-		table.insert(outputText, "\n")
+		file:writeLine(table.concat(outputText))
 	end)
 
-	file:write(table.concat(outputText))
 	file:close()
 end
 

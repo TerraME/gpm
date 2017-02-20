@@ -147,7 +147,7 @@ return {
 			slices = 20,
 			color = "Blues"
 		}
-		unitTest:assertSnapshot(map, "distance_farms.bmp")
+		unitTest:assertSnapshot(map, "distance_farms.bmp", 0.8)
 
 		GPM{
 			origin = farmsPolygon,
