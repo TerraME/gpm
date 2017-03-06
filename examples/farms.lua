@@ -48,7 +48,7 @@ local gpm = GPM{
 	}
 }
 
--- creating Map with values ​​GPM
+-- creating Map with the output of GPM
 map = Map{
 	target = gpm.origin,
 	select = "distance",
@@ -63,12 +63,6 @@ map = Map{
 	color = {"red", "blue", "green", "black"}
 }
 
+-- Uncomment the line below if you want to save the output into a file
 -- gpm:save("gpm.gpm")
 
--- farms:loadNeighborhood{
-	-- source = "gpm.gpm"
--- }
-
--- local file = File("gpm.gpm")
-
--- file:deleteIfExists()

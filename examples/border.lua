@@ -1,4 +1,5 @@
 -- @example GPM Implementation strategy 'border' and creating map.
+
 -- Returns neighbor states and the relationship of borders.
 
 -- import gpm
@@ -18,8 +19,8 @@ local gpm = GPM{
 }
 
 forEachCell(gpm.origin, function(polygon)
-	print(polygon.NOME_UF)
+	print(polygon.name)
 	forEachElement(polygon.neighbors, function(polygonNeighbor)
-		print("	"..polygon.neighbors[polygonNeighbor].NOME_UF.." ("..polygon.perimeterBorder[polygon.neighbors[polygonNeighbor]]..")")
+		print("	"..polygon.neighbors[polygonNeighbor].name.." ("..polygon.perimeterBorder[polygon.neighbors[polygonNeighbor]]..")")
 	end)
 end)
