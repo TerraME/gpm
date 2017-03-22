@@ -60,7 +60,7 @@ return {
 				outside = function(distance) return distance * 2 end
 			}
 		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("strategy", "open", "string"))
+		unitTest:assertError(error_func, defaultValueMsg("strategy", "open"))
 
 		error_func = function()
 			Network{

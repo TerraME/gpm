@@ -530,6 +530,7 @@ GPM_ = {
 	-- network = Network{
 	--     lines = roads,
 	--     target = communities,
+	--     progress = false,
 	--     weight = function(distance, cell)
 	--         if cell.STATUS == "paved" then
 	--             return distance / 5
@@ -545,6 +546,7 @@ GPM_ = {
 	-- gpm = GPM{
 	--     network = network,
 	--     origin = farms,
+	--     progress = false,
 	--     output = {
 	--         id = "id1",
 	--         distance = "distance"
@@ -627,6 +629,7 @@ metaTableGPM_ = {
 -- network = Network{
 --     lines = roads,
 --     target = communities,
+--     progress = false,
 --     weight = function(distance, cell)
 --         if cell.STATUS == "paved" then
 --             return distance / 5
@@ -639,9 +642,10 @@ metaTableGPM_ = {
 --     end
 -- }
 --
--- local gpm = GPM{
+-- gpm = GPM{
 --     network = network,
 --     origin = farms,
+--     progress = false,
 --     output = {
 --         id = "id1",
 --         distance = "distance"
@@ -656,14 +660,13 @@ function GPM(data)
 		customError("The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
 	end
 
-	if data.network then
-		mandatoryTableArgument(data, "network", "Network")
-		data.neighbors = createOpenGPM(data)
-	end
-
 	defaultTableValue(data, "progress", true)
+	optionalTableArgument(data, "distance", "number")
+	optionalTableArgument(data, "quantity", "number")
 
-	mandatoryTableArgument(data, "progress", "boolean")
+	if data.distance and data.quantity then
+		customError("Use quantity or distance as parameters, not both.")
+	end
 
 	if data.output then
 		forEachElement(data.output, function(output)
@@ -673,15 +676,27 @@ function GPM(data)
 		end)
 	end
 
-	if data.destination and data.strategy == "length" then
-		if data.destination.geometry then
-			local cell = data.destination:sample()
+	if data.destination then
+		mandatoryTableArgument(data, "destination", "CellularSpace")
 
-			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") and not string.find(cell.geom:getGeometryType(), "MultiLineString") then
-				customError("Argument 'destination' should be composed by 'MultiPolygon' or 'MultiLineString', got '"..cell.geom:getGeometryType().."'.")
-			end
-		else
+		if not data.destination.geometry then
 			customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
+		end
+
+		local cell = data.destination:sample()
+	end
+
+	if data.network then
+		mandatoryTableArgument(data, "network", "Network")
+		defaultTableValue(data, "strategy", "network")
+		data.neighbors = createOpenGPM(data)
+	end
+
+	if data.destination and data.strategy == "length" then
+		local cell = data.destination:sample()
+
+		if not string.find(cell.geom:getGeometryType(), "MultiPolygon") and not string.find(cell.geom:getGeometryType(), "MultiLineString") then
+			customError("Argument 'destination' should be composed by 'MultiPolygon' or 'MultiLineString', got '"..cell.geom:getGeometryType().."'.")
 		end
 
 		buildRelation(data)
@@ -721,7 +736,7 @@ function GPM(data)
 
 	if data.distance or data.quantity and data.destination then
 		if data.destination then
-		mandatoryTableArgument(data, "destination", "CellularSpace")
+			mandatoryTableArgument(data, "destination", "CellularSpace")
 
 			if data.destination.geometry then
 				local cell = data.destination:sample()
@@ -734,26 +749,20 @@ function GPM(data)
 			end
 		end
 
-		if data.distance and data.quantity == nil then
+		if data.distance then
 			mandatoryTableArgument(data, "distance", "number")
 			distancePointToTarget(data)
-		elseif data.quantity and data.distance == nil and data.destination then
+		else -- data.quantity
 			mandatoryTableArgument(data, "quantity", "number")
 			createRelationByQuantity(data)
-		else
-			customError("Use quantity or distance as parameters, not both.")
 		end
 	end
 
 	if data.destination and data.strategy ~= "contains" and data.output == nil and data.strategy ~= "length" then
-		if data.destination.geometry then
-			local cell = data.destination:sample()
+		local cell = data.destination:sample()
 
-			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
-				customError("Argument 'destination' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
-			end
-		else
-			customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
+		if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
+			customError("Argument 'destination' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
 		end
 
 		distanceCellToTarget(data)

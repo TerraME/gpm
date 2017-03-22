@@ -11,6 +11,7 @@ local communities = CellularSpace{
 local network = Network{
 	lines = roads,
 	target = communities,
+	progress = false,
 	weight = function(distance, cell)
 		if cell.STATUS == "paved" then
 			return distance / 5
@@ -213,7 +214,7 @@ return {
 				destination = "distance"
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
+		unitTest:assertError(error_func, incompatibleTypeMsg("destination", "CellularSpace", "distance"))
 
 		local farmsPolygon = CellularSpace{
 			file = filePath("roads.shp", "gpm"),
@@ -345,6 +346,7 @@ return {
 		local gpm = GPM{
 			network = network,
 			origin = farms,
+			progress = false,
 			output = {
 				id = "id1",
 			}

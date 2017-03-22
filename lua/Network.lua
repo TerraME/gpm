@@ -489,6 +489,7 @@ metaTableNetwork_ = {
 -- network = Network{
 --     lines = roads,
 --     target = communities,
+--     progress = false,
 --     weight = function(distance, cell)
 --         if cell.STATUS == "paved" then
 --             return distance / 5
@@ -529,12 +530,9 @@ function Network(data)
 		customError("The CellularSpace in argument 'target' must be loaded with 'geometry = true'.")
 	end
 
-	optionalTableArgument(data, "strategy", "open")
+	defaultTableValue(data, "strategy", "open")
 	defaultTableValue(data, "error", 0)
-	defaultTableValue(data, "progress", false)
-
-	mandatoryTableArgument(data, "error", "number")
-	mandatoryTableArgument(data, "progress", "boolean")
+	defaultTableValue(data, "progress", true)
 
 	data.distance = createOpenNetwork(data)
 

@@ -11,6 +11,7 @@ local communities = CellularSpace{
 local network = Network{
 	lines = roads,
 	target = communities,
+	progress = false,
 	weight = function(distance, cell)
 		if cell.STATUS == "paved" then
 			return distance / 5
