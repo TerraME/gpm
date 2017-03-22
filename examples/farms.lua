@@ -2,29 +2,28 @@
 -- Creates maps based on distance routes, entry points and exit points.
 -- This test has commented lines, to create and validate files.
 -- This example creates a 'gpm.gpm' file if you have another file with this name will be deleted.
--- @image id_farms.bmp
+-- @image id_farms.png
 
 -- import gpm
 import("gpm")
 
 -- create the CellularSpace
-local csCenterspt = CellularSpace{
+csCenterspt = CellularSpace{
 	file = filePath("communities.shp", "gpm"),
 	geometry = true
 }
 
-local csLine = CellularSpace{
+csLine = CellularSpace{
 	file = filePath("roads.shp", "gpm"),
 	geometry = true
 }
 
-local farms = CellularSpace{
-	file = filePath("farms_cells.shp", "gpm"),
+farms = CellularSpace{
+	file = filePath("farms_cells.shp", "gpm"), -- also try 'farms_cells3.shp'
 	geometry = true
 }
 
--- create a Network with the distance of the end points to routes
-local network = Network{
+network = Network{
 	target = csCenterspt,
 	lines = csLine,
 	weight = function(distance, cell)
@@ -34,12 +33,10 @@ local network = Network{
 			return distance / 2
 		end
 	end,
-	outside = function(distance) return distance * 2 end,
-	progress = true
+	outside = function(distance) return distance * 2 end
 }
 
--- creating a GPM
-local gpm = GPM{
+gpm = GPM{
 	network = network,
 	origin = farms,
 	output = {
@@ -49,20 +46,23 @@ local gpm = GPM{
 }
 
 -- creating Map with the output of GPM
-map = Map{
+map1 = Map{
 	target = gpm.origin,
 	select = "distance",
-	slices = 20,
-	color = "Blues"
+	slices = 8,
+	color = "YlOrBr"
 }
 
-map = Map{
+map2 = Map{
 	target = gpm.origin,
 	select = "id1",
-	value = {1, 2, 3, 4},
-	color = {"red", "blue", "green", "black"}
+	slices = 4,
+	color = "Dark" -- {"red", "blue", "green", "black"}
 }
 
 -- Uncomment the line below if you want to save the output into a file
 -- gpm:save("gpm.gpm")
+
+map1:save("distance.png")
+map2:save("community.png")
 

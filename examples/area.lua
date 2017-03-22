@@ -1,31 +1,30 @@
 -- @example GPM Implementation strategy 'area' and creating map.
 -- Create a map based on the cells and polygons.
--- @image cellID_farms.bmp
+-- @image farms_cells.png
 
--- import gpm
 import("gpm")
 
--- create the CellularSpace
-local farms = CellularSpace{
-	file = filePath("farms_cells3.shp", "gpm"),
+farms = CellularSpace{
+	file = filePath("farms_cells.shp", "gpm"),
 	geometry = true
 }
 
-local farmsPolygon = CellularSpace{
+farmsPolygon = CellularSpace{
 	file = filePath("farms.shp", "gpm"),
 	geometry = true
 }
 
--- creating a GPM
-local gpm = GPM{
+gpm = GPM{
 	origin = farms,
 	destination = farmsPolygon
 }
 
--- creating Map with values ​​GPM
+-- creating Map with GPM values
 map = Map{
 	target = gpm.origin,
 	select = "cellID",
-	slices = 10,
-	color = "RdYlGn"
+	slices = 7,
+	color = "Accent"
 }
+
+map:save("farms_cells.png")
