@@ -112,7 +112,7 @@ local function createOpenGPM(self)
 		geometryOrigin.code = counterCode
 		geometryOrigin.neighbor = 0
 
-		local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
+		local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 
 		getDistanceInputPoint(self, geometry:getCentroid(), self.network, geometryOrigin)
 		counterCode = counterCode + 1
@@ -220,11 +220,11 @@ end
 
 -- Strategy 'distance'
 local function geometryClosestToPoint(geometryOrigin, target, maxDist)
-	local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
+	local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 	local distanceTarget = math.huge
 
 	forEachCell(target, function(point)
-		local targetPoint = tl:castGeomToSubtype(point.geom:getGeometryN(0))
+		local targetPoint = tl.castGeomToSubtype(point.geom:getGeometryN(0))
 		local distanceToTarget = geometry:distance(targetPoint)
 
 		if distanceToTarget < maxDist and distanceToTarget < distanceTarget then
@@ -236,7 +236,7 @@ end
 
 local function buildRelationBetweenPolygons(self, polygon, pointID, targetPoint)
 	forEachCell(self.origin, function(geometryOrigin)
-		local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
+		local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 		local distanceToTarget = geometry:distance(targetPoint)
 
 		if polygon:contains(geometry) or polygon:intersects(geometry) and geometryOrigin.distanceToTarget > distanceToTarget then
@@ -269,13 +269,13 @@ local function distancePointToTarget(self)
 		end)
 
 		forEachCell(self.destination, function(polygon)
-			local geometryPolygon = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+			local geometryPolygon = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
 			local centroid = geometryPolygon:getCentroid()
 
 			polygon.distance = math.huge
 
 			forEachCell(self.network.target, function(point)
-				local targetPoint = tl:castGeomToSubtype(point.geom:getGeometryN(0))
+				local targetPoint = tl.castGeomToSubtype(point.geom:getGeometryN(0))
 				local distanceToTarget = centroid:distance(targetPoint)
 
 				if distanceToTarget <= maxDist and polygon.distance > distanceToTarget then
@@ -298,7 +298,7 @@ local function createRelationByQuantity(self)
 	local numberGeometry = #self.network.target
 
 	forEachCell(self.network.target, function(point)
-		local targetPoint = tl:castGeomToSubtype(point.geom:getGeometryN(0))
+		local targetPoint = tl.castGeomToSubtype(point.geom:getGeometryN(0))
 
 		counterCode = counterCode + 1
 
@@ -310,7 +310,7 @@ local function createRelationByQuantity(self)
 		point.polygonVector = {}
 
 		forEachCell(self.destination, function(polygon)
-			local geometryPolygon = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+			local geometryPolygon = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
 			local centroid = geometryPolygon:getCentroid()
 			local distanceToTarget = centroid:distance(targetPoint)
 
@@ -330,10 +330,10 @@ end
 
 -- Strategy 'area'
 local function geometryClosestToCells(geometryOrigin, destination)
-	local geometry = tl:castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
+	local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 
 	forEachCell(destination, function(polygon)
-		local targetPolygon = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local targetPolygon = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
 		local differenceGeometry = targetPolygon:distance(geometry:getCentroid())
 
 		if targetPolygon:contains(geometry) or differenceGeometry < geometryOrigin.dimensionValue then
@@ -374,14 +374,14 @@ end
 
 -- Strategy 'border'
 local function calculateWeightNeighbors(polygon)
-	local geometry = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+	local geometry = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
 	local geometryPerimeter = geometry:getPerimeter()
 
 	forEachElement(polygon.neighbors, function(polygonNeighbor)
 		local neighbor = polygon.neighbors[polygonNeighbor]
-		local geometryNeighbor = tl:castGeomToSubtype(neighbor.geom:getGeometryN(0))
+		local geometryNeighbor = tl.castGeomToSubtype(neighbor.geom:getGeometryN(0))
 		local intersection = geometry:intersection(geometryNeighbor)
-		local geometryBorder = tl:castGeomToSubtype(intersection)
+		local geometryBorder = tl.castGeomToSubtype(intersection)
 
 		if geometryBorder.getLength then
 			local lengthBorder = geometryBorder:getLength()
@@ -393,10 +393,10 @@ local function calculateWeightNeighbors(polygon)
 end
 
 local function definingNeighbors(polygonOrigin, polygon, quantity)
-	local geometry = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+	local geometry = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
 
 	forEachCell(polygonOrigin, function(polygonBorder)
-		local geometryBorder = tl:castGeomToSubtype(polygonBorder.geom:getGeometryN(0))
+		local geometryBorder = tl.castGeomToSubtype(polygonBorder.geom:getGeometryN(0))
 
 		if geometry:touches(geometryBorder) and polygon.FID ~= polygonBorder.FID and quantity > #polygon.neighbors then
 			table.insert(polygon.neighbors, polygonBorder)
@@ -439,7 +439,7 @@ local function relationBetweenPolygonsAndPoints(self)
 	local numberGeometry = #polygonOrigin
 
 	forEachCell(polygonOrigin, function(polygon)
-		local geometryDestination = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometryDestination = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
 
 		counterCode = counterCode + 1
 
@@ -451,7 +451,7 @@ local function relationBetweenPolygonsAndPoints(self)
 		polygon.counterContains = 0
 
 		forEachCell(points, function(point)
-			local geometryPoints = tl:castGeomToSubtype(point.geom:getGeometryN(0))
+			local geometryPoints = tl.castGeomToSubtype(point.geom:getGeometryN(0))
 
 			if geometryDestination:contains(geometryPoints) then
 				table.insert(polygon.contains, point)
@@ -469,7 +469,7 @@ local function buildRelation(self)
 	local numberGeometry = #polygonOrigin
 
 	forEachCell(polygonOrigin, function(polygon)
-		local geometryOrigin = tl:castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometryOrigin = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
 
 		counterCode = counterCode + 1
 
@@ -482,11 +482,11 @@ local function buildRelation(self)
 		polygon.length = 1
 
 		forEachCell(geometricObject, function(geometric)
-			local geometryObject = tl:castGeomToSubtype(geometric.geom:getGeometryN(0))
+			local geometryObject = tl.castGeomToSubtype(geometric.geom:getGeometryN(0))
 
 			if geometryOrigin:touches(geometryObject) or geometryOrigin:intersects(geometryObject) then
 				local intersection = geometryOrigin:intersection(geometryObject)
-				local geometryIntersection = tl:castGeomToSubtype(intersection)
+				local geometryIntersection = tl.castGeomToSubtype(intersection)
 				local lengthIntersection
 
 				polygon.length = 2
