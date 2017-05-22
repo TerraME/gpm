@@ -682,8 +682,6 @@ function GPM(data)
 		if not data.destination.geometry then
 			customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
 		end
-
-		local cell = data.destination:sample()
 	end
 
 	if data.network then
@@ -703,12 +701,10 @@ function GPM(data)
 	end
 
 	if data.strategy == "border" or data.strategy == "contains" then
-		if data.origin.geometry then
-			local cell = data.origin:sample()
+		local cell = data.origin:sample()
 
-			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
-				customError("Argument 'origin' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
-			end
+		if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
+			customError("Argument 'origin' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
 		end
 
 		if data.strategy == "border" then
@@ -718,16 +714,10 @@ function GPM(data)
 
 			neighborhoodOfPolygon(data)
 		else
-			mandatoryTableArgument(data, "destination", "CellularSpace")
+			cell = data.destination:sample()
 
-			if data.destination.geometry then
-				local cell = data.destination:sample()
-
-				if  not string.find(cell.geom:getGeometryType(), "MultiPoint") then
-					customError("Argument 'destination' should be composed by 'MultiPoint', got '"..cell.geom:getGeometryType().."'.")
-				end
-			else
-				customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
+			if  not string.find(cell.geom:getGeometryType(), "MultiPoint") then
+				customError("Argument 'destination' should be composed by 'MultiPoint', got '"..cell.geom:getGeometryType().."'.")
 			end
 
 			relationBetweenPolygonsAndPoints(data)
@@ -736,16 +726,10 @@ function GPM(data)
 
 	if data.distance or data.quantity and data.destination then
 		if data.destination then
-			mandatoryTableArgument(data, "destination", "CellularSpace")
+			local cell = data.destination:sample()
 
-			if data.destination.geometry then
-				local cell = data.destination:sample()
-
-				if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
-					customError("Argument 'destination' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
-				end
-			else
-				customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
+			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
+				customError("Argument 'destination' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
 			end
 		end
 
