@@ -2,18 +2,17 @@
 import("terralib")
 
 farms = Project{
-	file = "farms_cells3.tview",
+	file = "cells.tview",
 	clean = true,
 	farms = filePath("farms.shp", "gpm")
 }
 
 cells = Layer{
 	project = farms,
-	file = "farms_cells3.shp",
+	file = "cells.shp",
 	clean = true,
 	input = "farms",
 	name = "cells",
-	resolution = 100
+	resolution = 200
 }
-
 

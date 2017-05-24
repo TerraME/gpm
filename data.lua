@@ -1,5 +1,5 @@
 data{
-	file = "partofbrasil.shp",
+	file = "partofbrazil.shp",
 	attributes = {
 		name = "Name of the state."
 	},
