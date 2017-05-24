@@ -449,9 +449,9 @@ local function createOpenNetwork(self)
 	local conectedLines = checksInterconnectedNetwork(self)
 	checkNetworkDisconnected(self.lines)
 	local targetPoints = buildPointTarget(conectedLines.line, self.target)
-	local netWork = buildDistancePointTarget(targetPoints, conectedLines.line, self, conectedLines.node)
+	local network = buildDistancePointTarget(targetPoints, conectedLines.line, self, conectedLines.node)
 
-	return netWork
+	return network
 end
 
 Network_ = {

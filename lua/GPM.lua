@@ -25,102 +25,50 @@
 local terralib = getPackage("terralib")
 local tl = terralib.TerraLib{}
 
--- Strategy 'network'
-local function addOutputID(ID, geometry, polygonID)
-	geometry[polygonID] = ID
-end
-
-local function addOutputDistance(distanceTarget, geometry, polygonDistance)
-	geometry[polygonDistance] = distanceTarget
-end
-
-local function addOutput(self, geometry)
-	local reference = 0
-
-	if self.output then
-		if self.output.id then
-			reference = 1
-
-			geometry[self.output.id] = {}
-		end
-
-		if self.output.distance then
-			geometry[self.output.distance] = {}
-
-			if reference == 1 then
-				reference = 3
-			else
-				reference = 2
-			end
-		end
-	end
-
-	return reference
-end
-
-local function buildPointTarget(self, reference, network, centroid, geometry)
-	local distancePointTarget = math.huge
-	local target
-
-	forEachElement(network.distance.netpoint, function(point)
-		local distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distance
-
-		if distance < distancePointTarget then
-			target = network.distance.netpoint[point].targetID
-			distancePointTarget = distance
-		end
-
-		distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distanceOutside
-
-		if distance < distancePointTarget then
-			target = network.distance.netpoint[point].targetIDOutside
-			distancePointTarget = distance
-		end
-	end)
-
-	geometry.neighbor = target
-
-	if self.neighbor[target] == nil then
-		self.neighbor[target] = 1
-	else
-		self.neighbor[target] = self.neighbor[target] + 1
-	end
-
-	if reference == 1 then
-		addOutputID(target, geometry, self.output.id)
-	elseif reference == 2 then
-		addOutputDistance(distancePointTarget, geometry, self.output.distance) -- SKIP
-	elseif reference == 3 then
-		addOutputID(target, geometry, self.output.id)
-		addOutputDistance(distancePointTarget, geometry, self.output.distance)
-	end
-end
-
-local function getDistanceInputPoint(self, centroid, network, geometry)
-	local reference = addOutput(self, geometry)
-
-	buildPointTarget(self, reference, network, centroid, geometry)
-end
-
-local function createOpenGPM(self)
+local function buildOpenGPM(self)
 	local counterCode = 0
 	local numberGeometry = #self.origin
 
-	self.neighbor = {}
+	local neighbors = {}
 
 	forEachCell(self.origin, function(geometryOrigin)
 		geometryOrigin.code = counterCode
 		geometryOrigin.neighbor = 0
+		neighbors[geometryOrigin:getId()] = {}
 
 		local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 
-		getDistanceInputPoint(self, geometry:getCentroid(), self.network, geometryOrigin)
 		counterCode = counterCode + 1
 
 		if self.progress then
 			print("Processing origin "..counterCode.."/"..numberGeometry) -- SKIP
 		end
+
+		local centroid = geometry:getCentroid()
+		local network = self.network
+
+		local distancePointTarget = math.huge
+		local target
+
+		forEachElement(network.distance.netpoint, function(point)
+			local distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distance
+
+			target = network.distance.netpoint[point].targetID
+			target = self.destination.cells[target]:getId()
+
+			local currentDistance = neighbors[geometryOrigin:getId()][target]
+	
+			if currentDistance then
+				if distance < currentDistance then
+					neighbors[geometryOrigin:getId()][target] = distance
+				end
+			else
+				neighbors[geometryOrigin:getId()][target] = distance
+			end
+		end)
 	end)
+
+	self.neighbor = neighbors
 end
 
 local function saveGAL(self, file)
@@ -218,227 +166,83 @@ local function saveGWT(self, file)
 	file:close()
 end
 
--- Strategy 'distance'
-local function geometryClosestToPoint(geometryOrigin, target, maxDist)
-	local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
-	local distanceTarget = math.huge
-
-	forEachCell(target, function(point)
-		local targetPoint = tl.castGeomToSubtype(point.geom:getGeometryN(0))
-		local distanceToTarget = geometry:distance(targetPoint)
-
-		if distanceToTarget < maxDist and distanceToTarget < distanceTarget then
-			geometryOrigin.pointID = point.pointID -- SKIP
-			distanceTarget = distanceToTarget -- SKIP
-		end
-	end)
-end
-
-local function buildRelationBetweenPolygons(self, polygon, pointID, targetPoint)
-	forEachCell(self.origin, function(geometryOrigin)
-		local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
-		local distanceToTarget = geometry:distance(targetPoint)
-
-		if polygon:contains(geometry) or polygon:intersects(geometry) and geometryOrigin.distanceToTarget > distanceToTarget then
-			geometryOrigin.pointID = pointID
-			geometryOrigin.distanceToTarget = distanceToTarget
-		end
-	end)
-end
-
-local function distancePointToTarget(self)
-	local maxDist = self.distance
+local function buildDistanceRelation(self)
+	local destination = self.destination
+	local maxDistance = self.distance or math.huge
 	local counterCode = 0
 	local numberGeometry = #self.origin
+	local neighbors = {}
 
-	if self.destination == nil then
-		forEachCell(self.origin, function(geometryOrigin)
-			counterCode = counterCode + 1
-
-			if self.progress then -- SKIP
-				print("Processing distance "..counterCode.."/"..numberGeometry) -- SKIP
-			end -- SKIP
-
-			geometryOrigin.pointID = 0 -- SKIP
-			geometryClosestToPoint(geometryOrigin, self.network.target, maxDist) -- SKIP
-		end)
-	else
-		forEachCell(self.origin, function(geometryOrigin)
-			geometryOrigin.pointID = 0
-			geometryOrigin.distanceToTarget = math.huge
-		end)
-
-		forEachCell(self.destination, function(polygon)
-			local geometryPolygon = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
-			local centroid = geometryPolygon:getCentroid()
-
-			polygon.distance = math.huge
-
-			forEachCell(self.network.target, function(point)
-				local targetPoint = tl.castGeomToSubtype(point.geom:getGeometryN(0))
-				local distanceToTarget = centroid:distance(targetPoint)
-
-				if distanceToTarget <= maxDist and polygon.distance > distanceToTarget then
-					buildRelationBetweenPolygons(self, geometryPolygon, point.pointID, targetPoint)
-					polygon.distance = distanceToTarget
-				end
-			end)
-		end)
-	end
-end
-
-local function createRelationByQuantity(self)
 	forEachCell(self.origin, function(geometryOrigin)
-		geometryOrigin.pointID = 0
-		geometryOrigin.distanceToTarget = math.huge
-	end)
-
-	local quantity = self.quantity
-	local counterCode = 0
-	local numberGeometry = #self.network.target
-
-	forEachCell(self.network.target, function(point)
-		local targetPoint = tl.castGeomToSubtype(point.geom:getGeometryN(0))
-
 		counterCode = counterCode + 1
 
 		if self.progress then
 			print("Processing distance "..counterCode.."/"..numberGeometry) -- SKIP
 		end
 
-		point.vectorKeysOfPolygons = {}
-		point.polygonVector = {}
+		neighbors[geometryOrigin:getId()] = {}
 
-		forEachCell(self.destination, function(polygon)
-			local geometryPolygon = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
-			local centroid = geometryPolygon:getCentroid()
-			local distanceToTarget = centroid:distance(targetPoint)
+		local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
 
-			point.polygonVector[distanceToTarget] = geometryPolygon
-			table.insert(point.vectorKeysOfPolygons, distanceToTarget)
-		end)
+		forEachCell(destination, function(polygon)
+			local targetPolygon = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+			local distance = targetPolygon:distance(geometry:getCentroid())
 
-		table.sort(point.vectorKeysOfPolygons)
-
-		forEachElement(point.vectorKeysOfPolygons, function(keyToPolygon)
-			if quantity >= keyToPolygon then
-				buildRelationBetweenPolygons(self, point.polygonVector[point.vectorKeysOfPolygons[keyToPolygon]], point.pointID, targetPoint)
+			if --[[targetPolygon:contains(geometry) or]] distance < maxDistance then
+				neighbors[geometryOrigin:getId()][polygon:getId()] = distance
 			end
 		end)
 	end)
+
+	self.neighbor = neighbors
 end
 
--- Strategy 'area'
-local function geometryClosestToCells(geometryOrigin, destination)
-	local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
-
-	forEachCell(destination, function(polygon)
-		local targetPolygon = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
-		local differenceGeometry = targetPolygon:distance(geometry:getCentroid())
-
-		if targetPolygon:contains(geometry) or differenceGeometry < geometryOrigin.dimensionValue then
-			geometryOrigin.cellID = polygon.valueColor
-			geometryOrigin.dimensionValue = differenceGeometry
-		end
-	end)
-end
-
-local function distanceCellToTarget(self)
-	local valueColor = 1
+local function buildBorderRelation(self)
+	local origin = self.origin
 	local destination = self.destination
-
-	forEachCell(destination, function(polygon)
-		polygon.valueColor = valueColor
-		valueColor = valueColor + 1
-
-		if valueColor == 11 then
-			valueColor = 1
-		end
-	end)
-
 	local counterCode = 0
-	local numberGeometry = #self.origin
+	local numberGeometry = #origin
+	local neighbors = {}
 
-	forEachCell(self.origin, function(geometryOrigin)
-		counterCode = counterCode + 1
-
-		if self.progress then
-			print("Processing area "..counterCode.."/"..numberGeometry) -- SKIP
-		end
-
-		geometryOrigin.dimensionValue = math.huge
-		geometryOrigin.cellID = 0
-		geometryClosestToCells(geometryOrigin, destination)
-	end)
-end
-
--- Strategy 'border'
-local function calculateWeightNeighbors(polygon)
-	local geometry = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
-	local geometryPerimeter = geometry:getPerimeter()
-
-	forEachElement(polygon.neighbors, function(polygonNeighbor)
-		local neighbor = polygon.neighbors[polygonNeighbor]
-		local geometryNeighbor = tl.castGeomToSubtype(neighbor.geom:getGeometryN(0))
-		local intersection = geometry:intersection(geometryNeighbor)
-		local geometryBorder = tl.castGeomToSubtype(intersection)
-
-		if geometryBorder.getLength then
-			local lengthBorder = geometryBorder:getLength()
-
-			polygon.perimeterBorder[neighbor] = (math.modf((lengthBorder / geometryPerimeter) * 100)) / 100
-			polygon.intersectionNeighbors[neighbor] = lengthBorder
-		end
-	end)
-end
-
-local function definingNeighbors(polygonOrigin, polygon, quantity)
-	local geometry = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
-
-	forEachCell(polygonOrigin, function(polygonBorder)
-		local geometryBorder = tl.castGeomToSubtype(polygonBorder.geom:getGeometryN(0))
-
-		if geometry:touches(geometryBorder) and polygon.FID ~= polygonBorder.FID and quantity > #polygon.neighbors then
-			table.insert(polygon.neighbors, polygonBorder)
-		end
-	end)
-
-	calculateWeightNeighbors(polygon)
-end
-
-local function neighborhoodOfPolygon(self)
-	local polygonOrigin = self.origin
-    local quantity = math.huge
-
-	if self.quantity then
-		quantity = self.quantity
-	end
-
-	local counterCode = 0
-	local numberGeometry = #polygonOrigin
-
-	forEachCell(polygonOrigin, function(polygon)
+	forEachCell(origin, function(polygon)
 		counterCode = counterCode + 1
 
 		if self.progress then
 			print("Processing intersection "..counterCode.."/"..numberGeometry) -- SKIP
 		end
 
-		polygon.neighbors = {}
-		polygon.intersectionNeighbors = {}
-		polygon.perimeterBorder = {}
-		definingNeighbors(polygonOrigin, polygon, quantity)
+		neighbors[polygon:getId()] = {}
+
+		local geometry = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometryPerimeter = geometry:getPerimeter()
+
+		forEachCell(destination, function(neighbor)
+			local geometryNeighbor = tl.castGeomToSubtype(neighbor.geom:getGeometryN(0))
+
+			if not geometry:touches(geometryNeighbor) or polygon.FID == neighbor.FID then return end
+
+			local intersection = geometry:intersection(geometryNeighbor)
+			local geometryBorder = tl.castGeomToSubtype(intersection)
+
+			if geometryBorder.getLength then
+				local lengthBorder = geometryBorder:getLength()
+
+				neighbors[polygon:getId()][neighbor:getId()] = lengthBorder / geometryPerimeter
+			end
+		end)
 	end)
+
+	self.neighbor = neighbors
 end
 
--- 'contains'
-local function relationBetweenPolygonsAndPoints(self)
-	local polygonOrigin = self.origin
-	local points = self.destination
+local function buildContainsRelation(self)
+	local origin = self.origin
+	local destination = self.destination
 	local counterCode = 0
-	local numberGeometry = #polygonOrigin
+	local numberGeometry = #origin
+	local neighbor = {}
 
-	forEachCell(polygonOrigin, function(polygon)
+	forEachCell(origin, function(polygon)
 		local geometryDestination = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
 
 		counterCode = counterCode + 1
@@ -447,28 +251,68 @@ local function relationBetweenPolygonsAndPoints(self)
 			print("Processing contains "..counterCode.."/"..numberGeometry) -- SKIP
 		end
 
-		polygon.contains = {}
-		polygon.counterContains = 0
+		neighbor[polygon:getId()] = {}
 
-		forEachCell(points, function(point)
+		forEachCell(destination, function(point)
 			local geometryPoints = tl.castGeomToSubtype(point.geom:getGeometryN(0))
 
 			if geometryDestination:contains(geometryPoints) then
-				table.insert(polygon.contains, point)
-				polygon.counterContains = polygon.counterContains + 1
+				neighbor[polygon:getId()][point:getId()] = 1
 			end
 		end)
 	end)
+
+	self.neighbor = neighbor
 end
 
--- 'length'
-local function buildRelation(self)
-	local polygonOrigin = self.origin
-	local geometricObject = self.destination
+local function buildAreaRelation(self)
+	local origin = self.origin
+	local destination = self.destination
 	local counterCode = 0
-	local numberGeometry = #polygonOrigin
+	local numberGeometry = #origin
+	local neighbor = {}
 
-	forEachCell(polygonOrigin, function(polygon)
+	forEachCell(origin, function(polygon)
+		local geometryOrigin = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+
+		counterCode = counterCode + 1
+
+		if self.progress then
+			print("Processing area "..counterCode.."/"..numberGeometry) -- SKIP
+		end
+
+		neighbor[polygon:getId()] = {}
+
+		forEachCell(destination, function(geometric)
+			local geometryObject = tl.castGeomToSubtype(geometric.geom:getGeometryN(0))
+
+			if geometryOrigin:touches(geometryObject) or geometryOrigin:intersects(geometryObject) then
+				local intersection = geometryOrigin:intersection(geometryObject)
+				local geometryIntersection = tl.castGeomToSubtype(intersection)
+				local areaIntersection
+
+				if string.find(geometryIntersection:getGeometryType(),"Polygon") then
+					areaIntersection = geometryIntersection:getArea()
+				else
+					return
+				end
+
+				neighbor[polygon:getId()][geometric:getId()] = areaIntersection
+			end
+		end)
+	end)
+
+	self.neighbor = neighbor
+end
+
+local function buildLengthRelation(self)
+	local origin = self.origin
+	local destination = self.destination
+	local counterCode = 0
+	local numberGeometry = #origin
+	local neighbor = {}
+
+	forEachCell(origin, function(polygon)
 		local geometryOrigin = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
 
 		counterCode = counterCode + 1
@@ -477,11 +321,9 @@ local function buildRelation(self)
 			print("Processing length "..counterCode.."/"..numberGeometry) -- SKIP
 		end
 
-		polygon.intersection = {}
-		polygon.lengthIntersection = {}
-		polygon.length = 1
+		neighbor[polygon:getId()] = {}
 
-		forEachCell(geometricObject, function(geometric)
+		forEachCell(destination, function(geometric)
 			local geometryObject = tl.castGeomToSubtype(geometric.geom:getGeometryN(0))
 
 			if geometryOrigin:touches(geometryObject) or geometryOrigin:intersects(geometryObject) then
@@ -489,25 +331,93 @@ local function buildRelation(self)
 				local geometryIntersection = tl.castGeomToSubtype(intersection)
 				local lengthIntersection
 
-				polygon.length = 2
-
 				if string.find(geometryIntersection:getGeometryType(), "LineString") then
 					lengthIntersection = geometryIntersection:getLength()
-				elseif string.find(geometryIntersection:getGeometryType(),"Polygon") then
-					lengthIntersection = geometryIntersection:getArea()
-                else
-                    return
+				else
+					return
 				end
 
-				table.insert(polygon.intersection, intersection)
-				polygon.lengthIntersection[intersection] = lengthIntersection
+				neighbor[polygon:getId()][geometric:getId()] = lengthIntersection
 			end
 		end)
 	end)
+
+	self.neighbor = neighbor
 end
 
 GPM_ = {
 	type_ = "GPM",
+	-- Create attributes in the origin according to the relations established by GPM.
+	-- These attributes are created in memory, and must be saved manually
+	-- if needed.
+	-- @arg data.attribute
+	-- @arg data.strategy
+	-- @tabular strategy
+	-- Strategy & Description & Mandatory Arguments & Optional Arguments \
+	-- "count" & Count the number of neighbors & attribute & copy \
+	-- "minimum" & Use the minimum value among the available neighbors & attribute & maximum
+	-- @arg data.maximum The maximum value.
+	-- &arg data.copy An attribute (or a set of attributes) to be copied from the destination
+	-- to the origin, given the selected neighbor. It can be a string or a vector of strings
+	-- with the attribute names.
+	fill = function(self, data)
+		verifyNamedTable(data)
+
+		mandatoryTableArgument(data, "attribute", "string")
+		mandatoryTableArgument(data, "strategy", "string")
+		optionalTableArgument(data, "dummy", "number")
+		defaultTableValue(data, "maximum", math.huge)
+
+		if type(data.copy) == "string" then
+			data.copy = {data.copy}
+		end
+
+		optionalTableArgument(data, "copy", "table")
+
+		local attribute = data.attribute
+		local maximum = data.maximum
+
+		switch(data, "strategy"):caseof{
+			count = function()
+				forEachCell(self.origin, function(cell)
+					local value = getn(self.neighbor[cell:getId()])
+
+					if value > maximum then
+						value = maximum
+					end
+
+					cell[attribute] = value
+				end)
+			end,
+			minimum = function()
+				forEachCell(self.origin, function(cell)
+					local value = math.huge
+					local mid
+
+					forEachElement(self.neighbor[cell:getId()], function(id, dist)
+						if dist < value then
+							value = dist
+							mid = id
+						end
+					end)
+
+					if value == math.huge then
+						value = data.dummy
+					end
+
+					if mid ~= nil and data.copy then
+						local neigh = self.destination:get(mid)
+
+						forEachElement(data.copy, function(_, value)
+							cell[value] = neigh[value]
+						end)
+					end
+
+					cell[attribute] = value
+				end)
+			end
+		}
+	end,
 	--- Save the neighborhood into a file.
 	-- @arg file A string or a base::File with the name of the file to be saved.
 	-- The file can have three extension '.gal', '.gwt', or '.gpm'.
@@ -522,8 +432,8 @@ GPM_ = {
 	--     geometry = true
 	-- }
 	--
-	-- farms = CellularSpace{
-	--     file = filePath("farms_cells.shp", "gpm"),
+	-- cells = CellularSpace{
+	--     file = filePath("cells.shp", "gpm"),
 	--     geometry = true
 	-- }
 	--
@@ -545,7 +455,7 @@ GPM_ = {
 	--
 	-- gpm = GPM{
 	--     network = network,
-	--     origin = farms,
+	--     origin = cells,
 	--     progress = false,
 	--     output = {
 	--         id = "id1",
@@ -553,7 +463,7 @@ GPM_ = {
 	--     }
 	-- }
 	--
-	-- gpm:save("farms.gpm")
+	-- gpm:save("cells.gpm")
 	save = function(self, file)
 		if type(file) == "string" then
 			file = File(file)
@@ -569,6 +479,7 @@ GPM_ = {
 
 		local extension = file:extension()
 
+		-- TODO: switch(extension)
 		if extension == "gpm" then
 			saveGPM(self, file)
 		elseif extension == "gwt" then
@@ -578,20 +489,21 @@ GPM_ = {
 		end
 	end
 }
+
 metaTableGPM_ = {
-	__index = GPM_
+	__index = GPM_,
+	__tostring = _Gtme.tostring
 }
 
 --- Type to create a Generalised Proximity Matrix (GPM).
 -- It has several strategies that can use geometry as well as Area, Intersection, Distance and Network.
 -- @arg data.distance Distance around to end points (optional).
 -- @arg data.destination base::CellularSpace (optional).
--- @arg data.network A base::CellularSpace that receives end points of the networks (optional).
+-- @arg data.network A Network, containing the destination points (optional).
 -- @arg data.origin A base::CellularSpace with geometry representing entry points on the network.
 -- @arg data.output Table to receive the output value of the GPM (optional).
 -- This table gets two values ID and distance.
 -- @arg data.progress print as values are being processed default is true (optional).
--- @arg data.quantity relation between geometries (optional).
 -- @arg data.strategy A string with the strategy to be used for creating the GPM (optional).
 -- See the table below.
 -- @tabular strategy
@@ -599,17 +511,14 @@ metaTableGPM_ = {
 -- "area" & Creates relation between two layer using the intersection areas of their polygons.
 -- & destination, origin & progress \
 -- "border" & Creates relation between neighboring polygons,
--- each polygon reference his neighbors and the area touched. & strategy, origin & quantity, progress \
+-- each polygon reference his neighbors and the area touched. & strategy, origin & progress \
 -- "contains" & Returns which polygons contain the reference points.
 -- & destination, origin, strategy & progress \
 -- "distance" & Returns the cells within the distance to the nearest centroid,
 -- the cells will always be related to the nearest target. &
--- distance, origin, network, destination, output, quantity & progress \
+-- origin, output & distance, network, destination, progress \
 -- "length" & Create relations between objects whose intersection is a line.
 -- & strategy, origin, destination & progress \
--- "network" & Creates relation between network and cellularSpace,
--- each point of the network receives the reference to the nearest destination.
--- & output, network, distance, origin & progress, quantity \
 -- @usage import("gpm")
 -- local roads = CellularSpace{
 --     file = filePath("roads.shp", "gpm"),
@@ -621,8 +530,8 @@ metaTableGPM_ = {
 --     geometry = true
 -- }
 --
--- local farms = CellularSpace{
---     file = filePath("farms_cells.shp", "gpm"),
+-- local cells = CellularSpace{
+--     file = filePath("cells.shp", "gpm"),
 --     geometry = true
 -- }
 --
@@ -644,7 +553,7 @@ metaTableGPM_ = {
 --
 -- gpm = GPM{
 --     network = network,
---     origin = farms,
+--     origin = cells,
 --     progress = false,
 --     output = {
 --         id = "id1",
@@ -653,7 +562,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "quantity", "distance", "output", "progress", "destination", "strategy"})
+	verifyUnnecessaryArguments(data, {"network", "origin", "distance", "progress", "destination", "strategy"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if not data.origin.geometry then
@@ -662,11 +571,7 @@ function GPM(data)
 
 	defaultTableValue(data, "progress", true)
 	optionalTableArgument(data, "distance", "number")
-	optionalTableArgument(data, "quantity", "number")
-
-	if data.distance and data.quantity then
-		customError("Use quantity or distance as parameters, not both.")
-	end
+	optionalTableArgument(data, "strategy", "string")
 
 	if data.output then
 		forEachElement(data.output, function(output)
@@ -676,7 +581,7 @@ function GPM(data)
 		end)
 	end
 
-	if data.destination then
+	local function checkDestination()
 		mandatoryTableArgument(data, "destination", "CellularSpace")
 
 		if not data.destination.geometry then
@@ -684,73 +589,88 @@ function GPM(data)
 		end
 	end
 
-	if data.network then
-		mandatoryTableArgument(data, "network", "Network")
-		defaultTableValue(data, "strategy", "network")
-		data.neighbors = createOpenGPM(data)
+	if not data.strategy then
+		if data.distance or data.network then
+			data.strategy = "distance"
+		else
+			customError("Could not infer value for mandatory argument 'strategy'.")
+		end
 	end
 
-	if data.destination and data.strategy == "length" then
-		local cell = data.destination:sample()
+	switch(data, "strategy"):caseof{
+		border = function()
+			defaultTableValue(data, "destination", data.origin)
+			verifyUnnecessaryArguments(data, {"origin", "progress", "destination", "strategy"})
+			checkDestination()
+			local cell = data.origin:sample()
 
-		if not string.find(cell.geom:getGeometryType(), "MultiPolygon") and not string.find(cell.geom:getGeometryType(), "MultiLineString") then
-			customError("Argument 'destination' should be composed by 'MultiPolygon' or 'MultiLineString', got '"..cell.geom:getGeometryType().."'.")
-		end
-
-		buildRelation(data)
-	end
-
-	if data.strategy == "border" or data.strategy == "contains" then
-		local cell = data.origin:sample()
-
-		if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
-			customError("Argument 'origin' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
-		end
-
-		if data.strategy == "border" then
-			if data.quantity then
-				mandatoryTableArgument(data, "quantity", "number")
+			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
+				customError("Argument 'origin' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
 			end
 
-			neighborhoodOfPolygon(data)
-		else
+			buildBorderRelation(data)
+		end,
+		contains = function()
+			checkDestination()
+			verifyUnnecessaryArguments(data, {"origin", "progress", "destination", "strategy"})
+			local cell = data.origin:sample()
+
+			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
+				customError("Argument 'origin' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
+			end
+
 			cell = data.destination:sample()
 
 			if  not string.find(cell.geom:getGeometryType(), "MultiPoint") then
 				customError("Argument 'destination' should be composed by 'MultiPoint', got '"..cell.geom:getGeometryType().."'.")
 			end
 
-			relationBetweenPolygonsAndPoints(data)
-		end
-	end
+			buildContainsRelation(data)
+		end,
+		length = function()
+			checkDestination()
+			verifyUnnecessaryArguments(data, {"origin", "progress", "destination", "strategy"})
+			local cell = data.destination:sample()
 
-	if data.distance or data.quantity and data.destination then
-		if data.destination then
+			if not string.find(cell.geom:getGeometryType(), "MultiLineString") then
+				customError("Argument 'destination' should be composed by 'MultiLineString', got '"..cell.geom:getGeometryType().."'.")
+			end
+
+			buildLengthRelation(data)
+		end,
+		distance = function()
+			if data.destination and data.network then
+				customError("It is nos possible to use 'destination' and 'network' arguments together.")
+			end
+
+			if data.network then
+				mandatoryTableArgument(data, "network", "Network")
+				data.destination = data.network.target
+				data.neighbors = buildOpenGPM(data)
+			else
+				defaultTableValue(data, "destination", data.origin)
+
+				checkDestination()
+
+				local cell = data.destination:sample()
+
+				buildDistanceRelation(data)
+				return
+			end
+		end,
+		area = function()
+			defaultTableValue(data, "destination", data.origin)
+			verifyUnnecessaryArguments(data, {"origin", "progress", "destination", "strategy"})
+			checkDestination()
 			local cell = data.destination:sample()
 
 			if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
 				customError("Argument 'destination' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
 			end
+
+			buildAreaRelation(data)
 		end
-
-		if data.distance then
-			mandatoryTableArgument(data, "distance", "number")
-			distancePointToTarget(data)
-		else -- data.quantity
-			mandatoryTableArgument(data, "quantity", "number")
-			createRelationByQuantity(data)
-		end
-	end
-
-	if data.destination and data.strategy ~= "contains" and data.output == nil and data.strategy ~= "length" then
-		local cell = data.destination:sample()
-
-		if not string.find(cell.geom:getGeometryType(), "MultiPolygon") then
-			customError("Argument 'destination' should be composed by 'MultiPolygon', got '"..cell.geom:getGeometryType().."'.")
-		end
-
-		distanceCellToTarget(data)
-	end
+	}
 
 	setmetatable(data, metaTableGPM_)
 
