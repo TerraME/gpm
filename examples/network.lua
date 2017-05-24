@@ -4,28 +4,26 @@
 -- This example creates a 'gpm.gpm' file if you have another file with this name will be deleted.
 -- @image id_farms.png
 
--- import gpm
 import("gpm")
 
--- create the CellularSpace
-csCenterspt = CellularSpace{
+communities = CellularSpace{
 	file = filePath("communities.shp", "gpm"),
 	geometry = true
 }
 
-csLine = CellularSpace{
+roads = CellularSpace{
 	file = filePath("roads.shp", "gpm"),
 	geometry = true
 }
 
-farms = CellularSpace{
-	file = filePath("farms_cells.shp", "gpm"), -- also try 'farms_cells3.shp'
+cells = CellularSpace{
+	file = filePath("cells.shp", "gpm"),
 	geometry = true
 }
 
 network = Network{
-	target = csCenterspt,
-	lines = csLine,
+	target = communities,
+	lines = roads,
 	weight = function(distance, cell)
 		if cell.STATUS == "paved" then
 			return distance / 5
@@ -33,36 +31,34 @@ network = Network{
 			return distance / 2
 		end
 	end,
-	outside = function(distance) return distance * 2 end
+	outside = function(distance) return distance * 4 end
 }
 
 gpm = GPM{
 	network = network,
-	origin = farms,
-	output = {
-		id = "id1",
-		distance = "distance"
-	}
+	origin = cells
 }
 
--- creating Map with the output of GPM
+gpm:fill{
+	strategy = "minimum",
+	attribute = "dist",
+	copy = "LOCALIDADE"
+}
+
 map1 = Map{
-	target = gpm.origin,
-	select = "distance",
+	target = cells,
+	select = "dist",
 	slices = 8,
 	color = "YlOrBr"
 }
 
 map2 = Map{
-	target = gpm.origin,
-	select = "id1",
-	slices = 4,
-	color = "Dark" -- {"red", "blue", "green", "black"}
+	target = cells,
+	select = "LOCALIDADE",
+	value = {"Palhauzinho", "Santa Rosa", "Garrafao", "Mojui dos Campos"},
+	color = "Set1"
 }
 
 -- Uncomment the line below if you want to save the output into a file
 -- gpm:save("gpm.gpm")
-
-map1:save("distance.png")
-map2:save("community.png")
 

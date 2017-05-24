@@ -1,32 +1,35 @@
--- @example GPM Implementation strategy 'contains' and creating map.
--- Create a map based on relations between a set of polygons and a set of points which the predicate contains is applied.
+-- @example Example that connects cells to the communities located within them. In this example,
+-- there are only two communities locaded within the cells.
+-- The output image shows how many neighbors each cell has.
 -- @image contains.bmp
 
--- import gpm
 import("gpm")
 
--- create the CellularSpace
-local farms = CellularSpace{
-	file = filePath("farms_cells.shp", "gpm"),
+local cells = CellularSpace{
+	file = filePath("cells.shp", "gpm"),
 	geometry = true
 }
 
-local communitiesPoints = CellularSpace{
+local communities = CellularSpace{
 	file = filePath("communities.shp", "gpm"),
 	geometry = true
 }
 
--- creating a GPM with the distance of the entry points for the routes
-GPM{
-	origin = farms,
+gpm = GPM{
+	origin = cells,
 	strategy = "contains",
-	destination = communitiesPoints
+	destination = communities
 }
 
--- creating Map with values ​​GPM
+gpm:fill{
+	strategy = "count",
+	attribute = "quantity"
+}
+
 map = Map{
-	target = farms,
-	select = "counterContains",
+	target = cells,
+	select = "quantity",
 	value = {0, 1},
 	color = {"lightGray", "blue"}
 }
+

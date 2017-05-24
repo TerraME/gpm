@@ -5,7 +5,7 @@
 import("gpm")
 
 farms = CellularSpace{
-	file = filePath("farms_cells.shp", "gpm"),
+	file = filePath("cells.shp", "gpm"),
 	geometry = true
 }
 
@@ -16,15 +16,23 @@ farmsPolygon = CellularSpace{
 
 gpm = GPM{
 	origin = farms,
+	strategy = "area",
 	destination = farmsPolygon
 }
 
--- creating Map with GPM values
-map = Map{
-	target = gpm.origin,
-	select = "cellID",
-	slices = 7,
-	color = "Accent"
+gpm:fill{
+	strategy = "count",
+	attribute = "quantity",
+	max = 5
 }
 
-map:save("farms_cells.png")
+map = Map{
+	target = gpm.origin,
+	select = "quantity",
+	min = 0,
+	max = 5,
+	slices = 6,
+	color = "Reds"
+}
+
+--map:save("cells.png")

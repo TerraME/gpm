@@ -1,32 +1,40 @@
--- @example GPM Implementation strategy 'length' and creating map.
--- Create relations between objects whose intersection is a line.
+-- @example Compute a GPM based on the intersection between cells and lines.
+-- A Cell is connected to a line if there is some intersection between them.
 -- @image length.bmp
 
 -- import gpm
 import("gpm")
 
 -- create the CellularSpace
-local farms = CellularSpace{
+local roads = CellularSpace{
 	file = filePath("roads.shp", "gpm"),
 	geometry = true
 }
 
-local farms_cells = CellularSpace{
-	file = filePath("farms_cells3.shp", "gpm"),
+local cells = CellularSpace{
+	file = filePath("cells.shp", "gpm"),
 	geometry = true
 }
 
 -- creating a GPM
-GPM{
-	origin = farms_cells,
+gpm = GPM{
+	origin = cells,
 	strategy = "length",
-	destination = farms
+	destination = roads
 }
 
--- creating Map with values ​​GPM
-map = Map{
-	target = farms_cells,
-	select = "length",
-	value = {1, 2},
-	color = {"green", "blue"}
+gpm:fill{
+	strategy = "count",
+	attribute = "quantity",
+	max = 1
 }
+
+-- creating Map with values from GPM
+map = Map{
+	target = cells,
+	select = "quantity",
+	value = {0, 1},
+	label = {"0", "1 or more"},
+	color = {"gray", "blue"}
+}
+
