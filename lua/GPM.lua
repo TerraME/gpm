@@ -32,8 +32,6 @@ local function buildOpenGPM(self)
 	local neighbors = {}
 
 	forEachCell(self.origin, function(geometryOrigin)
-		geometryOrigin.code = counterCode
-		geometryOrigin.neighbor = 0
 		neighbors[geometryOrigin:getId()] = {}
 
 		local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
@@ -47,7 +45,6 @@ local function buildOpenGPM(self)
 		local centroid = geometry:getCentroid()
 		local network = self.network
 
-		local distancePointTarget = math.huge
 		local target
 
 		forEachElement(network.distance.netpoint, function(point)
@@ -57,7 +54,7 @@ local function buildOpenGPM(self)
 			target = self.destination.cells[target]:getId()
 
 			local currentDistance = neighbors[geometryOrigin:getId()][target]
-	
+
 			if currentDistance then
 				if distance < currentDistance then
 					neighbors[geometryOrigin:getId()][target] = distance
@@ -72,71 +69,62 @@ local function buildOpenGPM(self)
 end
 
 local function saveGAL(self, file)
-	local validates = false
 	local origin = self.origin
 	local outputText = {}
 
 	table.insert(outputText, "0")
-	table.insert(outputText, #self.neighbor)
-	table.insert(outputText, origin.layer)
+	table.insert(outputText, getn(self.neighbor))
+	table.insert(outputText, origin.layer or origin.file)
 	table.insert(outputText, "object_id_")
-	file:writeLine(outputText, " ")
+	file:writeLine(table.concat(outputText, " "))
 
-	forEachElement(self.neighbor, function(neighbor)
+	forEachOrderedElement(self.neighbor, function(idx, neighbor)
+		if getn(neighbor) == 0 then return end
+
+		table.insert(outputText, idx)
+		table.insert(outputText, getn(neighbor))
+		file:writeLine(table.concat(outputText, " "))
+
 		outputText = {}
-		table.insert(outputText, neighbor)
-		table.insert(outputText, " ")
-		table.insert(outputText, self.neighbor[neighbor])
-		table.insert(outputText, "\n")
 
-		forEachElement(self.origin.cells, function(cell)
-			if self.origin.cells[cell].neighbor == neighbor then
-				table.insert(outputText, self.origin.cells[cell].code)
-				table.insert(outputText, " ")
-				validates = true
-			end
+		forEachOrderedElement(neighbor, function(midx)
+			table.insert(outputText, midx)
 		end)
 
-		if validates then
-			file:writeLine(table.concat(outputText))
-		end
+		file:writeLine(table.concat(outputText, " "))
 	end)
 
 	file:close()
 end
 
 local function saveGPM(self, file)
-	local validates = false
 	local origin = self.origin
+	local destination = self.destination
 	local outputText = {}
 
-	table.insert(outputText, "0 ")
-	table.insert(outputText, origin.layer)
-	table.insert(outputText, " ")
-	table.insert(outputText, origin.layer)
-	table.insert(outputText, " object_id_")
-	file:writeLine(table.concat(outputText))
+	table.insert(outputText, getn(self.neighbor))
+	table.insert(outputText, origin.layer or origin.file)
+	table.insert(outputText, destination.layer or destination.file)
+	table.insert(outputText, "object_id_")
+	file:writeLine(table.concat(outputText, " "))
 
-	forEachElement(self.neighbor, function(neighbor)
+	forEachOrderedElement(self.neighbor, function(idx, neighbor)
+		if getn(neighbor) == 0 then return end
+
 		outputText = {}
-		table.insert(outputText, neighbor)
-		table.insert(outputText, " ")
-		table.insert(outputText, self.neighbor[neighbor])
-		table.insert(outputText, "\n")
 
-		forEachElement(self.origin.cells, function(cell)
-			if self.origin.cells[cell].neighbor == neighbor then
-				table.insert(outputText, self.origin.cells[cell].code)
-				table.insert(outputText, " ")
-				table.insert(outputText, self.origin.cells[cell][self.output.distance])
-				table.insert(outputText, " ")
-				validates = true
-			end
+		table.insert(outputText, idx)
+		table.insert(outputText, getn(neighbor))
+		file:writeLine(table.concat(outputText, " "))
+
+		outputText = {}
+
+		forEachOrderedElement(neighbor, function(midx, weight)
+			table.insert(outputText, midx)
+			table.insert(outputText, weight)
 		end)
 
-		if validates then
-			file:writeLine(table.concat(outputText))
-		end
+		file:writeLine(table.concat(outputText, " "))
 	end)
 
 	file:close()
@@ -146,21 +134,23 @@ local function saveGWT(self, file)
 	local origin = self.origin
 	local outputText = {}
 
-	table.insert(outputText, "0 ")
-	table.insert(outputText, #self.neighbor)
-	table.insert(outputText, " ")
-	table.insert(outputText, origin.layer)
-	table.insert(outputText, " object_id_")
-	file:writeLine(table.concat(outputText))
+	table.insert(outputText, "0")
+	table.insert(outputText, getn(self.neighbor))
+	table.insert(outputText, origin.layer or origin.file)
+	table.insert(outputText, "object_id_")
+	file:writeLine(table.concat(outputText, " "))
 
-	forEachElement(self.origin.cells, function(cell)
-		outputText = {}
-		table.insert(outputText, self.origin.cells[cell].neighbor)
-		table.insert(outputText, " ")
-		table.insert(outputText, self.origin.cells[cell].code)
-		table.insert(outputText, " ")
-		table.insert(outputText, self.origin.cells[cell][self.output.distance])
-		file:writeLine(table.concat(outputText))
+	forEachOrderedElement(self.neighbor, function(idx, neighbor)
+		if getn(neighbor) == 0 then return end
+
+		forEachOrderedElement(neighbor, function(midx, weight)
+			outputText = {}
+
+			table.insert(outputText, idx)
+			table.insert(outputText, midx)
+			table.insert(outputText, weight)
+			file:writeLine(table.concat(outputText, " "))
+		end)
 	end)
 
 	file:close()
@@ -347,26 +337,60 @@ end
 
 GPM_ = {
 	type_ = "GPM",
-	-- Create attributes in the origin according to the relations established by GPM.
-	-- These attributes are created in memory, and must be saved manually
-	-- if needed.
-	-- @arg data.attribute
-	-- @arg data.strategy
+	--- Create attributes in the origin according to the relations established by GPM.
+	-- These attributes are created in memory, and must be saved manually if needed.
+	-- @arg data.attribute Name of the attribute to be created.
+	-- @arg data.strategy The strategy used to create attributes. See the table below.
 	-- @tabular strategy
 	-- Strategy & Description & Mandatory Arguments & Optional Arguments \
-	-- "count" & Count the number of neighbors & attribute & copy \
-	-- "minimum" & Use the minimum value among the available neighbors & attribute & maximum
-	-- @arg data.maximum The maximum value.
-	-- &arg data.copy An attribute (or a set of attributes) to be copied from the destination
+	-- "count" & Count the number of neighbors. & attribute & copy \
+	-- "minimum" & Use the minimum value among the available neighbors. & attribute & max
+	-- @arg data.max The maximum value.
+	-- @arg data.copy An attribute (or a set of attributes) to be copied from the destination
 	-- to the origin, given the selected neighbor. It can be a string or a vector of strings
 	-- with the attribute names.
+	-- @usage
+	-- import("gpm")
+	--
+	-- cells = CellularSpace{
+	--     file = filePath("cells.shp", "gpm"),
+	--     geometry = true
+	-- }
+	--
+	-- farms = CellularSpace{
+	--     file = filePath("farms.shp", "gpm"),
+	--     geometry = true
+	-- }
+	--
+	-- gpm = GPM{
+	--     origin = cells,
+	--     strategy = "area",
+	--     destination = farms,
+	--     progress = false
+	-- }
+	--
+	-- gpm:fill{
+	--     strategy = "count",
+	--     attribute = "quantity",
+	--     max = 5
+	-- }
+	--
+	-- map = Map{
+	--     target = gpm.origin,
+	--     select = "quantity",
+	--     min = 0,
+	--     max = 5,
+	--     slices = 6,
+	--     color = "Reds"
+	-- }
 	fill = function(self, data)
 		verifyNamedTable(data)
 
 		mandatoryTableArgument(data, "attribute", "string")
 		mandatoryTableArgument(data, "strategy", "string")
 		optionalTableArgument(data, "dummy", "number")
-		defaultTableValue(data, "maximum", math.huge)
+
+		verifyUnnecessaryArguments(data, {"attribute", "dummy", "copy", "max", "strategy"})
 
 		if type(data.copy) == "string" then
 			data.copy = {data.copy}
@@ -375,21 +399,27 @@ GPM_ = {
 		optionalTableArgument(data, "copy", "table")
 
 		local attribute = data.attribute
-		local maximum = data.maximum
 
 		switch(data, "strategy"):caseof{
 			count = function()
+				defaultTableValue(data, "max", math.huge)
+				local max = data.max
+
+				verifyUnnecessaryArguments(data, {"attribute", "max", "strategy"})
+
 				forEachCell(self.origin, function(cell)
 					local value = getn(self.neighbor[cell:getId()])
 
-					if value > maximum then
-						value = maximum
+					if value > max then
+						value = max
 					end
 
 					cell[attribute] = value
 				end)
 			end,
 			minimum = function()
+				verifyUnnecessaryArguments(data, {"attribute", "dummy", "copy", "strategy"})
+
 				forEachCell(self.origin, function(cell)
 					local value = math.huge
 					local mid
@@ -408,8 +438,8 @@ GPM_ = {
 					if mid ~= nil and data.copy then
 						local neigh = self.destination:get(mid)
 
-						forEachElement(data.copy, function(_, value)
-							cell[value] = neigh[value]
+						forEachElement(data.copy, function(_, mvalue)
+							cell[mvalue] = neigh[mvalue]
 						end)
 					end
 
@@ -471,10 +501,6 @@ GPM_ = {
 
 		if type(file) ~= "File" then
 			incompatibleTypeError("file", "string or File", file)
-		end
-
-		if self.output.distance == nil or self.output.id == nil then
-			mandatoryArgumentError("output.distance and output.id")
 		end
 
 		local extension = file:extension()
@@ -573,14 +599,6 @@ function GPM(data)
 	optionalTableArgument(data, "distance", "number")
 	optionalTableArgument(data, "strategy", "string")
 
-	if data.output then
-		forEachElement(data.output, function(output)
-			if output ~= "id" and output ~= "distance" then
-				incompatibleValueError("output", "id or distance", output)
-			end
-		end)
-	end
-
 	local function checkDestination()
 		mandatoryTableArgument(data, "destination", "CellularSpace")
 
@@ -652,10 +670,7 @@ function GPM(data)
 
 				checkDestination()
 
-				local cell = data.destination:sample()
-
 				buildDistanceRelation(data)
-				return
 			end
 		end,
 		area = function()
