@@ -520,7 +520,7 @@ GPM_ = {
 				forEachCell(self.origin, function(cell)
 					local sum = 0
 
-					forEachElement(self.neighbor[cell:getId()], function(id, dist)
+					forEachElement(self.neighbor[cell:getId()], function(_, dist)
 						sum = sum + dist
 					end)
 
@@ -532,9 +532,9 @@ GPM_ = {
 
 				forEachCell(self.origin, function(cell)
 					local sum = 0
-					local neighbor = self.neighbor[cell:getId()] 
+					local neighbor = self.neighbor[cell:getId()]
 
-					forEachElement(neighbor, function(id, dist)
+					forEachElement(neighbor, function(_, dist)
 						sum = sum + dist
 					end)
 

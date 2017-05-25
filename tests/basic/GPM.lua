@@ -163,7 +163,7 @@ strategy     string [border]
 			unitTest:assertEquals(cell.LOCALIDADE, cell.loc)
 		end)
 
-		local map1 = Map{
+		map1 = Map{
 			target = gpm.origin,
 			select = "dist",
 			slices = 8,
@@ -171,7 +171,7 @@ strategy     string [border]
 		}
 		unitTest:assertSnapshot(map1, "polygon_farms_mdistance.bmp")
 
-		local map2 = Map{
+		map2 = Map{
 			target = gpm.origin,
 			select = "LOCALIDADE",
 			value = {"Palhauzinho", "Santa Rosa", "Garrafao", "Mojui dos Campos"},
