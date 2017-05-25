@@ -343,9 +343,15 @@ GPM_ = {
 	-- @arg data.strategy The strategy used to create attributes. See the table below.
 	-- @tabular strategy
 	-- Strategy & Description & Mandatory Arguments & Optional Arguments \
-	-- "count" & Count the number of neighbors. & attribute & copy \
-	-- "minimum" & Use the minimum value among the available neighbors. & attribute & max
-	-- @arg data.max The maximum value.
+	-- "all" & Create one attribute for each available neighbor. & attribute & dummy \
+	-- "average" & Average of all the weights into one single attribute. Missing values are set to zero. & attribute & \
+	-- "count" & Count the number of neighbors. & attribute & max \
+	-- "maximum" & Use the maximum value among the available neighbors. & attribute & dummy, copy \
+	-- "minimum" & Use the minimum value among the available neighbors. & attribute & dummy, copy \
+	-- "sum" & Sum all the weights into one single attribute. Missing values are set to zero. & attribute & \
+	-- @arg data.max The maximum value. The default is math.huge.
+	-- @arg data.dummy Value of the output used when there is no input value available. The
+	-- default value is math.huge for "minimum" and -math.huge for "maximum".
 	-- @arg data.copy An attribute (or a set of attributes) to be copied from the destination
 	-- to the origin, given the selected neighbor. It can be a string or a vector of strings
 	-- with the attribute names.
@@ -388,7 +394,6 @@ GPM_ = {
 
 		mandatoryTableArgument(data, "attribute", "string")
 		mandatoryTableArgument(data, "strategy", "string")
-		optionalTableArgument(data, "dummy", "number")
 
 		verifyUnnecessaryArguments(data, {"attribute", "dummy", "copy", "max", "strategy"})
 
@@ -401,6 +406,28 @@ GPM_ = {
 		local attribute = data.attribute
 
 		switch(data, "strategy"):caseof{
+			all = function()
+				verifyUnnecessaryArguments(data, {"attribute", "dummy", "strategy"})
+				local tattr = {}
+
+				forEachCell(self.origin, function(cell)
+					forEachElement(self.neighbor[cell:getId()], function(id, dist)
+						if not tattr[id] then
+							tattr[id] = attribute.."_"..id
+						end
+
+						cell[tattr[id]] = dist
+					end)
+				end)
+
+				forEachCell(self.origin, function(cell)
+					forEachElement(tattr, function(_, attr)
+						if not cell[attr] then
+							cell[attr] = data.dummy
+						end
+					end)
+				end)
+			end,
 			count = function()
 				defaultTableValue(data, "max", math.huge)
 				local max = data.max
@@ -418,6 +445,8 @@ GPM_ = {
 				end)
 			end,
 			minimum = function()
+				defaultTableValue(data, "dummy", math.huge)
+
 				verifyUnnecessaryArguments(data, {"attribute", "dummy", "copy", "strategy"})
 
 				forEachCell(self.origin, function(cell)
@@ -438,14 +467,82 @@ GPM_ = {
 					if mid ~= nil and data.copy then
 						local neigh = self.destination:get(mid)
 
-						forEachElement(data.copy, function(_, mvalue)
-							cell[mvalue] = neigh[mvalue]
+						forEachElement(data.copy, function(idx, mvalue)
+							if type(idx) == "number" then
+								cell[mvalue] = neigh[mvalue]
+							else
+								cell[idx] = neigh[mvalue]
+							end
 						end)
 					end
 
 					cell[attribute] = value
 				end)
+			end,
+			maximum = function()
+				defaultTableValue(data, "dummy", -math.huge)
+
+				verifyUnnecessaryArguments(data, {"attribute", "dummy", "copy", "strategy"})
+
+				forEachCell(self.origin, function(cell)
+					local value = -math.huge
+					local mid
+
+					forEachElement(self.neighbor[cell:getId()], function(id, dist)
+						if dist > value then
+							value = dist
+							mid = id
+						end
+					end)
+
+					if value == -math.huge then
+						value = data.dummy
+					end
+
+					if mid ~= nil and data.copy then
+						local neigh = self.destination:get(mid)
+
+						forEachElement(data.copy, function(idx, mvalue)
+							if type(idx) == "number" then
+								cell[mvalue] = neigh[mvalue]
+							else
+								cell[idx] = neigh[mvalue]
+							end
+						end)
+					end
+
+					cell[attribute] = value
+				end)
+			end,
+			sum = function()
+				verifyUnnecessaryArguments(data, {"attribute", "strategy"})
+
+				forEachCell(self.origin, function(cell)
+					local sum = 0
+
+					forEachElement(self.neighbor[cell:getId()], function(id, dist)
+						sum = sum + dist
+					end)
+
+					cell[attribute] = sum
+				end)
+			end,
+			average = function()
+				verifyUnnecessaryArguments(data, {"attribute", "strategy"})
+
+				forEachCell(self.origin, function(cell)
+					local sum = 0
+					local neighbor = self.neighbor[cell:getId()] 
+
+					forEachElement(neighbor, function(id, dist)
+						sum = sum + dist
+					end)
+
+					cell[attribute] = sum / getn(neighbor)
+				end)
 			end
+
+
 		}
 	end,
 	--- Save the neighborhood into a file.
@@ -487,10 +584,6 @@ GPM_ = {
 	--     network = network,
 	--     origin = cells,
 	--     progress = false,
-	--     output = {
-	--         id = "id1",
-	--         distance = "distance"
-	--     }
 	-- }
 	--
 	-- gpm:save("cells.gpm")
@@ -503,16 +596,13 @@ GPM_ = {
 			incompatibleTypeError("file", "string or File", file)
 		end
 
-		local extension = file:extension()
+		local data = {extension = file:extension()}
 
-		-- TODO: switch(extension)
-		if extension == "gpm" then
-			saveGPM(self, file)
-		elseif extension == "gwt" then
-			saveGWT(self, file)
-		elseif extension == "gal" then
-			saveGAL(self, file)
-		end
+		switch(data, "extension"):caseof{
+			gpm = function() saveGPM(self, file) end,
+			gwt = function() saveGWT(self, file) end,
+			gal = function() saveGAL(self, file) end
+		}
 	end
 }
 

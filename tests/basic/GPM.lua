@@ -66,6 +66,38 @@ strategy     string [border]
 ]])
 	end,
 	fill = function(unitTest)
+		local partOfBrazil = CellularSpace{
+			file = filePath("partofbrazil.shp", "gpm"),
+			geometry = true
+		}
+
+		local gpm = GPM{
+			origin = partOfBrazil,
+			strategy = "border",
+			progress = false
+		}
+
+		gpm:fill{
+			attribute = "msum",
+			strategy = "sum"
+		}
+
+		gpm:fill{
+			attribute = "maverage",
+			strategy = "average"
+		}
+
+		local msum = 0
+		local maverage = 0
+
+		forEachCell(partOfBrazil, function(cell)
+			msum = msum + cell.msum
+			maverage = maverage + cell.maverage
+		end)
+
+		unitTest:assertEquals(msum, 2.61, 0.01)
+		unitTest:assertEquals(maverage, 1.18, 0.01)
+
 		local farms_cells = CellularSpace{
 			file = filePath("test/farms_cells.shp", "gpm"),
 			geometry = true
@@ -76,7 +108,7 @@ strategy     string [border]
 			geometry = true
 		}
 
-		local gpm = GPM{
+		gpm = GPM{
 			origin = farms_cells,
 			network = network,
 			distance = 500,
@@ -90,9 +122,14 @@ strategy     string [border]
 		}
 
 		gpm:fill{
-			strategy = "count",
-			attribute = "quant"
+			strategy = "minimum",
+			attribute = "dist2",
+			copy = {loc = "LOCALIDADE"}
 		}
+
+		forEachCell(farms_cells, function(cell)
+			unitTest:assertEquals(cell.LOCALIDADE, cell.loc)
+		end)
 
 		local map1 = Map{
 			target = gpm.origin,
@@ -109,6 +146,43 @@ strategy     string [border]
 			color = "Set1"
 		}
 		unitTest:assertSnapshot(map2, "polygon_farms_nearest.bmp")
+
+		gpm:fill{
+			strategy = "maximum",
+			attribute = "dist",
+			copy = "LOCALIDADE"
+		}
+
+		gpm:fill{
+			strategy = "maximum",
+			attribute = "dist",
+			copy = {loc = "LOCALIDADE"}
+		}
+
+		forEachCell(farms_cells, function(cell)
+			unitTest:assertEquals(cell.LOCALIDADE, cell.loc)
+		end)
+
+		local map1 = Map{
+			target = gpm.origin,
+			select = "dist",
+			slices = 8,
+			color = "YlOrBr"
+		}
+		unitTest:assertSnapshot(map1, "polygon_farms_mdistance.bmp")
+
+		local map2 = Map{
+			target = gpm.origin,
+			select = "LOCALIDADE",
+			value = {"Palhauzinho", "Santa Rosa", "Garrafao", "Mojui dos Campos"},
+			color = "Set1"
+		}
+		unitTest:assertSnapshot(map2, "polygon_farms_furthest.bmp")
+
+		gpm:fill{
+			strategy = "count",
+			attribute = "quant"
+		}
 
 		local map3 = Map{
 			target = gpm.origin,
@@ -193,6 +267,25 @@ strategy     string [border]
 			color = "Set1"
 		}
 		unitTest:assertSnapshot(map2, "gpm_distance_all_2.png")
+
+		gpm:fill{
+			strategy = "all",
+			attribute = "dist"
+		}
+
+		for i = 0, 3 do
+			map = Map{
+				target = cells,
+				select = "dist_"..i,
+				slices = 8,
+				min = 0,
+				max = 10000,
+				color = "YlOrRd",
+				invert = true
+			}
+
+			unitTest:assertSnapshot(map, "gpm_distance_all_dist_"..i..".png")
+		end
 
 		gpm = GPM{
 			origin = cells,

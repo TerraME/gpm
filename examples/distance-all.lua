@@ -44,3 +44,20 @@ map2 = Map{
 	color = "Set1"
 }
 
+gpm:fill{
+	strategy = "all",
+	attribute = "dist"
+}
+
+for i = 0, 3 do
+	Map{
+		target = cells,
+		select = "dist_"..i,
+		slices = 8,
+		min = 0,
+		max = 10000,
+		color = "YlOrRd",
+		invert = true
+	}
+end
+

@@ -48,7 +48,9 @@ gpm:fill{
 map1 = Map{
 	target = cells,
 	select = "dist",
-	slices = 8,
+	slices = 10,
+	min = 0,
+	max = 14000,
 	color = "YlOrBr"
 }
 
@@ -61,4 +63,20 @@ map2 = Map{
 
 -- Uncomment the line below if you want to save the output into a file
 -- gpm:save("gpm.gpm")
+
+gpm:fill{
+	strategy = "all",
+	attribute = "dist"
+}
+
+for i = 0, 3 do
+	Map{
+		target = cells,
+		select = "dist_"..i,
+		slices = 10,
+		min = 0,
+		max = 14000,
+		color = "YlOrRd"
+	}
+end
 
