@@ -1,4 +1,4 @@
-version = "0.3.6"
+version = "0.4"
 package = "gpm"
 title = "Generalized Proximity Matrix"
 content = [[A package to create neighborhood relations or fill
