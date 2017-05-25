@@ -95,7 +95,8 @@ return {
 
 		roads = CellularSpace{
 			file = filePath("error/".."roads-invalid.shp", "gpm"),
-			geometry = true
+			geometry = true,
+			missing = 0
 		}
 
 		communities = CellularSpace{
@@ -126,6 +127,7 @@ return {
 
 		roads = CellularSpace{
 			file = filePath("error/".."roads_overlay_points.shp", "gpm"),
+			missing = 0,
 			geometry = true
 		}
 
