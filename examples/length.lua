@@ -2,10 +2,8 @@
 -- A Cell is connected to a line if there is some intersection between them.
 -- @image length.bmp
 
--- import gpm
 import("gpm")
 
--- create the CellularSpace
 local roads = CellularSpace{
 	file = filePath("roads.shp", "gpm"),
 	geometry = true
@@ -16,7 +14,6 @@ local cells = CellularSpace{
 	geometry = true
 }
 
--- creating a GPM
 gpm = GPM{
 	origin = cells,
 	strategy = "length",

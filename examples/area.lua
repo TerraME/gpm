@@ -4,20 +4,20 @@
 
 import("gpm")
 
-farms = CellularSpace{
+cells = CellularSpace{
 	file = filePath("cells.shp", "gpm"),
 	geometry = true
 }
 
-farmsPolygon = CellularSpace{
+farms = CellularSpace{
 	file = filePath("farms.shp", "gpm"),
 	geometry = true
 }
 
 gpm = GPM{
-	origin = farms,
+	origin = cells,
 	strategy = "area",
-	destination = farmsPolygon
+	destination = farms
 }
 
 gpm:fill{
