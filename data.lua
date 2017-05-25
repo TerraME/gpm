@@ -15,12 +15,6 @@ data{
 }
 
 data{
-	file = "censopop2000_bd.shp",
-	summary = "A shapefile describing the population control.",
-	source = "TerraME team"
-}
-
-data{
 	file = "communities.shp",
 	attributes = {
 		LOCALIDADE = "Name of the community.",
