@@ -25,11 +25,6 @@ local network = Network{
 return {
 	GPM = function(unitTest)
 		local farms = CellularSpace{
-			file = filePath("test/farms_cells.shp", "gpm"),
-			geometry = true
-		}
-
-		farms = CellularSpace{
 			file = filePath("farms.shp", "gpm")
 		}
 
@@ -293,31 +288,47 @@ return {
 				attribute = "distance",
 			}
 		end
-		unitTest:assertError(error_func, "Attribute 'distance' already exists in the 'origin'.")
+		unitTest:assertError(error_func, "Attribute 'distance' already exists in 'origin'.")
 
-		local error_func = function()
+		error_func = function()
 			gpm:fill{
 				strategy = "minimum",
 				attribute = "dist",
 				copy = {distance = "name"}
 			}
 		end
-		unitTest:assertError(error_func, "Attribute 'distance' already exists in the 'origin'.")
+		unitTest:assertError(error_func, "Attribute 'distance' already exists in 'origin'.")
+
+		error_func = function()
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "dist",
+				copy = {dist = "name2"}
+			}
+		end
+		unitTest:assertError(error_func, "Attribute 'name2' to be copied does not exist in 'destination'.")
+
+		error_func = function()
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "dist",
+				copy = "name2"
+			}
+		end
+		unitTest:assertError(error_func, "Attribute 'name2' to be copied does not exist in 'destination'.")
 
 		forEachCell(gpm.origin, function(cell)
 			cell.name = "abc"
 		end)
 
-		local error_func = function()
+		error_func = function()
 			gpm:fill{
 				strategy = "minimum",
 				attribute = "dist",
 				copy = "name"
 			}
 		end
-		unitTest:assertError(error_func, "Attribute 'name' already exists in the 'origin'.")
-
-
+		unitTest:assertError(error_func, "Attribute 'name' already exists in 'origin'.")
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{

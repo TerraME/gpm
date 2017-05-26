@@ -407,23 +407,22 @@ GPM_ = {
 		local attribute = data.attribute
 
 		if data.strategy ~= "all" and self.origin.cells[1][data.attribute] ~= nil then
-			customWarning("Attribute '"..data.attribute.."' already exists in the 'origin'.")
+			customWarning("Attribute '"..data.attribute.."' already exists in 'origin'.")
 		end
 
 		if data.copy then
 			forEachOrderedElement(data.copy, function(idx, name)
 				if type(idx) == "number" then
 					if self.origin.cells[1][name] ~= nil then
-						customWarning("Attribute '"..name.."' already exists in the 'origin'.")
+						customWarning("Attribute '"..name.."' already exists in 'origin'.")
 					end
 				elseif self.origin.cells[1][idx] ~= nil then
-					customWarning("Attribute '"..idx.."' already exists in the 'origin'.")
+					customWarning("Attribute '"..idx.."' already exists in 'origin'.")
 				end
 
-				if not self.destination.cells[1][idx] then
-
+				if self.destination.cells[1][name] == nil then
+					customWarning("Attribute '"..name.."' to be copied does not exist in 'destination'.")
 				end
-
 			end)
 		end
 
