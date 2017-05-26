@@ -66,13 +66,13 @@ map2 = Map{
 
 gpm:fill{
 	strategy = "all",
-	attribute = "dist"
+	attribute = "d"
 }
 
 for i = 0, 3 do
 	Map{
 		target = cells,
-		select = "dist_"..i,
+		select = "d_"..i,
 		slices = 10,
 		min = 0,
 		max = 14000,

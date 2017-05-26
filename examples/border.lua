@@ -2,10 +2,8 @@
 -- is based on the proportion beteween the intersection area and
 -- the perimeter of the state.
 
--- import gpm
 import("gpm")
 
--- create the CellularSpace
 local states = CellularSpace{
 	file = filePath("partofbrazil.shp", "gpm"),
 	-- if we use brazilstates, from base package
@@ -15,7 +13,6 @@ local states = CellularSpace{
 	geometry = true
 }
 
--- creating a GPM
 local gpm = GPM{
 	origin = states,
 	strategy = "border",

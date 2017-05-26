@@ -147,25 +147,29 @@ strategy     string [border]
 		}
 		unitTest:assertSnapshot(map2, "polygon_farms_nearest.bmp")
 
+		forEachCell(gpm.origin, function(cell)
+			cell.LOCALIDADE = nil
+		end)
+
 		gpm:fill{
 			strategy = "maximum",
-			attribute = "dist",
+			attribute = "dist3",
 			copy = "LOCALIDADE"
 		}
 
 		gpm:fill{
 			strategy = "maximum",
-			attribute = "dist",
-			copy = {loc = "LOCALIDADE"}
+			attribute = "mdist",
+			copy = {loc2 = "LOCALIDADE"}
 		}
 
 		forEachCell(farms_cells, function(cell)
-			unitTest:assertEquals(cell.LOCALIDADE, cell.loc)
+			unitTest:assertEquals(cell.LOCALIDADE, cell.loc2)
 		end)
 
 		map1 = Map{
 			target = gpm.origin,
-			select = "dist",
+			select = "dist3",
 			slices = 8,
 			color = "YlOrBr"
 		}
@@ -173,7 +177,7 @@ strategy     string [border]
 
 		map2 = Map{
 			target = gpm.origin,
-			select = "LOCALIDADE",
+			select = "loc2",
 			value = {"Palhauzinho", "Santa Rosa", "Garrafao", "Mojui dos Campos"},
 			color = "Set1"
 		}
@@ -245,13 +249,13 @@ strategy     string [border]
 
 		gpm:fill{
 			strategy = "minimum",
-			attribute = "distance",
+			attribute = "dist",
 			copy = "LOCALIDADE"
 		}
 
 		map1 = Map{
 			target = cells,
-			select = "distance",
+			select = "dist",
 			slices = 8,
 			min = 0,
 			max = 7000,
@@ -296,27 +300,27 @@ strategy     string [border]
 
 		gpm:fill{
 			strategy = "count",
-			attribute = "quantity"
+			attribute = "quant2"
 		}
 
 		gpm:fill{
 			strategy = "minimum",
-			attribute = "distance",
+			attribute = "dist2",
 			dummy = 7000,
-			copy = "LOCALIDADE"
+			copy = {loc3 = "LOCALIDADE"}
 		}
 
 		-- as there is a limit of 4000m, those cells that are far
 		-- from this distance will not have attribute LOCALIDADE
 		forEachCell(cells, function(cell)
-			if not cell.LOCALIDADE then
-				cell.LOCALIDADE = "<none>"
+			if not cell.loc3 then
+				cell.loc3 = "<none>"
 			end
 		end)
 
 		map1 = Map{
 			target = cells,
-			select = "quantity",
+			select = "quant2",
 			min = 0,
 			max = 5,
 			slices = 6,
@@ -327,7 +331,7 @@ strategy     string [border]
 
 		map2 = Map{
 			target = cells,
-			select = "distance",
+			select = "dist2",
 			slices = 8,
 			min = 0,
 			max = 7000,
@@ -339,7 +343,7 @@ strategy     string [border]
 
 		map3 = Map{
 			target = cells,
-			select = "LOCALIDADE",
+			select = "loc3",
 			value = {"Palhauzinho", "Santa Rosa", "Garrafao", "Mojui dos Campos", "<none>"},
 			color = "Set1"
 		}
@@ -360,13 +364,13 @@ strategy     string [border]
 
 		gpm:fill{
 			strategy = "count",
-			attribute = "quantity",
+			attribute = "quant3",
 			max = 5
 		}
 
 		map = Map{
 			target = gpm.origin,
-			select = "quantity",
+			select = "quant3",
 			min = 0,
 			max = 5,
 			slices = 6,

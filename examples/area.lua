@@ -27,7 +27,7 @@ gpm:fill{
 }
 
 map = Map{
-	target = gpm.origin,
+	target = cells,
 	select = "quantity",
 	min = 0,
 	max = 5,
@@ -42,12 +42,12 @@ gpm:fill{
 }
 
 -- to paint them with different colores, we use the rest of division by 9
-forEachCell(gpm.origin, function(cell)
+forEachCell(cells, function(cell)
 	cell.farm = tonumber(cell.farm) % 9
 end)
 
 map = Map{
-	target = gpm.origin,
+	target = cells,
 	select = "farm",
 	min = 0,
 	max = 8,
@@ -55,4 +55,3 @@ map = Map{
 	color = "Set1"
 }
 
---map:save("cells.png")

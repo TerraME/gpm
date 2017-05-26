@@ -353,8 +353,9 @@ GPM_ = {
 	-- @arg data.dummy Value of the output used when there is no input value available. The
 	-- default value is math.huge for "minimum" and -math.huge for "maximum".
 	-- @arg data.copy An attribute (or a set of attributes) to be copied from the destination
-	-- to the origin, given the selected neighbor. It can be a string or a vector of strings
-	-- with the attribute names.
+	-- to the origin, given the selected neighbor. It can be a string, a vector of strings
+	-- with the attribute names, or a named table, where the values represent the attribute names from
+	-- the destination and the indexes are the attribute names to be created in the origin.
 	-- @usage
 	-- import("gpm")
 	--
@@ -405,6 +406,27 @@ GPM_ = {
 
 		local attribute = data.attribute
 
+		if data.strategy ~= "all" and self.origin.cells[1][data.attribute] ~= nil then
+			customWarning("Attribute '"..data.attribute.."' already exists in the 'origin'.")
+		end
+
+		if data.copy then
+			forEachOrderedElement(data.copy, function(idx, name)
+				if type(idx) == "number" then
+					if self.origin.cells[1][name] ~= nil then
+						customWarning("Attribute '"..name.."' already exists in the 'origin'.")
+					end
+				elseif self.origin.cells[1][idx] ~= nil then
+					customWarning("Attribute '"..idx.."' already exists in the 'origin'.")
+				end
+
+				if not self.destination.cells[1][idx] then
+
+				end
+
+			end)
+		end
+
 		switch(data, "strategy"):caseof{
 			all = function()
 				verifyUnnecessaryArguments(data, {"attribute", "dummy", "strategy"})
@@ -422,8 +444,8 @@ GPM_ = {
 
 				forEachCell(self.origin, function(cell)
 					forEachElement(tattr, function(_, attr)
-						if not cell[attr] then
-							cell[attr] = data.dummy
+						if cell[attr] == nil then
+							cell[attr] = data.dummy -- SKIP
 						end
 					end)
 				end)
@@ -496,7 +518,7 @@ GPM_ = {
 					end)
 
 					if value == -math.huge then
-						value = data.dummy
+						value = data.dummy -- SKIP
 					end
 
 					if mid ~= nil and data.copy then

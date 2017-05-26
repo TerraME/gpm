@@ -26,7 +26,6 @@ gpm:fill{
 	max = 1
 }
 
--- creating Map with values from GPM
 map = Map{
 	target = cells,
 	select = "quantity",

@@ -23,13 +23,13 @@ gpm = GPM{
 
 gpm:fill{
 	strategy = "minimum",
-	attribute = "distance",
+	attribute = "dist",
 	copy = "LOCALIDADE"
 }
 
 map1 = Map{
 	target = cells,
-	select = "distance",
+	select = "dist",
 	slices = 8,
 	min = 0,
 	max = 7000,
@@ -46,13 +46,13 @@ map2 = Map{
 
 gpm:fill{
 	strategy = "all",
-	attribute = "dist"
+	attribute = "d"
 }
 
 for i = 0, 3 do
 	Map{
 		target = cells,
-		select = "dist_"..i,
+		select = "d_"..i,
 		slices = 8,
 		min = 0,
 		max = 10000,

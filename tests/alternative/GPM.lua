@@ -292,6 +292,50 @@ return {
 		end
 		unitTest:assertError(error_func, "Argument 'destination' should be composed by 'MultiLineString', got 'MultiPoint'.")
 	end,
+	fill = function(unitTest)
+		local partOfBrazil = CellularSpace{
+			file = filePath("partofbrazil.shp", "gpm"),
+			geometry = true
+		}
+
+		local gpm = GPM{
+			origin = partOfBrazil,
+			strategy = "border",
+			progress = false
+		}
+
+		local error_func = function()
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "distance",
+			}
+		end
+		unitTest:assertError(error_func, "Attribute 'distance' already exists in the 'origin'.")
+
+		local error_func = function()
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "dist",
+				copy = {distance = "name"}
+			}
+		end
+		unitTest:assertError(error_func, "Attribute 'distance' already exists in the 'origin'.")
+
+		forEachCell(gpm.origin, function(cell)
+			cell.name = "abc"
+		end)
+
+		local error_func = function()
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "dist",
+				copy = "name"
+			}
+		end
+		unitTest:assertError(error_func, "Attribute 'name' already exists in the 'origin'.")
+
+
+	end,
 	save = function(unitTest)
 		local farms = CellularSpace{
 			file = filePath("test/farms_cells.shp", "gpm"),

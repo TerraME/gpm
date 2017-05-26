@@ -28,7 +28,7 @@ gpm:fill{
 
 gpm:fill{
 	strategy = "minimum",
-	attribute = "distance",
+	attribute = "dist",
 	dummy = 7000,
 	copy = "LOCALIDADE"
 }
@@ -52,7 +52,7 @@ map1 = Map{
 
 map2 = Map{
 	target = cells,
-	select = "distance",
+	select = "dist",
 	slices = 8,
 	min = 0,
 	max = 7000,
