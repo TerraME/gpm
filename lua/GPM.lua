@@ -343,14 +343,14 @@ GPM_ = {
 	-- @arg data.strategy The strategy used to create attributes. See the table below.
 	-- @tabular strategy
 	-- Strategy & Description & Mandatory Arguments & Optional Arguments \
-	-- "all" & Create one attribute for each available neighbor. & attribute & dummy \
+	-- "all" & Create one attribute for each available neighbor. & attribute & missing \
 	-- "average" & Average of all the weights into one single attribute. Missing values are set to zero. & attribute & \
 	-- "count" & Count the number of neighbors. & attribute & max \
-	-- "maximum" & Use the maximum value among the available neighbors. & attribute & dummy, copy \
-	-- "minimum" & Use the minimum value among the available neighbors. & attribute & dummy, copy \
+	-- "maximum" & Use the maximum value among the available neighbors. & attribute & missing, copy \
+	-- "minimum" & Use the minimum value among the available neighbors. & attribute & missing, copy \
 	-- "sum" & Sum all the weights into one single attribute. Missing values are set to zero. & attribute & \
 	-- @arg data.max The maximum value. The default is math.huge.
-	-- @arg data.dummy Value of the output used when there is no input value available. The
+	-- @arg data.missing Value of the output used when there is no input value available. The
 	-- default value is math.huge for "minimum" and -math.huge for "maximum".
 	-- @arg data.copy An attribute (or a set of attributes) to be copied from the destination
 	-- to the origin, given the selected neighbor. It can be a string, a vector of strings
@@ -396,7 +396,7 @@ GPM_ = {
 		mandatoryTableArgument(data, "attribute", "string")
 		mandatoryTableArgument(data, "strategy", "string")
 
-		verifyUnnecessaryArguments(data, {"attribute", "dummy", "copy", "max", "strategy"})
+		verifyUnnecessaryArguments(data, {"attribute", "missing", "copy", "max", "strategy"})
 
 		if type(data.copy) == "string" then
 			data.copy = {data.copy}
@@ -429,7 +429,7 @@ GPM_ = {
 
 		switch(data, "strategy"):caseof{
 			all = function()
-				verifyUnnecessaryArguments(data, {"attribute", "dummy", "strategy"})
+				verifyUnnecessaryArguments(data, {"attribute", "missing", "strategy"})
 				local tattr = {}
 
 				forEachCell(self.origin, function(cell)
@@ -445,7 +445,7 @@ GPM_ = {
 				forEachCell(self.origin, function(cell)
 					forEachElement(tattr, function(_, attr)
 						if cell[attr] == nil then
-							cell[attr] = data.dummy -- SKIP
+							cell[attr] = data.missing -- SKIP
 						end
 					end)
 				end)
@@ -467,9 +467,9 @@ GPM_ = {
 				end)
 			end,
 			minimum = function()
-				defaultTableValue(data, "dummy", math.huge)
+				defaultTableValue(data, "missing", math.huge)
 
-				verifyUnnecessaryArguments(data, {"attribute", "dummy", "copy", "strategy"})
+				verifyUnnecessaryArguments(data, {"attribute", "missing", "copy", "strategy"})
 
 				forEachCell(self.origin, function(cell)
 					local value = math.huge
@@ -483,7 +483,7 @@ GPM_ = {
 					end)
 
 					if value == math.huge then
-						value = data.dummy
+						value = data.missing
 					end
 
 					if mid ~= nil and data.copy then
@@ -502,9 +502,9 @@ GPM_ = {
 				end)
 			end,
 			maximum = function()
-				defaultTableValue(data, "dummy", -math.huge)
+				defaultTableValue(data, "missing", -math.huge)
 
-				verifyUnnecessaryArguments(data, {"attribute", "dummy", "copy", "strategy"})
+				verifyUnnecessaryArguments(data, {"attribute", "missing", "copy", "strategy"})
 
 				forEachCell(self.origin, function(cell)
 					local value = -math.huge
@@ -518,7 +518,7 @@ GPM_ = {
 					end)
 
 					if value == -math.huge then
-						value = data.dummy -- SKIP
+						value = data.missing -- SKIP
 					end
 
 					if mid ~= nil and data.copy then

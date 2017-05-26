@@ -306,7 +306,7 @@ strategy     string [border]
 		gpm:fill{
 			strategy = "minimum",
 			attribute = "dist2",
-			dummy = 7000,
+			missing = 7000,
 			copy = {loc3 = "LOCALIDADE"}
 		}
 

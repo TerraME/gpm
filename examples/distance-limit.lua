@@ -29,7 +29,7 @@ gpm:fill{
 gpm:fill{
 	strategy = "minimum",
 	attribute = "dist",
-	dummy = 7000,
+	missing = 7000,
 	copy = "LOCALIDADE"
 }
 
