@@ -29,21 +29,13 @@ return {
 			geometry = true
 		}
 
-		local error_func = function()
-			GPM{
-				network = 2,
-				origin = farms
-			}
-		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("network", "Network", 2))
-
 		farms = CellularSpace{
 			file = filePath("farms.shp", "gpm")
 		}
 
-		error_func = function()
+		local error_func = function()
 			GPM{
-				network = network,
+				destination = network,
 				origin = farms
 			}
 		end
@@ -56,20 +48,11 @@ return {
 
 		error_func = function()
 			GPM{
-				network = network,
+				destination = network,
 				origin = 2
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("origin", "CellularSpace", 2))
-
-		error_func = function()
-			GPM{
-				network = network,
-				origin = farms,
-				destination = farms
-			}
-		end
-		unitTest:assertError(error_func, "It is nos possible to use 'destination' and 'network' arguments together.")
 
 		error_func = function()
 			GPM{
@@ -343,7 +326,7 @@ return {
 		}
 
 		local gpm = GPM{
-			network = network,
+			destination = network,
 			origin = farms,
 			progress = false,
 		}

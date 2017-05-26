@@ -563,8 +563,6 @@ GPM_ = {
 					cell[attribute] = sum / getn(neighbor)
 				end)
 			end
-
-
 		}
 	end,
 	--- Save the neighborhood into a file.
@@ -603,7 +601,7 @@ GPM_ = {
 	-- }
 	--
 	-- gpm = GPM{
-	--     network = network,
+	--     destination = network,
 	--     origin = cells,
 	--     progress = false,
 	-- }
@@ -636,11 +634,8 @@ metaTableGPM_ = {
 --- Type to create a Generalised Proximity Matrix (GPM).
 -- It has several strategies that can use geometry as well as Area, Intersection, Distance and Network.
 -- @arg data.distance Distance around to end points (optional).
--- @arg data.destination base::CellularSpace (optional).
--- @arg data.network A Network, containing the destination points (optional).
+-- @arg data.destination base::CellularSpace or a Network, containing the destination points.
 -- @arg data.origin A base::CellularSpace with geometry representing entry points on the network.
--- @arg data.output Table to receive the output value of the GPM (optional).
--- This table gets two values ID and distance.
 -- @arg data.progress print as values are being processed default is true (optional).
 -- @arg data.strategy A string with the strategy to be used for creating the GPM (optional).
 -- See the table below.
@@ -654,7 +649,7 @@ metaTableGPM_ = {
 -- & destination, origin, strategy & progress \
 -- "distance" & Returns the cells within the distance to the nearest centroid,
 -- the cells will always be related to the nearest target. &
--- origin, output & distance, network, destination, progress \
+-- origin, destination & distance, progress \
 -- "length" & Create relations between objects whose intersection is a line.
 -- & strategy, origin, destination & progress \
 -- @usage import("gpm")
@@ -690,7 +685,7 @@ metaTableGPM_ = {
 -- }
 --
 -- gpm = GPM{
---     network = network,
+--     destination = network,
 --     origin = cells,
 --     progress = false,
 --     output = {
@@ -700,7 +695,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"network", "origin", "distance", "progress", "destination", "strategy"})
+	verifyUnnecessaryArguments(data, {"origin", "distance", "progress", "destination", "strategy"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if not data.origin.geometry then
@@ -720,7 +715,7 @@ function GPM(data)
 	end
 
 	if not data.strategy then
-		if data.distance or data.network then
+		if data.distance or type(data.destination) == "Network" then
 			data.strategy = "distance"
 		else
 			customError("Could not infer value for mandatory argument 'strategy'.")
@@ -769,12 +764,8 @@ function GPM(data)
 			buildLengthRelation(data)
 		end,
 		distance = function()
-			if data.destination and data.network then
-				customError("It is nos possible to use 'destination' and 'network' arguments together.")
-			end
-
-			if data.network then
-				mandatoryTableArgument(data, "network", "Network")
+			if type(data.destination) == "Network" then
+				data.network = data.destination
 				data.destination = data.network.target
 				data.neighbors = buildOpenGPM(data)
 			else

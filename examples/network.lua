@@ -35,7 +35,7 @@ network = Network{
 }
 
 gpm = GPM{
-	network = network,
+	destination = network,
 	origin = cells
 }
 

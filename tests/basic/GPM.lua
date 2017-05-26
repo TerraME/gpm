@@ -110,7 +110,7 @@ strategy     string [border]
 
 		gpm = GPM{
 			origin = farms_cells,
-			network = network,
+			destination = network,
 			distance = 500,
 			progress = false
 		}
@@ -386,7 +386,7 @@ strategy     string [border]
 		}
 
 		local gpm = GPM{
-			network = network,
+			destination = network,
 			origin = farms,
 			progress = false
 		}
