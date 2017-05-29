@@ -81,6 +81,8 @@ local function saveGAL(self, file)
 	forEachOrderedElement(self.neighbor, function(idx, neighbor)
 		if getn(neighbor) == 0 then return end
 
+		outputText = {}
+
 		table.insert(outputText, idx)
 		table.insert(outputText, getn(neighbor))
 		file:writeLine(table.concat(outputText, " "))
