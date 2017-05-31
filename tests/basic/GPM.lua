@@ -394,23 +394,30 @@ strategy     string [border]
 		gpm:save("farms.gpm")
 
 		farms:loadNeighborhood{
-			source = "farms.gpm"
+			file = "farms.gpm"
 		}
 
 		unitTest:assertFile("farms.gpm")
 
-		gpm:save("farms.gal")
-		unitTest:assertFile("farms.gal")
 
-		gpm:save("farms.gwt")
-		unitTest:assertFile("farms.gwt")
+		local states = CellularSpace{
+			file = filePath("partofbrazil.shp", "gpm"),
+			geometry = true
+		}
 
-		local fileGPM = File("farms.gpm")
-		local fileGAL = File("farms.gal")
-		local fileGWT = File("farms.gwt")
+		gpm = GPM{
+			origin = states,
+			strategy = "border",
+			progress = false
+		}
 
-		fileGPM:deleteIfExists()
-		fileGAL:deleteIfExists()
-		fileGWT:deleteIfExists()
+		gpm:save("states.gal")
+		unitTest:assertFile("states.gal")
+
+		gpm:save("states.gwt")
+		unitTest:assertFile("states.gwt")
+
+		gpm:save("states.gpm")
+		unitTest:assertFile("states.gpm")
 	end
 }

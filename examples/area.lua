@@ -41,7 +41,7 @@ gpm:fill{
 	copy = {farm = "id"}
 }
 
--- to paint them with different colores, we use the rest of division by 9
+-- to paint them with different colors, we use the rest of division by 9
 forEachCell(cells, function(cell)
 	cell.farm = tonumber(cell.farm) % 9
 end)

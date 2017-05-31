@@ -235,7 +235,7 @@ local function buildContainsRelation(self)
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
-		local geometryDestination = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometryOrigin = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
 
 		counterCode = counterCode + 1
 
@@ -245,11 +245,11 @@ local function buildContainsRelation(self)
 
 		neighbor[polygon:getId()] = {}
 
-		forEachCell(destination, function(point)
-			local geometryPoints = tl.castGeomToSubtype(point.geom:getGeometryN(0))
+		forEachCell(destination, function(dest)
+			local geometryDestination = tl.castGeomToSubtype(dest.geom:getGeometryN(0))
 
-			if geometryDestination:contains(geometryPoints) then
-				neighbor[polygon:getId()][point:getId()] = 1
+			if geometryOrigin:contains(geometryDestination) then
+				neighbor[polygon:getId()][dest:getId()] = 1
 			end
 		end)
 	end)
@@ -619,10 +619,16 @@ GPM_ = {
 
 		local data = {extension = file:extension()}
 
+		local singleLayer = function()
+			if self.origin ~= self.destination then
+				customError("File type '"..file:extension().."' does not support connections between two CellularSpaces. Use 'gpm' format instead.")
+			end
+		end
+
 		switch(data, "extension"):caseof{
-			gpm = function() saveGPM(self, file) end,
-			gwt = function() saveGWT(self, file) end,
-			gal = function() saveGAL(self, file) end
+			gpm = function()               saveGPM(self, file) end,
+			gwt = function() singleLayer() saveGWT(self, file) end,
+			gal = function() singleLayer() saveGAL(self, file) end
 		}
 	end
 }
