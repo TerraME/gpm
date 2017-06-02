@@ -348,5 +348,15 @@ return {
 			gpm:save(nameFile)
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("file", "string or File", nameFile))
+
+		error_func = function()
+			gpm:save("abc.gal")
+		end
+		unitTest:assertError(error_func, "File type 'gal' does not support connections between two CellularSpaces. Use 'gpm' format instead.")
+
+		error_func = function()
+			gpm:save("abc.gwt")
+		end
+		unitTest:assertError(error_func, "File type 'gwt' does not support connections between two CellularSpaces. Use 'gpm' format instead.")
 	end
 }
