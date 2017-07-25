@@ -47,14 +47,11 @@ local function buildOpenGPM(self)
 
 		local target
 		local i = 1
-		local idx = {}
 		forEachElement(network.distance.netpoint, function(point)
 			local distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distance
 
 			target = network.distance.netpoint[point].targetID
 			target = self.destination.cells[target]:getId()
-
-			idx[target] = true
 
 			local currentDistance = neighbors[originCell:getId()][target]
 

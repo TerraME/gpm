@@ -437,7 +437,7 @@ local function buildDistanceOutside(target, netpoint, self)
 		local point = netpoint[inTarget].point
 
 		if self.progress then
-			i = i + 1
+			i = i + 1 -- SKIP
 			print(table.concat{"Computing distance outside ", i, "/", getn(netpoint)}) -- SKIP
 		end
 
@@ -540,13 +540,7 @@ function Network(data)
 	mandatoryTableArgument(data, "weight", "function")
 	mandatoryTableArgument(data, "outside", "function")
 
-	if data.target.geometry then
-		local cell = data.target:sample()
-
-		--if not string.find(cell.geom:getGeometryType(), "Point") then
-		--	customError("Argument 'target' should be composed by points, got '"..cell.geom:getGeometryType().."'.")
-		--end
-	else
+	if not data.target.geometry then
 		customError("The CellularSpace in argument 'target' must be loaded with 'geometry = true'.")
 	end
 
