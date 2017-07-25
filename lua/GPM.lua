@@ -39,7 +39,7 @@ local function buildOpenGPM(self)
 		counterCode = counterCode + 1
 
 		if self.progress then
-			print("Processing origin "..counterCode.."/"..numberGeometry) -- SKIP
+			print(table.concat{"Processing origin ", counterCode, "/", numberGeometry}) -- SKIP
 		end
 
 		local centroid = geometry:getCentroid()
@@ -173,7 +173,7 @@ local function buildDistanceRelation(self)
 		counterCode = counterCode + 1
 
 		if self.progress then
-			print("Processing distance "..counterCode.."/"..numberGeometry) -- SKIP
+			print(table.concat{"Processing distance ", counterCode, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbors[originCell:getId()] = {}
@@ -204,7 +204,7 @@ local function buildBorderRelation(self)
 		counterCode = counterCode + 1
 
 		if self.progress then
-			print("Processing intersection "..counterCode.."/"..numberGeometry) -- SKIP
+			print(table.concat{"Processing intersection ", counterCode, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbors[polygon:getId()] = {}
@@ -244,7 +244,7 @@ local function buildContainsRelation(self)
 		counterCode = counterCode + 1
 
 		if self.progress then
-			print("Processing contains "..counterCode.."/"..numberGeometry) -- SKIP
+			print(table.concat{"Processing contains ", counterCode, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbor[polygon:getId()] = {}
@@ -274,7 +274,7 @@ local function buildAreaRelation(self)
 		counterCode = counterCode + 1
 
 		if self.progress then
-			print("Processing area "..counterCode.."/"..numberGeometry) -- SKIP
+			print(table.concat{"Processing area ", counterCode, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbor[polygon:getId()] = {}
@@ -314,7 +314,7 @@ local function buildLengthRelation(self)
 		counterCode = counterCode + 1
 
 		if self.progress then
-			print("Processing length "..counterCode.."/"..numberGeometry) -- SKIP
+			print(table.concat{"Processing length ", counterCode, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbor[polygon:getId()] = {}

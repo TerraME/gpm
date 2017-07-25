@@ -400,7 +400,7 @@ local function buildDistanceWeight(target, netpoint, self)
 		local targetLine = target[targetLines]
 
 		if self.progress then
-			print("Reducing distances "..targetLines.."/"..#target) --SKIP
+			print(table.concat{"Reducing distances ", targetLines, "/", #target}) -- SKIP
 		end
 
 		forEachElement(targetLine.insidePoint, function(inTarget)
@@ -431,8 +431,15 @@ local function buildDistanceWeight(target, netpoint, self)
 end
 
 local function buildDistanceOutside(target, netpoint, self)
+	local i = 0
+
 	forEachElement(netpoint, function(inTarget)
 		local point = netpoint[inTarget].point
+
+		if self.progress then
+			i = i + 1
+			print(table.concat{"Computing distance outside ", i, "/", getn(netpoint)}) -- SKIP
+		end
 
 		forEachElement(target, function(targetLines)
 			local targetLine = target[targetLines]
@@ -536,9 +543,9 @@ function Network(data)
 	if data.target.geometry then
 		local cell = data.target:sample()
 
-		if not string.find(cell.geom:getGeometryType(), "Point") then
-			customError("Argument 'target' should be composed by points, got '"..cell.geom:getGeometryType().."'.")
-		end
+		--if not string.find(cell.geom:getGeometryType(), "Point") then
+		--	customError("Argument 'target' should be composed by points, got '"..cell.geom:getGeometryType().."'.")
+		--end
 	else
 		customError("The CellularSpace in argument 'target' must be loaded with 'geometry = true'.")
 	end
