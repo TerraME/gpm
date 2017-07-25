@@ -1,5 +1,5 @@
 
-import("terralib")
+import("gis")
 
 farms = Project{
 	file = "farms_cells.tview",

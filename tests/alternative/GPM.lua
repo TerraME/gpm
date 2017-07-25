@@ -282,53 +282,53 @@ return {
 			progress = false
 		}
 
-		local error_func = function()
+		local warning_func = function()
 			gpm:fill{
 				strategy = "minimum",
 				attribute = "distance",
 			}
 		end
-		unitTest:assertError(error_func, "Attribute 'distance' already exists in 'origin'.")
+		unitTest:assertWarning(warning_func, "Attribute 'distance' already exists in 'origin'.")
 
-		error_func = function()
+		warning_func = function()
 			gpm:fill{
 				strategy = "minimum",
 				attribute = "dist",
 				copy = {distance = "name"}
 			}
 		end
-		unitTest:assertError(error_func, "Attribute 'distance' already exists in 'origin'.")
+		unitTest:assertWarning(warning_func, "Attribute 'distance' already exists in 'origin'.")
 
-		error_func = function()
+		warning_func = function()
 			gpm:fill{
 				strategy = "minimum",
-				attribute = "dist",
-				copy = {dist = "name2"}
+				attribute = "dist2",
+				copy = {dist3 = "name2"}
 			}
 		end
-		unitTest:assertError(error_func, "Attribute 'name2' to be copied does not exist in 'destination'.")
+		unitTest:assertWarning(warning_func, "Attribute 'name2' to be copied does not exist in 'destination'.")
 
-		error_func = function()
+		warning_func = function()
 			gpm:fill{
 				strategy = "minimum",
-				attribute = "dist",
+				attribute = "dist4",
 				copy = "name2"
 			}
 		end
-		unitTest:assertError(error_func, "Attribute 'name2' to be copied does not exist in 'destination'.")
+		unitTest:assertWarning(warning_func, "Attribute 'name2' to be copied does not exist in 'destination'.")
 
 		forEachCell(gpm.origin, function(cell)
 			cell.name = "abc"
 		end)
 
-		error_func = function()
+		warning_func = function()
 			gpm:fill{
 				strategy = "minimum",
-				attribute = "dist",
+				attribute = "dist5",
 				copy = "name"
 			}
 		end
-		unitTest:assertError(error_func, "Attribute 'name' already exists in 'origin'.")
+		unitTest:assertWarning(warning_func, "Attribute 'name' already exists in 'origin'.")
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{

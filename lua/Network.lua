@@ -21,9 +21,9 @@
 -- of this software and its documentation.
 --
 -------------------------------------------------------------------------------------------
-local terralib = getPackage("terralib")
+local gis = getPackage("gis")
 local binding = _Gtme.terralib_mod_binding_lua
-local tl = terralib.TerraLib{}
+local tl = gis.TerraLib{}
 
 local function getBeginPoint(cell)
 	local geometry = tl.castGeomToSubtype(cell.geom:getGeometryN(0))
@@ -176,17 +176,25 @@ local function checkNetworkDisconnected(lines)
 	end)
 
 	if #route[1] ~= #lines then
-		customError("The network disconected.")
+		customError("The network is disconected.")
 	end
 end
 
-local function closestPointFromSegment(line, p)
+local function closestPointFromSegment(line, geometry)
 	local x, y
 	local points = {getBeginPoint(line), getEndPoint(line)}
 	local p2 = {points[2]:getX() - points[1]:getX(), points[2]:getY() - points[1]:getY()}
 	local beginEqualsToEnd = (p2[1] * p2[1]) + (p2[2] * p2[2])
 
--- Line already validity, does not have two points in the same place.
+	local p
+
+	if not string.find(geometry:getGeometryType(), "Point") then
+		p = geometry:getCentroid()
+	else
+		p = tl.castGeomToSubtype(geometry:getGeometryN(0))
+	end
+
+	-- Line already valid. It does not have two points in the same place.
 	local u = ((p:getX() - points[1]:getX()) * p2[1] + (p:getY() - points[1]:getY()) * p2[2]) / beginEqualsToEnd
 
 	if u > 1 then
@@ -198,7 +206,12 @@ local function closestPointFromSegment(line, p)
 	x = points[1]:getX() + u * p2[1]
 	y = points[1]:getY() + u * p2[2]
 
-	local Point = binding.te.gm.Point(x, y, p:getSRID())
+
+--	print(type(p))
+--	print(vardump(p))
+--	if not p.getSRID then p = tl.castGeomToSubtype(p.geom:getGeometryN(0)) end
+
+	local Point = binding.te.gm.Point(x, y, geometry:getSRID())
 
 	return Point
 end
@@ -217,9 +230,9 @@ local function buildPointTarget(lines, target)
 		targetPoint.pointID = counterTarget
 
 		forEachCell(lines, function(line)
-			local geometryLine= tl.castGeomToSubtype(line.geom:getGeometryN(0))
+			local geometryLine = tl.castGeomToSubtype(line.geom:getGeometryN(0))
 			local counterPoint = geometryLine:getNPoints()
-			local pointLine = closestPointFromSegment(line, geometry)
+			local pointLine = closestPointFromSegment(line, targetPoint.geom)
 			local distancePL = geometry:distance(pointLine)
 
 			for i = 0, counterPoint do
@@ -280,7 +293,7 @@ local function checksInterconnectedNetwork(data)
 
 				if geometryR:crosses(geometryB) then
 					counterLineError = counterLineError + 1
-					customWarning("Lines '"..cellRed.FID.."' and '"..cellBlue.FID.."' cross each other.")
+					customError("Lines '"..cellRed.FID.."' and '"..cellBlue.FID.."' cross each other.")
 				end
 
 				local bePointB = {getBeginPoint(cellBlue), getEndPoint(cellBlue)}
@@ -320,7 +333,7 @@ local function checksInterconnectedNetwork(data)
 
 		if not lineValidates then
 			counterLineError = counterLineError + 1
-			customWarning("Line: '"..idLineError.."' does not touch any other line. The minimum distance found was: "..differance..".")
+			customError("Line: '"..idLineError.."' does not touch any other line. The minimum distance found was: "..differance..".")
 		end
 
 		counterCellRed = counterCellRed + 1

@@ -33,3 +33,39 @@ data{
 	source = "TerraME team"
 }
 
+directory{
+	name = "error",
+	summary = "Some corrupted files for internal tests.",
+	source = "TerraME team"
+}
+
+directory{
+	name = "test",
+	summary = "Some files for internal tests.",
+	source = "TerraME team"
+}
+
+data{
+	file = "area.gpm",
+	summary = "GPM file created by example area.lua.",
+	source = "TerraME team"
+}
+
+data{
+	file = "border.gal",
+	summary = "GAL file created by example border.lua.",
+	source = "TerraME team"
+}
+
+data{
+	file = "border.gwt",
+	summary = "GWT file created by example border.lua.",
+	source = "TerraME team"
+}
+
+data{
+	file = "border.gpm",
+	summary = "GPM file created by example border.lua.",
+	source = "TerraME team"
+}
+

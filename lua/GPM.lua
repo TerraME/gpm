@@ -22,8 +22,8 @@
 --
 -------------------------------------------------------------------------------------------
 
-local terralib = getPackage("terralib")
-local tl = terralib.TerraLib{}
+local gis = getPackage("gis")
+local tl = gis.TerraLib{}
 
 local function buildOpenGPM(self)
 	local counterCode = 0
@@ -31,10 +31,10 @@ local function buildOpenGPM(self)
 
 	local neighbors = {}
 
-	forEachCell(self.origin, function(geometryOrigin)
-		neighbors[geometryOrigin:getId()] = {}
+	forEachCell(self.origin, function(originCell)
+		neighbors[originCell:getId()] = {}
 
-		local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
+		local geometry = tl.castGeomToSubtype(originCell.geom:getGeometryN(0))
 
 		counterCode = counterCode + 1
 
@@ -46,22 +46,26 @@ local function buildOpenGPM(self)
 		local network = self.network
 
 		local target
-
+		local i = 1
+		local idx = {}
 		forEachElement(network.distance.netpoint, function(point)
 			local distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distance
 
 			target = network.distance.netpoint[point].targetID
 			target = self.destination.cells[target]:getId()
 
-			local currentDistance = neighbors[geometryOrigin:getId()][target]
+			idx[target] = true
+
+			local currentDistance = neighbors[originCell:getId()][target]
 
 			if currentDistance then
 				if distance < currentDistance then
-					neighbors[geometryOrigin:getId()][target] = distance
+					neighbors[originCell:getId()][target] = distance
 				end
 			else
-				neighbors[geometryOrigin:getId()][target] = distance
+				neighbors[originCell:getId()][target] = distance
 			end
+			i = i + 1
 		end)
 	end)
 
@@ -165,23 +169,23 @@ local function buildDistanceRelation(self)
 	local numberGeometry = #self.origin
 	local neighbors = {}
 
-	forEachCell(self.origin, function(geometryOrigin)
+	forEachCell(self.origin, function(originCell)
 		counterCode = counterCode + 1
 
 		if self.progress then
 			print("Processing distance "..counterCode.."/"..numberGeometry) -- SKIP
 		end
 
-		neighbors[geometryOrigin:getId()] = {}
+		neighbors[originCell:getId()] = {}
 
-		local geometry = tl.castGeomToSubtype(geometryOrigin.geom:getGeometryN(0))
+		local geometry = tl.castGeomToSubtype(originCell.geom:getGeometryN(0))
 
 		forEachCell(destination, function(polygon)
 			local targetPolygon = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
 			local distance = targetPolygon:distance(geometry:getCentroid())
 
 			if --[[targetPolygon:contains(geometry) or]] distance < maxDistance then
-				neighbors[geometryOrigin:getId()][polygon:getId()] = distance
+				neighbors[originCell:getId()][polygon:getId()] = distance
 			end
 		end)
 	end)
