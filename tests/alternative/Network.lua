@@ -19,6 +19,7 @@ return {
 				outside = function(distance) return distance * 2 end
 			}
 		end
+
 		unitTest:assertError(error_func, incompatibleTypeMsg("lines", "CellularSpace", 2))
 
 		error_func = function()
@@ -29,17 +30,8 @@ return {
 				outside = function(distance) return distance * 2 end
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'lines' should be composed by lines, got 'MultiPoint'.")
 
-		error_func = function()
-			Network{
-				lines = roads,
-				target = roads,
-				weight = function(distance) return distance end,
-				outside = function(distance) return distance * 2 end
-			}
-		end
-		unitTest:assertError(error_func, "Argument 'target' should be composed by points, got 'MultiLineString'.")
+		unitTest:assertError(error_func, "Argument 'lines' should be composed by lines, got 'MultiPoint'.")
 
 		error_func = function()
 			Network{
@@ -49,18 +41,21 @@ return {
 				outside = function(distance) return distance * 2 end
 			}
 		end
+
 		unitTest:assertError(error_func, incompatibleTypeMsg("target", "CellularSpace", 2))
 
-		error_func = function()
+		local warning_func = function()
 			Network{
 				lines = roads,
-				strategy = "open",
 				target = communities,
+				strategy = "open",
+				progress = false,
 				weight = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
 		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("strategy", "open", "string"))
+
+		unitTest:assertWarning(warning_func, defaultValueMsg("strategy", "open"))
 
 		error_func = function()
 			Network{
@@ -70,6 +65,7 @@ return {
 				outside = function(distance) return distance * 2 end
 			}
 		end
+
 		unitTest:assertError(error_func, incompatibleTypeMsg("weight", "function", 2))
 
 		error_func = function()
@@ -80,6 +76,7 @@ return {
 				outside = 2
 			}
 		end
+
 		unitTest:assertError(error_func, incompatibleTypeMsg("outside", "function", 2))
 
 		error_func = function()
@@ -91,11 +88,13 @@ return {
 				error = "error"
 			}
 		end
+
 		unitTest:assertError(error_func, incompatibleTypeMsg("error", "number", "error"))
 
 		roads = CellularSpace{
 			file = filePath("error/".."roads-invalid.shp", "gpm"),
-			geometry = true
+			geometry = true,
+			missing = 0
 		}
 
 		communities = CellularSpace{
@@ -111,6 +110,7 @@ return {
 				outside = function(distance) return distance * 2 end
 			}
 		end
+
 		unitTest:assertError(error_func, "Line: '7' does not touch any other line. The minimum distance found was: 843.46359196883.")
 
 		error_func = function()
@@ -122,10 +122,12 @@ return {
 				error = 9000
 			}
 		end
-		unitTest:assertError(error_func, "The network disconected.")
+
+		unitTest:assertError(error_func, "The network is disconected.")
 
 		roads = CellularSpace{
 			file = filePath("error/".."roads_overlay_points.shp", "gpm"),
+			missing = 0,
 			geometry = true
 		}
 
@@ -137,6 +139,7 @@ return {
 				outside = function(distance) return distance * 2 end
 			}
 		end
+
 		unitTest:assertError(error_func, "Lines '6' and '14' cross each other.")
 
 		local cs = CellularSpace{
@@ -152,6 +155,7 @@ return {
 				outside = function(distance) return distance * 2 end
 			}
 		end
+
 		unitTest:assertError(error_func, "The CellularSpace in argument 'lines' must be loaded with 'geometry = true'.")
 
 		error_func = function()
@@ -162,6 +166,7 @@ return {
 				outside = function(distance) return distance * 2 end
 			}
 		end
+
 		unitTest:assertError(error_func, "The CellularSpace in argument 'target' must be loaded with 'geometry = true'.")
 
 	end

@@ -21,19 +21,19 @@
 -- of this software and its documentation.
 --
 -------------------------------------------------------------------------------------------
-local terralib = getPackage("terralib")
+local gis = getPackage("gis")
 local binding = _Gtme.terralib_mod_binding_lua
-local tl = terralib.TerraLib{}
+local tl = gis.TerraLib{}
 
 local function getBeginPoint(cell)
-	local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
+	local geometry = tl.castGeomToSubtype(cell.geom:getGeometryN(0))
 	local point = binding.te.gm.Point(geometry:getX(0), geometry:getY(0), geometry:getSRID())
 
 	return point
 end
 
 local function getEndPoint(cell)
-	local geometry = tl:castGeomToSubtype(cell.geom:getGeometryN(0))
+	local geometry = tl.castGeomToSubtype(cell.geom:getGeometryN(0))
 	local counterPoint = geometry:getNPoints()
 	local point = binding.te.gm.Point(geometry:getX(counterPoint - 1), geometry:getY(counterPoint - 1), geometry:getSRID())
 
@@ -42,11 +42,11 @@ end
 
 local function addPointsLine(line)
     line.insidePoint = {}
-	local geometry = tl:castGeomToSubtype(line.geom:getGeometryN(0))
+	local geometry = tl.castGeomToSubtype(line.geom:getGeometryN(0))
 	local nPoint = geometry:getNPoints()
 
 	for i = 0, nPoint - 1 do
-		local point = tl:castGeomToSubtype(geometry:getPointN(i))
+		local point = tl.castGeomToSubtype(geometry:getPointN(i))
 
 		table.insert(line.insidePoint, point)
 	end
@@ -58,14 +58,14 @@ local function createConnectivity(lines)
 	forEachCell(lines, function(line)
 		addPointsLine(line)
 
-		local geometry = tl:castGeomToSubtype(line.geom:getGeometryN(0))
+		local geometry = tl.castGeomToSubtype(line.geom:getGeometryN(0))
 		local nPoint = geometry:getNPoints()
 
 		for i = 1, nPoint - 1 do
-			local point = tl:castGeomToSubtype(geometry:getPointN(i))
+			local point = tl.castGeomToSubtype(geometry:getPointN(i))
 			local nameNodes = point:asText()
-			local beforePoint = tl:castGeomToSubtype(geometry:getPointN(i - 1))
-			local afterPoint = tl:castGeomToSubtype(geometry:getPointN(i + 1))
+			local beforePoint = tl.castGeomToSubtype(geometry:getPointN(i - 1))
+			local afterPoint = tl.castGeomToSubtype(geometry:getPointN(i + 1))
 
 			netpoints[nameNodes] = {
 				point = point,
@@ -176,17 +176,25 @@ local function checkNetworkDisconnected(lines)
 	end)
 
 	if #route[1] ~= #lines then
-		customError("The network disconected.")
+		customError("The network is disconected.")
 	end
 end
 
-local function closestPointFromSegment(line, p)
+local function closestPointFromSegment(line, geometry)
 	local x, y
 	local points = {getBeginPoint(line), getEndPoint(line)}
 	local p2 = {points[2]:getX() - points[1]:getX(), points[2]:getY() - points[1]:getY()}
 	local beginEqualsToEnd = (p2[1] * p2[1]) + (p2[2] * p2[2])
 
--- Line already validity, does not have two points in the same place.
+	local p
+
+	if not string.find(geometry:getGeometryType(), "Point") then
+		p = geometry:getCentroid()
+	else
+		p = tl.castGeomToSubtype(geometry:getGeometryN(0))
+	end
+
+	-- Line already valid. It does not have two points in the same place.
 	local u = ((p:getX() - points[1]:getX()) * p2[1] + (p:getY() - points[1]:getY()) * p2[2]) / beginEqualsToEnd
 
 	if u > 1 then
@@ -198,7 +206,12 @@ local function closestPointFromSegment(line, p)
 	x = points[1]:getX() + u * p2[1]
 	y = points[1]:getY() + u * p2[2]
 
-	local Point = binding.te.gm.Point(x, y, p:getSRID())
+
+--	print(type(p))
+--	print(vardump(p))
+--	if not p.getSRID then p = tl.castGeomToSubtype(p.geom:getGeometryN(0)) end
+
+	local Point = binding.te.gm.Point(x, y, geometry:getSRID())
 
 	return Point
 end
@@ -209,7 +222,7 @@ local function buildPointTarget(lines, target)
 	local targetLine = 0
 
 	forEachCell(target, function(targetPoint)
-		local geometry = tl:castGeomToSubtype(targetPoint.geom:getGeometryN(0))
+		local geometry = tl.castGeomToSubtype(targetPoint.geom:getGeometryN(0))
 		local distance
 		local minDistance = math.huge
 		local point
@@ -217,13 +230,13 @@ local function buildPointTarget(lines, target)
 		targetPoint.pointID = counterTarget
 
 		forEachCell(lines, function(line)
-			local geometryLine= tl:castGeomToSubtype(line.geom:getGeometryN(0))
+			local geometryLine = tl.castGeomToSubtype(line.geom:getGeometryN(0))
 			local counterPoint = geometryLine:getNPoints()
-			local pointLine = closestPointFromSegment(line, geometry)
+			local pointLine = closestPointFromSegment(line, targetPoint.geom)
 			local distancePL = geometry:distance(pointLine)
 
 			for i = 0, counterPoint do
-				point = tl:castGeomToSubtype(geometryLine:getPointN(i))
+				point = tl.castGeomToSubtype(geometryLine:getPointN(i))
 				distance = geometry:distance(point)
 
 				if distancePL < distance and line.geom:distance(pointLine) <= 0 then
@@ -256,7 +269,7 @@ local function checksInterconnectedNetwork(data)
 	local netpoints = createConnectivity(data.lines)
 
 	forEachCell(data.lines, function(cellRed)
-		local geometryR = tl:castGeomToSubtype(cellRed.geom:getGeometryN(0))
+		local geometryR = tl.castGeomToSubtype(cellRed.geom:getGeometryN(0))
 		local bePointR = {getBeginPoint(cellRed), getEndPoint(cellRed)}
 		local lineValidates = false
 		local differance = math.huge
@@ -268,19 +281,19 @@ local function checksInterconnectedNetwork(data)
 
 		for pointRed = 1, 2 do
 			if pointRed == 1 then
-				redPoint = tl:castGeomToSubtype(bePointR[1])
+				redPoint = tl.castGeomToSubtype(bePointR[1])
 			else
-				redPoint = tl:castGeomToSubtype(bePointR[2])
+				redPoint = tl.castGeomToSubtype(bePointR[2])
 			end
 
 			local counterCellBlue = 0
 
 			forEachCell(data.lines, function(cellBlue)
-				local geometryB = tl:castGeomToSubtype(cellBlue.geom:getGeometryN(0))
+				local geometryB = tl.castGeomToSubtype(cellBlue.geom:getGeometryN(0))
 
 				if geometryR:crosses(geometryB) then
 					counterLineError = counterLineError + 1
-					customWarning("Lines '"..cellRed.FID.."' and '"..cellBlue.FID.."' cross each other.")
+					customError("Lines '"..cellRed.FID.."' and '"..cellBlue.FID.."' cross each other.")
 				end
 
 				local bePointB = {getBeginPoint(cellBlue), getEndPoint(cellBlue)}
@@ -288,9 +301,9 @@ local function checksInterconnectedNetwork(data)
 
 				for pointBlue = 1, 2 do
 					if pointBlue == 1 then
-						bluePoint = tl:castGeomToSubtype(bePointB[1])
+						bluePoint = tl.castGeomToSubtype(bePointB[1])
 					else
-						bluePoint = tl:castGeomToSubtype(bePointB[2])
+						bluePoint = tl.castGeomToSubtype(bePointB[2])
 					end
 
 					if counterCellRed == counterCellBlue then break end
@@ -320,7 +333,7 @@ local function checksInterconnectedNetwork(data)
 
 		if not lineValidates then
 			counterLineError = counterLineError + 1
-			customWarning("Line: '"..idLineError.."' does not touch any other line. The minimum distance found was: "..differance..".")
+			customError("Line: '"..idLineError.."' does not touch any other line. The minimum distance found was: "..differance..".")
 		end
 
 		counterCellRed = counterCellRed + 1
@@ -387,7 +400,7 @@ local function buildDistanceWeight(target, netpoint, self)
 		local targetLine = target[targetLines]
 
 		if self.progress then
-			print("Reducing distances "..targetLines.."/"..#target) --SKIP
+			print(table.concat{"Reducing distances ", targetLines, "/", #target}) -- SKIP
 		end
 
 		forEachElement(targetLine.insidePoint, function(inTarget)
@@ -418,8 +431,15 @@ local function buildDistanceWeight(target, netpoint, self)
 end
 
 local function buildDistanceOutside(target, netpoint, self)
+	local i = 0
+
 	forEachElement(netpoint, function(inTarget)
 		local point = netpoint[inTarget].point
+
+		if self.progress then
+			i = i + 1 -- SKIP
+			print(table.concat{"Computing distance outside ", i, "/", getn(netpoint)}) -- SKIP
+		end
 
 		forEachElement(target, function(targetLines)
 			local targetLine = target[targetLines]
@@ -449,9 +469,9 @@ local function createOpenNetwork(self)
 	local conectedLines = checksInterconnectedNetwork(self)
 	checkNetworkDisconnected(self.lines)
 	local targetPoints = buildPointTarget(conectedLines.line, self.target)
-	local netWork = buildDistancePointTarget(targetPoints, conectedLines.line, self, conectedLines.node)
+	local network = buildDistancePointTarget(targetPoints, conectedLines.line, self, conectedLines.node)
 
-	return netWork
+	return network
 end
 
 Network_ = {
@@ -489,6 +509,7 @@ metaTableNetwork_ = {
 -- network = Network{
 --     lines = roads,
 --     target = communities,
+--     progress = false,
 --     weight = function(distance, cell)
 --         if cell.STATUS == "paved" then
 --             return distance / 5
@@ -519,22 +540,13 @@ function Network(data)
 	mandatoryTableArgument(data, "weight", "function")
 	mandatoryTableArgument(data, "outside", "function")
 
-	if data.target.geometry then
-		local cell = data.target:sample()
-
-		if not string.find(cell.geom:getGeometryType(), "Point") then
-			customError("Argument 'target' should be composed by points, got '"..cell.geom:getGeometryType().."'.")
-		end
-	else
+	if not data.target.geometry then
 		customError("The CellularSpace in argument 'target' must be loaded with 'geometry = true'.")
 	end
 
-	optionalTableArgument(data, "strategy", "open")
+	defaultTableValue(data, "strategy", "open")
 	defaultTableValue(data, "error", 0)
-	defaultTableValue(data, "progress", false)
-
-	mandatoryTableArgument(data, "error", "number")
-	mandatoryTableArgument(data, "progress", "boolean")
+	defaultTableValue(data, "progress", true)
 
 	data.distance = createOpenNetwork(data)
 

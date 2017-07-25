@@ -1,31 +1,57 @@
 -- @example GPM Implementation strategy 'area' and creating map.
 -- Create a map based on the cells and polygons.
--- @image cellID_farms.bmp
+-- @image farms_cells.png
 
--- import gpm
 import("gpm")
 
--- create the CellularSpace
-local farms = CellularSpace{
-	file = filePath("farms_cells3.shp", "gpm"),
+cells = CellularSpace{
+	file = filePath("cells.shp", "gpm"),
 	geometry = true
 }
 
-local farmsPolygon = CellularSpace{
+farms = CellularSpace{
 	file = filePath("farms.shp", "gpm"),
 	geometry = true
 }
 
--- creating a GPM
-local gpm = GPM{
-	origin = farms,
-	destination = farmsPolygon
+gpm = GPM{
+	origin = cells,
+	strategy = "area",
+	destination = farms
 }
 
--- creating Map with values ​​GPM
-map = Map{
-	target = gpm.origin,
-	select = "cellID",
-	slices = 10,
-	color = "RdYlGn"
+gpm:fill{
+	strategy = "count",
+	attribute = "quantity",
+	max = 5
 }
+
+map = Map{
+	target = cells,
+	select = "quantity",
+	min = 0,
+	max = 5,
+	slices = 6,
+	color = "Reds"
+}
+
+gpm:fill{
+	strategy = "maximum",
+	attribute = "max",
+	copy = {farm = "id"}
+}
+
+-- to paint them with different colors, we use the rest of division by 9
+forEachCell(cells, function(cell)
+	cell.farm = tonumber(cell.farm) % 9
+end)
+
+map = Map{
+	target = cells,
+	select = "farm",
+	min = 0,
+	max = 8,
+	slices = 9,
+	color = "Set1"
+}
+

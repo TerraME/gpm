@@ -11,6 +11,7 @@ local communities = CellularSpace{
 local network = Network{
 	lines = roads,
 	target = communities,
+	progress = false,
 	weight = function(distance, cell)
 		if cell.STATUS == "paved" then
 			return distance / 5
@@ -24,25 +25,12 @@ local network = Network{
 return {
 	GPM = function(unitTest)
 		local farms = CellularSpace{
-			file = filePath("farms_cells.shp", "gpm"),
-			geometry = true
+			file = filePath("farms.shp", "gpm")
 		}
 
 		local error_func = function()
 			GPM{
-				network = 2,
-				origin = farms
-			}
-		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("network", "Network", 2))
-
-		farms = CellularSpace{
-			file = filePath("farms.shp", "gpm")
-		}
-
-		error_func = function()
-			GPM{
-				network = network,
+				destination = network,
 				origin = farms
 			}
 		end
@@ -55,18 +43,7 @@ return {
 
 		error_func = function()
 			GPM{
-				network = network,
-				origin = farms,
-				output = {
-					d = "distance"
-				}
-			}
-		end
-		unitTest:assertError(error_func, incompatibleValueMsg("output", "id or distance", "d"))
-
-		error_func = function()
-			GPM{
-				network = network,
+				destination = network,
 				origin = 2
 			}
 		end
@@ -75,10 +52,15 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				output = {
-					id = "id1",
-					distance = "distance"
-				},
+				destination = farms
+			}
+		end
+		unitTest:assertError(error_func, "Could not infer value for mandatory argument 'strategy'.")
+
+
+		error_func = function()
+			GPM{
+				origin = farms,
 				distance = "distance"
 			}
 		end
@@ -87,10 +69,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				output = {
-					id = "id1",
-					distance = "distance"
-				},
 				distance = 100,
 				destination = 2
 			}
@@ -104,10 +82,6 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
-				output = {
-					id = "id1",
-					distance = "distance"
-				},
 				distance = 100,
 				destination = polygons
 			}
@@ -118,47 +92,6 @@ return {
 			file = filePath("farms.shp", "gpm"),
 			geometry = true
 		}
-
-		error_func = function()
-			GPM{
-				network = network,
-				origin = farms,
-				output = {
-					id = "id1",
-					distance = "distance"
-				},
-				distance = 100,
-				quantity = 2,
-				destination = polygons
-			}
-		end
-		unitTest:assertError(error_func, "Use quantity or distance as parameters, not both.")
-
-		error_func = function()
-			GPM{
-				origin = farms,
-				output = {
-					id = "id1",
-					distance = "distance"
-				},
-				quantity = " ",
-				destination = polygons
-			}
-		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("quantity", "number", " "))
-
-		error_func = function()
-			GPM{
-				origin = farms,
-				output = {
-					id = "id1",
-					distance = "distance"
-				},
-				distance = 100,
-				destination = roads
-			}
-		end
-		unitTest:assertError(error_func, "Argument 'destination' should be composed by 'MultiPolygon', got 'MultiLineString'.")
 
 		error_func = function()
 			GPM{
@@ -194,26 +127,18 @@ return {
 		unitTest:assertError(error_func, "Argument 'origin' should be composed by 'MultiPolygon', got 'MultiLineString'.")
 
 		farmsNeighbor = CellularSpace{
-			file = filePath("partofbrasil.shp", "gpm"),
+			file = filePath("partofbrazil.shp", "gpm"),
 			geometry = true
 		}
 
 		error_func = function()
 			GPM{
-				origin = farmsNeighbor,
-				strategy = "border",
-				quantity = " "
-			}
-		end
-		unitTest:assertError(error_func, incompatibleTypeMsg("quantity", "number", " "))
-
-		error_func = function()
-			GPM{
 				origin = farms,
+				strategy = "distance",
 				destination = "distance"
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
+		unitTest:assertError(error_func, incompatibleTypeMsg("destination", "CellularSpace", "distance"))
 
 		local farmsPolygon = CellularSpace{
 			file = filePath("roads.shp", "gpm"),
@@ -223,6 +148,7 @@ return {
 		error_func = function()
 			GPM{
 				origin = farms,
+				strategy = "area",
 				destination = farmsPolygon
 			}
 		end
@@ -230,15 +156,23 @@ return {
 
 		error_func = function()
 			GPM{
-				origin = farms_cells,
 				strategy = "contains",
 				destination = farmsPolygon
 			}
 		end
 		unitTest:assertError(error_func, mandatoryArgumentMsg("origin"))
 
+		error_func = function()
+			GPM{
+				origin = roads,
+				strategy = "contains",
+				destination = farmsPolygon
+			}
+		end
+		unitTest:assertError(error_func, "Argument 'origin' should be composed by 'MultiPolygon', got 'MultiLineString'.")
+
 		local farms_cells = CellularSpace{
-			file = filePath("farms_cells.shp", "gpm")
+			file = filePath("test/farms_cells.shp", "gpm")
 		}
 
 		error_func = function()
@@ -251,7 +185,7 @@ return {
 		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
 
 		farms_cells = CellularSpace{
-			file = filePath("farms_cells.shp", "gpm"),
+			file = filePath("test/farms_cells.shp", "gpm"),
 			geometry = true
 		}
 
@@ -334,21 +268,80 @@ return {
 				destination = communitiesCs
 			}
 		end
-		unitTest:assertError(error_func, "Argument 'destination' should be composed by 'MultiPolygon' or 'MultiLineString', got 'MultiPoint'.")
+		unitTest:assertError(error_func, "Argument 'destination' should be composed by 'MultiLineString', got 'MultiPoint'.")
 	end,
-	save = function(unitTest)
-		local farms = CellularSpace{
-			file = filePath("farms_cells.shp", "gpm"),
+	fill = function(unitTest)
+		local partOfBrazil = CellularSpace{
+			file = filePath("partofbrazil.shp", "gpm"),
 			geometry = true
 		}
 
 		local gpm = GPM{
-			network = network,
-			origin = farms,
-			output = {
-				id = "id1",
-			}
+			origin = partOfBrazil,
+			strategy = "border",
+			progress = false
 		}
+
+		local warning_func = function()
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "distance",
+			}
+		end
+		unitTest:assertWarning(warning_func, "Attribute 'distance' already exists in 'origin'.")
+
+		warning_func = function()
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "dist",
+				copy = {distance = "name"}
+			}
+		end
+		unitTest:assertWarning(warning_func, "Attribute 'distance' already exists in 'origin'.")
+
+		warning_func = function()
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "dist2",
+				copy = {dist3 = "name2"}
+			}
+		end
+		unitTest:assertWarning(warning_func, "Attribute 'name2' to be copied does not exist in 'destination'.")
+
+		warning_func = function()
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "dist4",
+				copy = "name2"
+			}
+		end
+		unitTest:assertWarning(warning_func, "Attribute 'name2' to be copied does not exist in 'destination'.")
+
+		forEachCell(gpm.origin, function(cell)
+			cell.name = "abc"
+		end)
+
+		warning_func = function()
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "dist5",
+				copy = "name"
+			}
+		end
+		unitTest:assertWarning(warning_func, "Attribute 'name' already exists in 'origin'.")
+	end,
+	save = function(unitTest)
+		local farms = CellularSpace{
+			file = filePath("test/farms_cells.shp", "gpm"),
+			geometry = true
+		}
+
+		local gpm = GPM{
+			destination = network,
+			origin = farms,
+			progress = false,
+		}
+
 		local nameFile = 2
 
 		local error_func = function()
@@ -357,8 +350,13 @@ return {
 		unitTest:assertError(error_func, incompatibleTypeMsg("file", "string or File", nameFile))
 
 		error_func = function()
-			gpm:save("gpm.gpm")
+			gpm:save("abc.gal")
 		end
-		unitTest:assertError(error_func, mandatoryArgumentMsg("output.distance and output.id"))
+		unitTest:assertError(error_func, "File type 'gal' does not support connections between two CellularSpaces. Use 'gpm' format instead.")
+
+		error_func = function()
+			gpm:save("abc.gwt")
+		end
+		unitTest:assertError(error_func, "File type 'gwt' does not support connections between two CellularSpaces. Use 'gpm' format instead.")
 	end
 }
