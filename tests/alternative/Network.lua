@@ -152,7 +152,7 @@ return {
 			}
 		end
 
-		unitTest:assertError(error_func, "The CellularSpace in argument 'lines' must be loaded without 'geometry'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'lines' must be loaded without using argument 'geometry'.")
 
 		error_func = function()
 			Network{
@@ -163,6 +163,6 @@ return {
 			}
 		end
 
-		unitTest:assertError(error_func, "The CellularSpace in argument 'target' must be loaded without 'geometry'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'target' must be loaded without using argument 'geometry'.")
 	end
 }

@@ -699,7 +699,7 @@ function GPM(data)
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if data.origin.geometry == false then
-		customError("The CellularSpace in argument 'origin' must be loaded without 'geometry'.")
+		customError("The CellularSpace in argument 'origin' must be loaded without using argument 'geometry'.")
 	end
 
 	defaultTableValue(data, "progress", true)
@@ -710,7 +710,7 @@ function GPM(data)
 		mandatoryTableArgument(data, "destination", "CellularSpace")
 
 		if data.destination.geometry == false then
-			customError("The CellularSpace in argument 'destination' must be loaded without 'geometry'.")
+			customError("The CellularSpace in argument 'destination' must be loaded without using argument 'geometry'.")
 		end
 	end
 

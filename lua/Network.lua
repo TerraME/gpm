@@ -538,7 +538,7 @@ function Network(data)
 			customError("Argument 'lines' should be composed by lines, got '"..cell.geom:getGeometryType().."'.")
 		end
 	elseif data.lines.geometry == false then
-		customError("The CellularSpace in argument 'lines' must be loaded without 'geometry'.")
+		customError("The CellularSpace in argument 'lines' must be loaded without using argument 'geometry'.")
 	end
 
 	mandatoryTableArgument(data, "target", "CellularSpace")
@@ -546,7 +546,7 @@ function Network(data)
 	mandatoryTableArgument(data, "outside", "function")
 
 	if data.target.geometry == false then
-		customError("The CellularSpace in argument 'target' must be loaded without 'geometry'.")
+		customError("The CellularSpace in argument 'target' must be loaded without using argument 'geometry'.")
 	end
 
 	defaultTableValue(data, "strategy", "open")
