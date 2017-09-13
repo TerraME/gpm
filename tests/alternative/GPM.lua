@@ -85,7 +85,7 @@ return {
 				destination = polygons
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded without using argument 'geometry'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without using argument 'geometry'.")
 
 		error_func = function()
 			GPM{
@@ -162,7 +162,7 @@ return {
 				destination = farmsPolygon
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded without 'geometry'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded without using argument 'geometry'.")
 
 		farms = CellularSpace{
 			file = filePath("farms.shp", "gpm"),
@@ -180,7 +180,7 @@ return {
 				destination = farms
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded without using argument 'geometry'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without using argument 'geometry'.")
 
 		error_func = function()
 			GPM{
@@ -189,7 +189,7 @@ return {
 				destination = farms
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded without using argument 'geometry'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without using argument 'geometry'.")
 
 		error_func = function()
 			GPM{
@@ -198,7 +198,7 @@ return {
 				destination = farms
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded without using argument 'geometry'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without using argument 'geometry'.")
 
 		error_func = function()
 			GPM{
@@ -207,7 +207,7 @@ return {
 				destination = farms
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded without using argument 'geometry'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without using argument 'geometry'.")
 
 		error_func = function()
 			GPM{
@@ -216,7 +216,7 @@ return {
 				destination = farms
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded without using argument 'geometry'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without using argument 'geometry'.")
 
 		farms_cells = CellularSpace{
 			file = filePath("test/farms_cells.shp", "gpm")
