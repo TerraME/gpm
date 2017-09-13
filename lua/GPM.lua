@@ -363,13 +363,11 @@ GPM_ = {
 	-- import("gpm")
 	--
 	-- cells = CellularSpace{
-	--     file = filePath("cells.shp", "gpm"),
-	--     geometry = true
+	--     file = filePath("cells.shp", "gpm")
 	-- }
 	--
 	-- farms = CellularSpace{
-	--     file = filePath("farms.shp", "gpm"),
-	--     geometry = true
+	--     file = filePath("farms.shp", "gpm")
 	-- }
 	--
 	-- gpm = GPM{
@@ -572,18 +570,15 @@ GPM_ = {
 	-- The file can have three extension '.gal', '.gwt', or '.gpm'.
 	-- @usage import("gpm")
 	-- local roads = CellularSpace{
-	--     file = filePath("roads.shp", "gpm"),
-	--     geometry = true
+	--     file = filePath("roads.shp", "gpm")
 	-- }
 	--
 	-- communities = CellularSpace{
-	--     file = filePath("communities.shp", "gpm"),
-	--     geometry = true
+	--     file = filePath("communities.shp", "gpm")
 	-- }
 	--
 	-- cells = CellularSpace{
-	--     file = filePath("cells.shp", "gpm"),
-	--     geometry = true
+	--     file = filePath("cells.shp", "gpm")
 	-- }
 	--
 	-- network = Network{
@@ -662,18 +657,15 @@ metaTableGPM_ = {
 -- & strategy, origin, destination & progress \
 -- @usage import("gpm")
 -- local roads = CellularSpace{
---     file = filePath("roads.shp", "gpm"),
---     geometry = true
+--     file = filePath("roads.shp", "gpm")
 -- }
 --
 -- local communities = CellularSpace{
---     file = filePath("communities.shp", "gpm"),
---     geometry = true
+--     file = filePath("communities.shp", "gpm")
 -- }
 --
 -- local cells = CellularSpace{
---     file = filePath("cells.shp", "gpm"),
---     geometry = true
+--     file = filePath("cells.shp", "gpm")
 -- }
 --
 -- network = Network{
@@ -706,8 +698,8 @@ function GPM(data)
 	verifyUnnecessaryArguments(data, {"origin", "distance", "progress", "destination", "strategy"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
-	if not data.origin.geometry then
-		customError("The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
+	if data.origin.geometry == false then
+		customError("The CellularSpace in argument 'origin' must be loaded without using argument 'geometry'.")
 	end
 
 	defaultTableValue(data, "progress", true)
@@ -717,8 +709,8 @@ function GPM(data)
 	local function checkDestination()
 		mandatoryTableArgument(data, "destination", "CellularSpace")
 
-		if not data.destination.geometry then
-			customError("The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
+		if data.destination.geometry == false then
+			customError("The CellularSpace in argument 'destination' must be loaded without using argument 'geometry'.")
 		end
 	end
 

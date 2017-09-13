@@ -2,13 +2,11 @@
 return {
 	Network = function(unitTest)
 		local roads = CellularSpace{
-			file = filePath("roads.shp", "gpm"),
-			geometry = true
+			file = filePath("roads.shp", "gpm")
 		}
 
 		local communities = CellularSpace{
-			file = filePath("communities.shp", "gpm"),
-			geometry = true
+			file = filePath("communities.shp", "gpm")
 		}
 
 		local error_func = function()
@@ -93,13 +91,11 @@ return {
 
 		roads = CellularSpace{
 			file = filePath("error/".."roads-invalid.shp", "gpm"),
-			geometry = true,
 			missing = 0
 		}
 
 		communities = CellularSpace{
-			file = filePath("communities.shp", "gpm"),
-			geometry = true
+			file = filePath("communities.shp", "gpm")
 		}
 
 		error_func = function()
@@ -127,8 +123,7 @@ return {
 
 		roads = CellularSpace{
 			file = filePath("error/".."roads_overlay_points.shp", "gpm"),
-			missing = 0,
-			geometry = true
+			missing = 0
 		}
 
 		error_func = function()
@@ -144,7 +139,8 @@ return {
 
 		local cs = CellularSpace{
 			xdim = 20,
-			ydim = 25
+			ydim = 25,
+			geometry = false
 		}
 
 		error_func = function()
@@ -156,7 +152,7 @@ return {
 			}
 		end
 
-		unitTest:assertError(error_func, "The CellularSpace in argument 'lines' must be loaded with 'geometry = true'.")
+		unitTest:assertError(error_func, "The CellularSpace in argument 'lines' must be loaded without using argument 'geometry'.")
 
 		error_func = function()
 			Network{
@@ -167,7 +163,6 @@ return {
 			}
 		end
 
-		unitTest:assertError(error_func, "The CellularSpace in argument 'target' must be loaded with 'geometry = true'.")
-
+		unitTest:assertError(error_func, "The CellularSpace in argument 'target' must be loaded without using argument 'geometry'.")
 	end
 }

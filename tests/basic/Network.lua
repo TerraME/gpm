@@ -2,13 +2,11 @@
 return {
 	Network = function(unitTest)
 		local roads = CellularSpace{
-			file = filePath("roads.shp", "gpm"),
-			geometry = true
+			file = filePath("roads.shp", "gpm")
 		}
 
 		local communities = CellularSpace{
-			file = filePath("communities.shp", "gpm"),
-			geometry = true
+			file = filePath("communities.shp", "gpm")
 		}
 
 		local network = Network{

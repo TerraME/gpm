@@ -5,13 +5,11 @@
 import("gpm")
 
 local roads = CellularSpace{
-	file = filePath("roads.shp", "gpm"),
-	geometry = true
+	file = filePath("roads.shp", "gpm")
 }
 
 local cells = CellularSpace{
-	file = filePath("cells.shp", "gpm"),
-	geometry = true
+	file = filePath("cells.shp", "gpm")
 }
 
 gpm = GPM{

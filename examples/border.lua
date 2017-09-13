@@ -5,12 +5,11 @@
 import("gpm")
 
 local states = CellularSpace{
-	file = filePath("partofbrazil.shp", "gpm"),
+	file = filePath("partofbrazil.shp", "gpm")
 	-- if we use brazilstates, from base package
 	-- file = filePath("brazilstates.shp"),
 	-- we got the following error:
 	-- Error:TopologyException: side location conflict at 206365.69730904375 -131152.72123499925
-	geometry = true
 }
 
 local gpm = GPM{

@@ -7,18 +7,15 @@
 import("gpm")
 
 communities = CellularSpace{
-	file = filePath("communities.shp", "gpm"),
-	geometry = true
+	file = filePath("communities.shp", "gpm")
 }
 
 roads = CellularSpace{
-	file = filePath("roads.shp", "gpm"),
-	geometry = true
+	file = filePath("roads.shp", "gpm")
 }
 
 cells = CellularSpace{
-	file = filePath("cells.shp", "gpm"),
-	geometry = true
+	file = filePath("cells.shp", "gpm")
 }
 
 network = Network{

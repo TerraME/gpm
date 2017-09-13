@@ -27,7 +27,7 @@ local tl = gis.TerraLib{}
 
 local function getBeginPoint(cell)
 	local geometry = tl.castGeomToSubtype(cell.geom:getGeometryN(0))
-	local point = binding.te.gm.Point(geometry:getX(0), geometry:getY(0), geometry:getSRID())
+	local point = binding.te.gm.Point(geometry:getX(0), geometry:getY(0), geometry:getSRID()):clone()
 
 	return point
 end
@@ -35,7 +35,7 @@ end
 local function getEndPoint(cell)
 	local geometry = tl.castGeomToSubtype(cell.geom:getGeometryN(0))
 	local counterPoint = geometry:getNPoints()
-	local point = binding.te.gm.Point(geometry:getX(counterPoint - 1), geometry:getY(counterPoint - 1), geometry:getSRID())
+	local point = binding.te.gm.Point(geometry:getX(counterPoint - 1), geometry:getY(counterPoint - 1), geometry:getSRID()):clone()
 
 	return point
 end
@@ -46,7 +46,7 @@ local function addPointsLine(line)
 	local nPoint = geometry:getNPoints()
 
 	for i = 0, nPoint - 1 do
-		local point = tl.castGeomToSubtype(geometry:getPointN(i))
+		local point = tl.castGeomToSubtype(geometry:getPointN(i)):clone()
 
 		table.insert(line.insidePoint, point)
 	end
@@ -62,10 +62,10 @@ local function createConnectivity(lines)
 		local nPoint = geometry:getNPoints()
 
 		for i = 1, nPoint - 1 do
-			local point = tl.castGeomToSubtype(geometry:getPointN(i))
+			local point = tl.castGeomToSubtype(geometry:getPointN(i)):clone()
 			local nameNodes = point:asText()
-			local beforePoint = tl.castGeomToSubtype(geometry:getPointN(i - 1))
-			local afterPoint = tl.castGeomToSubtype(geometry:getPointN(i + 1))
+			local beforePoint = tl.castGeomToSubtype(geometry:getPointN(i - 1)):clone()
+			local afterPoint = tl.castGeomToSubtype(geometry:getPointN(i + 1)):clone()
 
 			netpoints[nameNodes] = {
 				point = point,
@@ -189,9 +189,9 @@ local function closestPointFromSegment(line, geometry)
 	local p
 
 	if not string.find(geometry:getGeometryType(), "Point") then
-		p = geometry:getCentroid()
+		p = geometry:getCentroid():clone()
 	else
-		p = tl.castGeomToSubtype(geometry:getGeometryN(0))
+		p = tl.castGeomToSubtype(geometry:getGeometryN(0)):clone()
 	end
 
 	-- Line already valid. It does not have two points in the same place.
@@ -211,7 +211,7 @@ local function closestPointFromSegment(line, geometry)
 --	print(vardump(p))
 --	if not p.getSRID then p = tl.castGeomToSubtype(p.geom:getGeometryN(0)) end
 
-	local Point = binding.te.gm.Point(x, y, geometry:getSRID())
+	local Point = binding.te.gm.Point(x, y, geometry:getSRID()):clone()
 
 	return Point
 end
@@ -236,7 +236,7 @@ local function buildPointTarget(lines, target)
 			local distancePL = geometry:distance(pointLine)
 
 			for i = 0, counterPoint do
-				point = tl.castGeomToSubtype(geometryLine:getPointN(i))
+				point = tl.castGeomToSubtype(geometryLine:getPointN(i)):clone()
 				distance = geometry:distance(point)
 
 				if distancePL < distance and line.geom:distance(pointLine) <= 0 then
@@ -372,7 +372,10 @@ local function distanceFromRouteToNode(node, netpoint, weight, lines)
 				if node.targetID == nil then
 					change = true
 				end
-			elseif bePointLine[1]:equals(node.point) and bePointLine[2]:equals(netpoint[point].point) or bePointLine[2]:equals(node.point) and bePointLine[1]:equals(netpoint[point].point) then
+			elseif bePointLine[1]:equals(node.point) and
+					bePointLine[2]:equals(netpoint[point].point) or
+					bePointLine[2]:equals(node.point) and
+					bePointLine[1]:equals(netpoint[point].point) then
 				local distance = weight(netpoint[point].point:distance(node.point), line)
 
 				if node.distance > netpoint[point].distance + distance then
@@ -408,8 +411,10 @@ local function buildDistanceWeight(target, netpoint, self)
 			local pointTarget = targetLine.targetPoint
 			local referencePoint = netpoint[point:asText()]
 
-			if referencePoint.distance > self.weight(point:distance(pointTarget), targetLine) then
-				referencePoint.distance = self.weight(point:distance(pointTarget), targetLine)
+			local dist = self.weight(point:distance(pointTarget), targetLine)
+
+			if referencePoint.distance > dist then
+				referencePoint.distance = dist
 				referencePoint.targetID = targetLines
 			end
 		end)
@@ -446,8 +451,10 @@ local function buildDistanceOutside(target, netpoint, self)
 			local pointTarget = targetLine.targetPoint
 			local referencePoint = netpoint[point:asText()]
 
-			if referencePoint.distanceOutside > self.outside(point:distance(pointTarget), targetLine) then
-				referencePoint.distanceOutside = self.outside(point:distance(pointTarget), targetLine)
+			local dist = self.outside(point:distance(pointTarget), targetLine)
+
+			if referencePoint.distanceOutside > dist then
+				referencePoint.distanceOutside = dist
 				referencePoint.targetIDOutside = targetLines
 			end
 		end)
@@ -497,12 +504,10 @@ metaTableNetwork_ = {
 -- If not set a function, will return to own distance.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
---     file = filePath("roads.shp", "gpm"),
---     geometry = true
+--     file = filePath("roads.shp", "gpm")
 -- }
 --
 -- local communities = CellularSpace{
---     geometry = true,
 --     file = filePath("communities.shp", "gpm")
 -- }
 --
@@ -532,16 +537,16 @@ function Network(data)
 		if not string.find(cell.geom:getGeometryType(), "Line") then
 			customError("Argument 'lines' should be composed by lines, got '"..cell.geom:getGeometryType().."'.")
 		end
-	else
-		customError("The CellularSpace in argument 'lines' must be loaded with 'geometry = true'.")
+	elseif data.lines.geometry == false then
+		customError("The CellularSpace in argument 'lines' must be loaded without using argument 'geometry'.")
 	end
 
 	mandatoryTableArgument(data, "target", "CellularSpace")
 	mandatoryTableArgument(data, "weight", "function")
 	mandatoryTableArgument(data, "outside", "function")
 
-	if not data.target.geometry then
-		customError("The CellularSpace in argument 'target' must be loaded with 'geometry = true'.")
+	if data.target.geometry == false then
+		customError("The CellularSpace in argument 'target' must be loaded without using argument 'geometry'.")
 	end
 
 	defaultTableValue(data, "strategy", "open")
