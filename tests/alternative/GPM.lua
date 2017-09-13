@@ -23,10 +23,23 @@ local network = Network{
 return {
 	GPM = function(unitTest)
 		local farms = CellularSpace{
-			file = filePath("farms.shp", "gpm")
+			file = filePath("farms.shp", "gpm"),
+			geometry = false
 		}
 
 		local error_func = function()
+			GPM{
+				destination = network,
+				origin = farms
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded without 'geometry'.")
+
+		farms = CellularSpace{
+			file = filePath("farms.shp", "gpm")
+		}
+
+		error_func = function()
 			GPM{
 				destination = network,
 				origin = 2
@@ -59,6 +72,20 @@ return {
 			}
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("destination", "CellularSpace", 2))
+
+		local polygons = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
+			geometry = false
+		}
+
+		error_func = function()
+			GPM{
+				origin = farms,
+				distance = 100,
+				destination = polygons
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without 'geometry'.")
 
 		error_func = function()
 			GPM{
@@ -124,6 +151,74 @@ return {
 		unitTest:assertError(error_func, "Argument 'origin' should be composed by 'MultiPolygon', got 'MultiLineString'.")
 
 		local farms_cells = CellularSpace{
+			file = filePath("test/farms_cells.shp", "gpm"),
+			geometry = false
+		}
+
+		error_func = function()
+			GPM{
+				origin = farms_cells,
+				strategy = "contains",
+				destination = farmsPolygon
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded without 'geometry'.")
+
+		farms = CellularSpace{
+			file = filePath("farms.shp", "gpm"),
+			geometry = false
+		}
+
+		communities = CellularSpace{
+			file = filePath("farms.shp", "gpm")
+		}
+
+		error_func = function()
+			GPM{
+				origin = communities,
+				strategy = "length",
+				destination = farms
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without 'geometry'.")
+
+		error_func = function()
+			GPM{
+				origin = communities,
+				strategy = "border",
+				destination = farms
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without 'geometry'.")
+
+		error_func = function()
+			GPM{
+				origin = communities,
+				strategy = "contains",
+				destination = farms
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without 'geometry'.")
+
+		error_func = function()
+			GPM{
+				origin = communities,
+				strategy = "distance",
+				destination = farms
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without 'geometry'.")
+
+		error_func = function()
+			GPM{
+				origin = communities,
+				strategy = "area",
+				destination = farms
+			}
+		end
+		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded without 'geometry'.")
+
+		farms_cells = CellularSpace{
 			file = filePath("test/farms_cells.shp", "gpm")
 		}
 

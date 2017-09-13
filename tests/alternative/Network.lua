@@ -136,5 +136,33 @@ return {
 		end
 
 		unitTest:assertError(error_func, "Lines '6' and '14' cross each other.")
+
+		local cs = CellularSpace{
+			xdim = 20,
+			ydim = 25,
+			geometry = false
+		}
+
+		error_func = function()
+			Network{
+				lines = cs,
+				target = communities,
+				weight = function(distance) return distance end,
+				outside = function(distance) return distance * 2 end
+			}
+		end
+
+		unitTest:assertError(error_func, "The CellularSpace in argument 'lines' must be loaded without 'geometry'.")
+
+		error_func = function()
+			Network{
+				lines = roads,
+				target = cs,
+				weight = function(distance) return distance end,
+				outside = function(distance) return distance * 2 end
+			}
+		end
+
+		unitTest:assertError(error_func, "The CellularSpace in argument 'target' must be loaded without 'geometry'.")
 	end
 }

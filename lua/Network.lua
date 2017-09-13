@@ -504,12 +504,10 @@ metaTableNetwork_ = {
 -- If not set a function, will return to own distance.
 -- @usage import("gpm")
 -- local roads = CellularSpace{
---     file = filePath("roads.shp", "gpm"),
---     geometry = true
+--     file = filePath("roads.shp", "gpm")
 -- }
 --
 -- local communities = CellularSpace{
---     geometry = true,
 --     file = filePath("communities.shp", "gpm")
 -- }
 --
@@ -539,16 +537,16 @@ function Network(data)
 		if not string.find(cell.geom:getGeometryType(), "Line") then
 			customError("Argument 'lines' should be composed by lines, got '"..cell.geom:getGeometryType().."'.")
 		end
-	else
-		customError("The CellularSpace in argument 'lines' must be loaded with 'geometry = true'.")
+	elseif data.lines.geometry == false then
+		customError("The CellularSpace in argument 'lines' must be loaded without 'geometry'.")
 	end
 
 	mandatoryTableArgument(data, "target", "CellularSpace")
 	mandatoryTableArgument(data, "weight", "function")
 	mandatoryTableArgument(data, "outside", "function")
 
-	if not data.target.geometry then
-		customError("The CellularSpace in argument 'target' must be loaded with 'geometry = true'.")
+	if data.target.geometry == false then
+		customError("The CellularSpace in argument 'target' must be loaded without 'geometry'.")
 	end
 
 	defaultTableValue(data, "strategy", "open")
