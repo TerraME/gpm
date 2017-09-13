@@ -1,11 +1,9 @@
 local roads = CellularSpace{
-	file = filePath("roads.shp", "gpm"),
-	geometry = true
+	file = filePath("roads.shp", "gpm")
 }
 
 local communities = CellularSpace{
-	file = filePath("communities.shp", "gpm"),
-	geometry = true
+	file = filePath("communities.shp", "gpm")
 }
 
 local network = Network{
@@ -25,8 +23,7 @@ local network = Network{
 return {
 	GPM = function(unitTest)
 		local partOfBrazil = CellularSpace{
-			file = filePath("partofbrazil.shp", "gpm"),
-			geometry = true
+			file = filePath("partofbrazil.shp", "gpm")
 		}
 
 		local gpm = GPM{
@@ -48,8 +45,7 @@ return {
 	end,
 	__tostring = function(unitTest)
 		local partOfBrazil = CellularSpace{
-			file = filePath("partofbrazil.shp", "gpm"),
-			geometry = true
+			file = filePath("partofbrazil.shp", "gpm")
 		}
 
 		local gpm = GPM{
@@ -67,8 +63,7 @@ strategy     string [border]
 	end,
 	fill = function(unitTest)
 		local partOfBrazil = CellularSpace{
-			file = filePath("partofbrazil.shp", "gpm"),
-			geometry = true
+			file = filePath("partofbrazil.shp", "gpm")
 		}
 
 		local gpm = GPM{
@@ -99,13 +94,11 @@ strategy     string [border]
 		unitTest:assertEquals(maverage, 1.18, 0.01)
 
 		local farms_cells = CellularSpace{
-			file = filePath("test/farms_cells.shp", "gpm"),
-			geometry = true
+			file = filePath("test/farms_cells.shp", "gpm")
 		}
 
 		local farmsPolygon = CellularSpace{
-			file = filePath("farms.shp", "gpm"),
-			geometry = true
+			file = filePath("farms.shp", "gpm")
 		}
 
 		gpm = GPM{
@@ -214,8 +207,7 @@ strategy     string [border]
 		unitTest:assertEquals(counterCommunities, 2)
 
 		local cells = CellularSpace{
-			file = filePath("cells.shp", "gpm"),
-			geometry = true
+			file = filePath("cells.shp", "gpm")
 		}
 
 		gpm = GPM{
@@ -351,8 +343,7 @@ strategy     string [border]
 		unitTest:assertSnapshot(map3, "gpm_distance_limit_3.png")
 
 		farms_cells = CellularSpace{
-			file = filePath("test/farms_cells.shp", "gpm"),
-			geometry = true
+			file = filePath("test/farms_cells.shp", "gpm")
 		}
 
 		gpm = GPM{
@@ -381,8 +372,7 @@ strategy     string [border]
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{
-			file = filePath("test/farms_cells.shp", "gpm"),
-			geometry = true
+			file = filePath("test/farms_cells.shp", "gpm")
 		}
 
 		local gpm = GPM{
@@ -401,8 +391,7 @@ strategy     string [border]
 
 
 		local states = CellularSpace{
-			file = filePath("partofbrazil.shp", "gpm"),
-			geometry = true
+			file = filePath("partofbrazil.shp", "gpm")
 		}
 
 		gpm = GPM{

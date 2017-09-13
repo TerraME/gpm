@@ -1,11 +1,9 @@
 local roads = CellularSpace{
-	file = filePath("roads.shp", "gpm"),
-	geometry = true
+	file = filePath("roads.shp", "gpm")
 }
 
 local communities = CellularSpace{
-	file = filePath("communities.shp", "gpm"),
-	geometry = true
+	file = filePath("communities.shp", "gpm")
 }
 
 local network = Network{
@@ -29,19 +27,6 @@ return {
 		}
 
 		local error_func = function()
-			GPM{
-				destination = network,
-				origin = farms
-			}
-		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
-
-		farms = CellularSpace{
-			file = filePath("farms.shp", "gpm"),
-			geometry = true
-		}
-
-		error_func = function()
 			GPM{
 				destination = network,
 				origin = 2
@@ -75,24 +60,6 @@ return {
 		end
 		unitTest:assertError(error_func, incompatibleTypeMsg("destination", "CellularSpace", 2))
 
-		local polygons = CellularSpace{
-			file = filePath("farms.shp", "gpm")
-		}
-
-		error_func = function()
-			GPM{
-				origin = farms,
-				distance = 100,
-				destination = polygons
-			}
-		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
-
-		polygons = CellularSpace{
-			file = filePath("farms.shp", "gpm"),
-			geometry = true
-		}
-
 		error_func = function()
 			GPM{
 				origin = 2,
@@ -111,24 +78,10 @@ return {
 				strategy = "border"
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
-
-		farmsNeighbor = CellularSpace{
-			file = filePath("roads.shp", "gpm"),
-			geometry = true
-		}
-
-		error_func = function()
-			GPM{
-				origin = farmsNeighbor,
-				strategy = "border"
-			}
-		end
 		unitTest:assertError(error_func, "Argument 'origin' should be composed by 'MultiPolygon', got 'MultiLineString'.")
 
 		farmsNeighbor = CellularSpace{
-			file = filePath("partofbrazil.shp", "gpm"),
-			geometry = true
+			file = filePath("partofbrazil.shp", "gpm")
 		}
 
 		error_func = function()
@@ -141,8 +94,7 @@ return {
 		unitTest:assertError(error_func, incompatibleTypeMsg("destination", "CellularSpace", "distance"))
 
 		local farmsPolygon = CellularSpace{
-			file = filePath("roads.shp", "gpm"),
-			geometry = true
+			file = filePath("roads.shp", "gpm")
 		}
 
 		error_func = function()
@@ -182,83 +134,14 @@ return {
 				destination = farmsPolygon
 			}
 		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
-
-		farms_cells = CellularSpace{
-			file = filePath("test/farms_cells.shp", "gpm"),
-			geometry = true
-		}
-
-		error_func = function()
-			GPM{
-				origin = farms_cells,
-				strategy = "contains",
-				destination = farmsPolygon
-			}
-		end
 		unitTest:assertError(error_func, "Argument 'destination' should be composed by 'MultiPoint', got 'MultiLineString'.")
 
-		farmsPolygon = CellularSpace{
-			file = filePath("farms.shp", "gpm")
-		}
-
-		error_func = function()
-			GPM{
-				origin = farms_cells,
-				strategy = "contains",
-				destination = farmsPolygon
-			}
-		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
-
-		communities = CellularSpace{
-			file = filePath("communities.shp", "gpm")
-		}
-
-		communities = CellularSpace{
-			file = filePath("farms.shp", "gpm"),
-			geometry = true
-		}
-
-		farmsPolygon = CellularSpace{
-			file = filePath("farms.shp", "gpm")
-		}
-
-		error_func = function()
-			GPM{
-				origin = farmsPolygon,
-				strategy = "length",
-				destination = farms_cells
-			}
-		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'origin' must be loaded with 'geometry = true'.")
-
 		farms = CellularSpace{
 			file = filePath("farms.shp", "gpm")
-		}
-
-		communities = CellularSpace{
-			file = filePath("farms.shp", "gpm"),
-			geometry = true
-		}
-
-		error_func = function()
-			GPM{
-				origin = communities,
-				strategy = "length",
-				destination = farms
-			}
-		end
-		unitTest:assertError(error_func, "The CellularSpace in argument 'destination' must be loaded with 'geometry = true'.")
-
-		farms = CellularSpace{
-			file = filePath("farms.shp", "gpm"),
-			geometry = true
 		}
 
 		local communitiesCs = CellularSpace{
-			file = filePath("communities.shp", "gpm"),
-			geometry = true
+			file = filePath("communities.shp", "gpm")
 		}
 
 		error_func = function()
@@ -272,8 +155,7 @@ return {
 	end,
 	fill = function(unitTest)
 		local partOfBrazil = CellularSpace{
-			file = filePath("partofbrazil.shp", "gpm"),
-			geometry = true
+			file = filePath("partofbrazil.shp", "gpm")
 		}
 
 		local gpm = GPM{
@@ -332,8 +214,7 @@ return {
 	end,
 	save = function(unitTest)
 		local farms = CellularSpace{
-			file = filePath("test/farms_cells.shp", "gpm"),
-			geometry = true
+			file = filePath("test/farms_cells.shp", "gpm")
 		}
 
 		local gpm = GPM{

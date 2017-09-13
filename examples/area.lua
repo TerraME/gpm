@@ -5,13 +5,11 @@
 import("gpm")
 
 cells = CellularSpace{
-	file = filePath("cells.shp", "gpm"),
-	geometry = true
+	file = filePath("cells.shp", "gpm")
 }
 
 farms = CellularSpace{
-	file = filePath("farms.shp", "gpm"),
-	geometry = true
+	file = filePath("farms.shp", "gpm")
 }
 
 gpm = GPM{

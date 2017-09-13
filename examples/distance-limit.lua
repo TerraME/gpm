@@ -6,13 +6,11 @@
 import("gpm")
 
 local communities = CellularSpace{
-	file = filePath("communities.shp", "gpm"),
-	geometry = true
+	file = filePath("communities.shp", "gpm")
 }
 
 local cells = CellularSpace{
-	file = filePath("cells.shp", "gpm"),
-	geometry = true
+	file = filePath("cells.shp", "gpm")
 }
 
 gpm = GPM{
