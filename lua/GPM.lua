@@ -23,7 +23,6 @@
 -------------------------------------------------------------------------------------------
 
 local gis = getPackage("gis")
-local tl = gis.TerraLib{}
 
 local function buildOpenGPM(self)
 	local counterCode = 0
@@ -34,7 +33,7 @@ local function buildOpenGPM(self)
 	forEachCell(self.origin, function(originCell)
 		neighbors[originCell:getId()] = {}
 
-		local geometry = tl.castGeomToSubtype(originCell.geom:getGeometryN(0))
+		local geometry = originCell.geom:getGeometryN(0)
 
 		counterCode = counterCode + 1
 
@@ -175,10 +174,10 @@ local function buildDistanceRelation(self)
 
 		neighbors[originCell:getId()] = {}
 
-		local geometry = tl.castGeomToSubtype(originCell.geom:getGeometryN(0))
+		local geometry = originCell.geom:getGeometryN(0)
 
 		forEachCell(destination, function(polygon)
-			local targetPolygon = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+			local targetPolygon = polygon.geom:getGeometryN(0)
 			local distance = targetPolygon:distance(geometry:getCentroid())
 
 			if --[[targetPolygon:contains(geometry) or]] distance < maxDistance then
@@ -206,18 +205,18 @@ local function buildBorderRelation(self)
 
 		neighbors[polygon:getId()] = {}
 
-		local geometry = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometry = polygon.geom:getGeometryN(0)
 		local geometryPerimeter = geometry:getPerimeter()
 
 		forEachCell(destination, function(neighbor)
-			local geometryNeighbor = tl.castGeomToSubtype(neighbor.geom:getGeometryN(0))
+			local geometryNeighbor = neighbor.geom:getGeometryN(0)
 
 			if not geometry:touches(geometryNeighbor) or polygon.FID == neighbor.FID then return end
 
-			local intersection = geometry:intersection(geometryNeighbor)
-			local geometryBorder = tl.castGeomToSubtype(intersection)
+			local intersection = geometry:intersection(geometryNeighbor) -- TODO: intersection works with different returns from a same geometry type
+			local geometryBorder = gis.TerraLib().castGeomToSubtype(intersection)
 
-			if geometryBorder.getLength then
+			if geometryBorder:getLength() then
 				local lengthBorder = geometryBorder:getLength()
 
 				neighbors[polygon:getId()][neighbor:getId()] = lengthBorder / geometryPerimeter
@@ -236,7 +235,7 @@ local function buildContainsRelation(self)
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
-		local geometryOrigin = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometryOrigin = polygon.geom:getGeometryN(0)
 
 		counterCode = counterCode + 1
 
@@ -247,7 +246,7 @@ local function buildContainsRelation(self)
 		neighbor[polygon:getId()] = {}
 
 		forEachCell(destination, function(dest)
-			local geometryDestination = tl.castGeomToSubtype(dest.geom:getGeometryN(0))
+			local geometryDestination = dest.geom:getGeometryN(0)
 
 			if geometryOrigin:contains(geometryDestination) then
 				neighbor[polygon:getId()][dest:getId()] = 1
@@ -266,7 +265,7 @@ local function buildAreaRelation(self)
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
-		local geometryOrigin = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometryOrigin = polygon.geom:getGeometryN(0)
 
 		counterCode = counterCode + 1
 
@@ -277,14 +276,14 @@ local function buildAreaRelation(self)
 		neighbor[polygon:getId()] = {}
 
 		forEachCell(destination, function(geometric)
-			local geometryObject = tl.castGeomToSubtype(geometric.geom:getGeometryN(0))
+			local geometryObject = geometric.geom:getGeometryN(0)
 
 			if geometryOrigin:touches(geometryObject) or geometryOrigin:intersects(geometryObject) then
 				local intersection = geometryOrigin:intersection(geometryObject)
-				local geometryIntersection = tl.castGeomToSubtype(intersection)
+				local geometryIntersection = gis.TerraLib().castGeomToSubtype(intersection) -- TODO: see above
 				local areaIntersection
 
-				if string.find(geometryIntersection:getGeometryType(),"Polygon") then
+				if string.find(geometryIntersection:getGeometryType(), "Polygon") then
 					areaIntersection = geometryIntersection:getArea()
 				else
 					return
@@ -306,7 +305,7 @@ local function buildLengthRelation(self)
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
-		local geometryOrigin = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometryOrigin = polygon.geom:getGeometryN(0)
 
 		counterCode = counterCode + 1
 
@@ -317,11 +316,11 @@ local function buildLengthRelation(self)
 		neighbor[polygon:getId()] = {}
 
 		forEachCell(destination, function(geometric)
-			local geometryObject = tl.castGeomToSubtype(geometric.geom:getGeometryN(0))
+			local geometryObject = geometric.geom:getGeometryN(0)
 
 			if geometryOrigin:touches(geometryObject) or geometryOrigin:intersects(geometryObject) then
 				local intersection = geometryOrigin:intersection(geometryObject)
-				local geometryIntersection = tl.castGeomToSubtype(intersection)
+				local geometryIntersection = gis.TerraLib().castGeomToSubtype(intersection) -- TODO: see above
 				local lengthIntersection
 
 				if string.find(geometryIntersection:getGeometryType(), "LineString") then
