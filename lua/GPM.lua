@@ -22,10 +22,8 @@
 --
 -------------------------------------------------------------------------------------------
 
-local gis = getPackage("gis")
-
 local function buildOpenGPM(self)
-	local counterCode = 0
+	local progress = 0
 	local numberGeometry = #self.origin
 
 	local neighbors = {}
@@ -35,22 +33,21 @@ local function buildOpenGPM(self)
 
 		local geometry = originCell.geom:getGeometryN(0)
 
-		counterCode = counterCode + 1
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing origin ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing origin ", progress, "/", numberGeometry}) -- SKIP
 		end
 
 		local centroid = geometry:getCentroid()
 		local network = self.network
 
 		local target
-		local i = 1
-		forEachElement(network.distance.netpoint, function(point)
-			local distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distance
 
-			target = network.distance.netpoint[point].targetID
-			target = self.destination.cells[target]:getId()
+		forEachElement(network.distance.netpoint, function(_, node)
+			local distance = self.network.outside(centroid:distance(node.point)) + node.distance
+
+			target = self.destination.cells[node.targetID]:getId()
 
 			local currentDistance = neighbors[originCell:getId()][target]
 
@@ -61,7 +58,6 @@ local function buildOpenGPM(self)
 			else
 				neighbors[originCell:getId()][target] = distance
 			end
-			i = i + 1
 		end)
 	end)
 
@@ -161,15 +157,15 @@ end
 local function buildDistanceRelation(self)
 	local destination = self.destination
 	local maxDistance = self.distance or math.huge
-	local counterCode = 0
+	local progress = 0
 	local numberGeometry = #self.origin
 	local neighbors = {}
 
 	forEachCell(self.origin, function(originCell)
-		counterCode = counterCode + 1
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing distance ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing distance ", progress, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbors[originCell:getId()] = {}
@@ -192,15 +188,15 @@ end
 local function buildBorderRelation(self)
 	local origin = self.origin
 	local destination = self.destination
-	local counterCode = 0
+	local progress = 0
 	local numberGeometry = #origin
 	local neighbors = {}
 
 	forEachCell(origin, function(polygon)
-		counterCode = counterCode + 1
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing intersection ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing intersection ", progress, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbors[polygon:getId()] = {}
@@ -213,8 +209,7 @@ local function buildBorderRelation(self)
 
 			if not geometry:touches(geometryNeighbor) or polygon.FID == neighbor.FID then return end
 
-			local intersection = geometry:intersection(geometryNeighbor) -- TODO: intersection works with different returns from a same geometry type
-			local geometryBorder = gis.TerraLib().castGeomToSubtype(intersection)
+			local geometryBorder = geometry:intersection(geometryNeighbor) -- TODO: intersection works with different returns from a same geometry type
 
 			if geometryBorder:getLength() then
 				local lengthBorder = geometryBorder:getLength()
@@ -230,17 +225,17 @@ end
 local function buildContainsRelation(self)
 	local origin = self.origin
 	local destination = self.destination
-	local counterCode = 0
+	local progress = 0
 	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
 		local geometryOrigin = polygon.geom:getGeometryN(0)
 
-		counterCode = counterCode + 1
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing contains ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing contains ", progress, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbor[polygon:getId()] = {}
@@ -260,17 +255,17 @@ end
 local function buildAreaRelation(self)
 	local origin = self.origin
 	local destination = self.destination
-	local counterCode = 0
+	local progress = 0
 	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
 		local geometryOrigin = polygon.geom:getGeometryN(0)
 
-		counterCode = counterCode + 1
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing area ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing area ", progress, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbor[polygon:getId()] = {}
@@ -279,8 +274,7 @@ local function buildAreaRelation(self)
 			local geometryObject = geometric.geom:getGeometryN(0)
 
 			if geometryOrigin:touches(geometryObject) or geometryOrigin:intersects(geometryObject) then
-				local intersection = geometryOrigin:intersection(geometryObject)
-				local geometryIntersection = gis.TerraLib().castGeomToSubtype(intersection) -- TODO: see above
+				local geometryIntersection = geometryOrigin:intersection(geometryObject)
 				local areaIntersection
 
 				if string.find(geometryIntersection:getGeometryType(), "Polygon") then
@@ -300,17 +294,17 @@ end
 local function buildLengthRelation(self)
 	local origin = self.origin
 	local destination = self.destination
-	local counterCode = 0
+	local progress = 0
 	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
 		local geometryOrigin = polygon.geom:getGeometryN(0)
 
-		counterCode = counterCode + 1
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing length ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing length ", progress, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbor[polygon:getId()] = {}
@@ -319,8 +313,7 @@ local function buildLengthRelation(self)
 			local geometryObject = geometric.geom:getGeometryN(0)
 
 			if geometryOrigin:touches(geometryObject) or geometryOrigin:intersects(geometryObject) then
-				local intersection = geometryOrigin:intersection(geometryObject)
-				local geometryIntersection = gis.TerraLib().castGeomToSubtype(intersection) -- TODO: see above
+				local geometryIntersection = geometryOrigin:intersection(geometryObject) -- TODO: see above
 				local lengthIntersection
 
 				if string.find(geometryIntersection:getGeometryType(), "LineString") then

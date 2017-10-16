@@ -21,447 +21,385 @@
 -- of this software and its documentation.
 --
 -------------------------------------------------------------------------------------------
-local gis = getPackage("gis")
 
-local function createPoint(x, y, srid)
-	return gis.TerraLib().geometry().Point(x, y, srid)
-end
-
-local function isPointEndsConnected(first, last, p1, p2)
-	return gis.TerraLib().geometry().LineString.isEndsConnected(first, last, p1, p2) -- TODO(avancinirodrigo): review function name
-end
-
-local function createConnectivity(lines)
-	local netpoints = {}
-
-	forEachCell(lines, function(line)
-		local lineObj = line.geom:getGeometryN(0)
-		local nPoints = line.geom:getNPoints()
-
-		line.points = {}
-
-		for i = 0, nPoints - 1 do
-			table.insert(line.points, lineObj:getPointN(i))
-		end
-
-		for i = 1, nPoints - 1 do
-			local currPoint = lineObj:getPointN(i)
-			local beforePoint = lineObj:getPointN(i - 1)
-			local afterPoint = lineObj:getPointN(i + 1)
-			local id = currPoint:asText()
-
-			netpoints[id] = {
-				point = currPoint,
-				route = {},
-				distance = math.huge,
-				distanceOutside = math.huge,
-				cell = line
-			}
-
-			--table.insert(line.points, currPoint)
-			table.insert(netpoints[id].route, afterPoint:asText())
-			table.insert(netpoints[id].route, beforePoint:asText())
-		end
-
-		local firstPoint = lineObj:getStartPoint()
-		local lastPoint = lineObj:getEndPoint()
-		local fid = firstPoint:asText()
-		local lid = lastPoint:asText()
-
-		-- TODO: ifs is always true and is too heavy
-		if not belong(firstPoint, netpoints) then
-			netpoints[fid] = {
-				point = firstPoint,
-				route = {},
-				distance = math.huge,
-				distanceOutside = math.huge,
-				--targetID,
-				--targetIDOutside,
-				cell = line
-			}
-
-			table.insert(netpoints[fid].route, lid)
-		end
-
-		if not belong(lastPoint, netpoints) then
-			netpoints[lid] = {
-				point = lastPoint,
-				route = {},
-				distance = math.huge,
-				distanceOutside = math.huge,
-				--targetID,
-				--targetIDOutside,
-				cell = line
-			}
-
-			table.insert(netpoints[lid].route, fid)
-		end
-
-		line.firstPoint = firstPoint
-		line.lastPoint = lastPoint
-		line.lineObj = lineObj
-	end)
-
-	return netpoints
-end
-
-local function addRoute(netpoint, bePoint)
-	if netpoint.point:equals(bePoint[1]) then
-		local nameNodes = bePoint[2]:asText()
-
-		if not belong(nameNodes, netpoint.route) then
-			table.insert(netpoint.route, nameNodes)
-		end
-	end
-
-	if netpoint.point:equals(bePoint[2]) then
-		local nameNodes = bePoint[1]:asText()
-
-		if not belong(nameNodes, netpoint.route) then
-			table.insert(netpoint.route, nameNodes)
-		end
-	end
-end
-
-local function joinNetWork(route, firstNW, nw)
-	local counterLine = 1
-	local conect = {}
-
-	while route[nw][counterLine] do
-		if not belong(route[nw][counterLine], conect) then
-			table.insert(conect, route[nw][counterLine])
-		end
-
-		counterLine = counterLine + 1
-	end
-
-	counterLine = 1
-
-	while route[firstNW][counterLine] do
-		if not belong(route[firstNW][counterLine], conect) then
-			table.insert(conect, route[firstNW][counterLine])
-		end
-
-		counterLine = counterLine + 1
-	end
-
-	return conect
-end
-
-local function checkNetworkDisconnected(lines)
-	local route = {}
-	local counterNetwork = 0
-
-	forEachCell(lines, function(line)
-		local crosses = false
-		local firstNW
-
-		for i = 1, counterNetwork do
-			local counterLine = 1
-
-			while route[i][counterLine] do
-				if line.geom:touches(route[i][counterLine].geom) and not crosses then
-					table.insert(route[i], line)
-					crosses = true
-					firstNW = i
-				elseif line.geom:touches(route[i][counterLine].geom) and crosses then
-					route[firstNW] = joinNetWork(route, firstNW, i)
-				end
-
-				counterLine = counterLine + 1
-			end
-		end
-
-		if not crosses then
-			counterNetwork = counterNetwork + 1
-			route[counterNetwork] = {}
-			table.insert(route[counterNetwork], line)
-		end
-	end)
-
-	if #route[1] ~= #lines then
-		customError("The network is disconected.")
-	end
-end
-
-local function closestPointFromSegment(line, geometry)
-	local x, y
-	local points = {line.firstPoint, line.lastPoint}
-	local p1x = points[1]:getX()
-	local p1y = points[1]:getY()
-	local p2 = {points[2]:getX() - p1x, points[2]:getY() - p1y}
-	local beginEqualsToEnd = (p2[1] * p2[1]) + (p2[2] * p2[2])
-
-	local p
-
-	if not string.find(geometry:getGeometryType(), "Point") then
-		p = geometry:getCentroid():clone()
-	else
-		p = geometry:getGeometryN(0)
-	end
-
-	-- Line already valid. It does not have two points in the same place.
-	local u = ((p:getX() - p1x) * p2[1] + (p:getY() - p1y) * p2[2]) / beginEqualsToEnd
-
-	if u > 1 then
-		u = 1
-	elseif u < 0 then
-		u = 0
-	end
-
-	x = p1x + u * p2[1]
-	y = p1y + u * p2[2]
-
---	print(type(p))
---	print(vardump(p))
---	if not p.getSRID then p = gis.TerraLib().castGeomToSubtype(p.geom:getGeometryN(0)) end
-
-	local point = createPoint(x, y, geometry:getSRID())
-
-	return point
-end
-
-local function buildPointTarget(lines, target)
-	local arrayTargetLine = {}
-	local counterTarget = 1
-	local targetLine = 0
-
-	forEachCell(target, function(targetPoint)
-		local geometry = targetPoint.geom:getGeometryN(0)
-		local distance
-		local minDistance = math.huge
-		local point
-		local pointTarget
-		targetPoint.pointID = counterTarget
-
-		forEachCell(lines, function(line)
-			local geometryLine = line.lineObj
-			local pointLine = closestPointFromSegment(line, targetPoint.geom)
-			local distancePL = geometry:distance(pointLine)
-
-			for i = 1, #line.points do
-				point = line.points[i]
-				distance = geometry:distance(point)
-
-				if distancePL < distance and line.geom:distance(pointLine) <= 0 then
-					distance = distancePL
-					point = pointLine
-				end
-
-				if distance < minDistance then
-					minDistance = distance
-					targetLine = line
-					pointTarget = point
-				end
-			end
-		end)
-
-		if targetLine ~= nil then
-			targetLine.targetPoint = pointTarget
-			targetLine.pointDistance = minDistance
-			arrayTargetLine[counterTarget] = targetLine
-			counterTarget = counterTarget + 1
-		end
-	end)
-
-	return arrayTargetLine
-end
-
-local function checksInterconnectedNetwork(self)
-	local counterCellRed = 0
-	local counterLineError = 0
-	local netpoints = createConnectivity(self.lines)
-
-	forEachCell(self.lines, function(cellRed)
-		local geometryR = cellRed.lineObj
-		local bePointR = {cellRed.firstPoint, cellRed.lastPoint}
-		local lineValidates = false
-		local differance = math.huge
-		local distance
-		local redPoint
-		local idLineError = 0
-
-		cellRed.route = {}
-
-		for pointRed = 1, 2 do
-			redPoint = bePointR[pointRed]
-
-			local counterCellBlue = 0
-
-			forEachCell(self.lines, function(cellBlue)
-				local geometryB = cellBlue.lineObj
-
-				if geometryR:crosses(geometryB) then
-					counterLineError = counterLineError + 1
-					customError("Lines '"..cellRed.FID.."' and '"..cellBlue.FID.."' cross each other.")
-				end
-
-				local bePointB = {cellBlue.firstPoint, cellBlue.lastPoint}
-				local bluePoint
-
-				for pointBlue = 1, 2 do
-					bluePoint = bePointB[pointBlue]
-
-					if counterCellRed == counterCellBlue then break end
-
-					distance = redPoint:distance(bluePoint)
-
-					if distance <= self.error then
-						table.insert(cellRed.route, cellBlue)
-						lineValidates = true
-
-						-- if pointRed == 1 then -- TODO: unnecessary if
-							addRoute(netpoints[redPoint:asText()], bePointB)
-						--else
-						--	addRoute(netpoints[redPoint:asText()], geometryB)
-						--end
-					end
-
-					if differance > distance then
-						differance = distance
-						idLineError = cellRed.FID
-					end
-				end
-
-				counterCellBlue = counterCellBlue + 1
-			end)
-		end
-
-		if not lineValidates then
-			counterLineError = counterLineError + 1
-			customError("Line: '"..idLineError.."' does not touch any other line. The minimum distance found was: "..differance..".")
-		end
-
-		counterCellRed = counterCellRed + 1
-	end)
-
-	return netpoints
-end
-
-local function distanceFromRouteToNode(node, netpoint, weight, lines)
-	local change = false
-
-	forEachElement(node.route, function(neighbor)
-		local point = node.route[neighbor]
-
-		forEachCell(lines, function(line)
-			if line.geom:contains(node.point, netpoint[point].point) then
-				local distance = weight(netpoint[point].point:distance(node.point), line)
-
-				if node.distance > netpoint[point].distance + distance then
-					node.distance = netpoint[point].distance + distance
-					node.targetID = netpoint[point].targetID
-
-					change = true
-				end
-
-				if node.targetID == nil then
-					change = true
-				end
-			elseif isPointEndsConnected(line.firstPoint, line.lastPoint, node.point, netpoint[point].point) then
-				local distance = weight(netpoint[point].point:distance(node.point), line)
-
-				if node.distance > netpoint[point].distance + distance then
-					node.distance = netpoint[point].distance + distance
-					node.targetID = netpoint[point].targetID
-
-					change = true
-				end
-
-				if node.targetID == nil then
-					change = true
-				end
-			end
-		end)
-	end)
-
-	return change
-end
-
-local function buildDistanceWeight(target, netpoint, self)
-	local loopRoute = true
-	local change
-
-	forEachElement(target, function(targetLines)
-		local targetLine = target[targetLines]
-
-		if self.progress then
-			print(table.concat{"Reducing distances ", targetLines, "/", #target}) -- SKIP
-		end
-
-		forEachElement(targetLine.points, function(inTarget)
-			local point = targetLine.points[inTarget]
-			local pointTarget = targetLine.targetPoint
-			local referencePoint = netpoint[point:asText()]
-
-			local dist = self.weight(point:distance(pointTarget), targetLine)
-
-			if referencePoint.distance > dist then
-				referencePoint.distance = dist
-				referencePoint.targetID = targetLines
-			end
-		end)
-	end)
-
-	while loopRoute do
-		forEachElement(netpoint, function(node)
-			if distanceFromRouteToNode(netpoint[node], netpoint, self.weight, self.lines) then
-				change = false
-			end
-		end)
-
-		if change then
-			loopRoute = false
-		else
-			change = true
-		end
-	end
-end
-
-local function buildDistanceOutside(target, netpoint, self)
-	local i = 0
-
-	forEachElement(netpoint, function(inTarget)
-		local point = netpoint[inTarget].point
-
-		if self.progress then
-			i = i + 1 -- SKIP
-			print(table.concat{"Computing distance outside ", i, "/", getn(netpoint)}) -- SKIP
-		end
-
-		forEachElement(target, function(targetLines)
-			local targetLine = target[targetLines]
-			local pointTarget = targetLine.targetPoint
-			local referencePoint = netpoint[point:asText()]
-
-			local dist = self.outside(point:distance(pointTarget), targetLine)
-
-			if referencePoint.distanceOutside > dist then
-				referencePoint.distanceOutside = dist
-				referencePoint.targetIDOutside = targetLines
-			end
-		end)
-	end)
-end
-
-local function buildDistancePointTarget(self, target, lines, netpoint)
-	buildDistanceOutside(target, netpoint, self)
-	buildDistanceWeight(target, netpoint, self)
-
+local function createNode(point)
 	return {
-		netpoint = netpoint,
-		target = target,
-		lines = lines
+		point = point,
+		adjacents = {},
+		distance = math.huge,
+		distanceOutside = math.huge,
+		arcs = {} -- lines which the point belongs
 	}
 end
 
-local function createOpenNetwork(self)
-	local conectedLines = checksInterconnectedNetwork(self)
-	checkNetworkDisconnected(self.lines)
-	local targetPoints = buildPointTarget(self.lines, self.target)
-	local network = buildDistancePointTarget(self, targetPoints, self.lines, conectedLines)
+local function connectNodeToAdjacentPoint(node, point)
+	table.insert(node.adjacents, point:asText())
+end
 
-	return network
+local function connectNodeToAdjacentPointById(node, pointId)
+	table.insert(node.adjacents, pointId)
+end
+
+local function addNodeInGraphIfNodeNotExists(graph, id, point)
+	local node = createNode(point)
+	graph[id] = node
+end
+
+local function insertNodeArcRelation(node, arcId, line)
+	node.arcs[arcId] = line
+end
+
+local function insertNodeInGraph(graph, id, point, line)
+	if not graph[id] then
+		addNodeInGraphIfNodeNotExists(graph, id, point)
+	end
+
+	insertNodeArcRelation(graph[id], line.FID, line)
+end
+
+local function connectEndpointsOfLine(graph, line)
+	local lineObj = line.geom:getGeometryN(0)
+	local firstPoint = lineObj:getStartPoint()
+	local lastPoint = lineObj:getEndPoint()
+	local fpid = firstPoint:asText()
+	local lpid = lastPoint:asText()
+
+	insertNodeInGraph(graph, fpid, firstPoint, line)
+	connectNodeToAdjacentPoint(graph[fpid], lastPoint)
+
+	insertNodeInGraph(graph, lpid, lastPoint, line)
+	connectNodeToAdjacentPoint(graph[lpid], firstPoint)
+
+
+	line.firstPoint = {point = firstPoint, id = fpid}
+	line.lastPoint = {point = lastPoint, id = lpid}
+	line.lineObj = lineObj
+end
+
+local function connectInteriorPointsOfLine(graph, line)
+	local nPoints = line.lineObj:getNPoints()
+
+	if nPoints > 2 then
+		for i = 0, nPoints - 1 do
+			local currPoint = line.lineObj:getPointN(i)
+			local id = currPoint:asText()
+
+			insertNodeInGraph(graph, id, currPoint, line)
+
+			local afterPoint
+			local beforePoint
+
+			if i == 0 then
+				afterPoint = line.lineObj:getPointN(i + 1)
+				connectNodeToAdjacentPoint(graph[id], afterPoint)
+			elseif i == nPoints - 1 then
+				beforePoint = line.lineObj:getPointN(i - 1)
+				connectNodeToAdjacentPoint(graph[id], beforePoint)
+			else
+				beforePoint = line.lineObj:getPointN(i - 1)
+				afterPoint = line.lineObj:getPointN(i + 1)
+				connectNodeToAdjacentPoint(graph[id], beforePoint)
+				connectNodeToAdjacentPoint(graph[id], afterPoint)
+			end
+		end
+	end
+end
+
+local function hasConnectionWithAnotherLine(line, lines)
+	for i = 1, #lines do
+		if line.FID ~= lines[i].FID then
+			if line.lineObj:touches(lines[i].lineObj) then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
+local function checkIfAllLinesAreConnected(lines)
+	for i = 1, #lines.cells do
+		if not hasConnectionWithAnotherLine(lines.cells[i], lines.cells) then
+			customError("The network is disconected.")
+		end
+	end
+end
+
+local function checkIfLineCrossesError(lines)
+	for i = 1, #lines.cells do
+		for j = i + 1, #lines.cells do
+			if lines.cells[i].lineObj:crosses(lines.cells[j].lineObj) then
+				customError("Lines '"..lines.cells[i].FID.."' and '"..lines.cells[j].FID.."' cross each other.")
+			end
+		end
+	end
+end
+
+-- local cacheDistance = {}
+
+-- local function insertCacheDistance(p1Id, p2Id, distance)
+	-- cacheDistance[p1Id] = {}
+	-- cacheDistance[p1Id][p2Id] = distance
+	-- cacheDistance[p2Id] = {}
+	-- cacheDistance[p2Id][p1Id] = distance
+-- end
+
+-- TODO(avancinirodrigo): review cache's use
+-- local function getDistance(p1, p2)
+	-- --local distance
+
+	-- -- if not cacheDistance[p1.id] then --
+		-- -- distance = p1.point:distance(p2.point)
+		-- -- insertCacheDistance(p1.id, p2.id, distance)
+	-- -- elseif cacheDistance[p1.id][p2.id] then
+		-- -- distance = cacheDistance[p1.id][p2.id]
+	-- -- else
+		-- -- --if not cacheDistance[p1.id][p2.id] then
+		-- -- distance = p1.point:distance(p2.point)
+		-- -- insertCacheDistance(p1.id, p2.id, distance)
+	-- -- -- else
+		-- -- -- distance = cacheDistance[p1.id][p2.id]
+	-- -- end
+
+	-- -- return distance
+	-- return p1.point:distance(p2.point)
+-- end
+
+local function connectNodesToAdjacentLinesConsideringError(self, graph)
+	forEachCell(self.lines, function(lineA)
+		local endpointsA = {lineA.firstPoint, lineA.lastPoint}
+		local hasAdjacent = false
+		local minDistance = math.huge
+
+		for i = 1, #endpointsA do
+			local endpointA = endpointsA[i]
+
+			forEachCell(self.lines, function(lineB)
+				if lineB.FID ~= lineA.FID then
+					local endpointsB = {lineB.firstPoint, lineB.lastPoint}
+
+					for j = 1, #endpointsB do
+						local endpointB = endpointsB[j]
+						local distance = endpointA.point:distance(endpointB.point)
+
+						if distance <= self.error then
+							if j == 1 then
+								connectNodeToAdjacentPointById(graph[endpointA.id], endpointsB[2].id)
+							else
+								connectNodeToAdjacentPointById(graph[endpointA.id], endpointsB[1].id)
+							end
+
+							hasAdjacent = true
+						end
+
+						if minDistance > distance then
+							minDistance = distance
+						end
+					end
+				end
+			end)
+		end
+
+		if not hasAdjacent then
+			customError("Line: '"..lineA.FID.."' does not touch any other line. The minimum distance found was: "..minDistance..".")
+		end
+	end)
+end
+
+local function createInteriorRelationOfLines(self, graph)
+	forEachCell(self.lines, function(line)
+		connectEndpointsOfLine(graph, line)
+		connectInteriorPointsOfLine(graph, line)
+	end)
+end
+
+local function createConnectivityInfoGraph(self)
+	local graph = {}
+
+	createInteriorRelationOfLines(self, graph)
+	checkIfLineCrossesError(self.lines)
+	connectNodesToAdjacentLinesConsideringError(self, graph)
+	checkIfAllLinesAreConnected(self.lines) -- TODO: review this checking
+
+	return graph
+end
+
+local function addTargetInfoInLine(line, pointObj, distance)
+	line.closestPoint = pointObj:closestPoint(line.lineObj)
+	line.shortestPath = distance
+end
+
+-- TODO(avancinirodrigo): this method can be improved by some tree
+local function createClosestLinesToTargets(self)
+	local closestLinesToTargets = {}
+
+	forEachCell(self.target, function(target)
+		local pointObj = target.geom:getGeometryN(0)
+		local minDistance = math.huge
+		local targetLine
+
+		forEachCell(self.lines, function(line)
+			local distance = pointObj:distance(line.lineObj)
+
+			if distance < minDistance then
+				minDistance = distance
+				targetLine = line
+			end
+		end)
+
+		addTargetInfoInLine(targetLine, pointObj, minDistance)
+		table.insert(closestLinesToTargets, targetLine)
+	end)
+
+	return closestLinesToTargets
+end
+
+local function connectEachNodeToTargetClosestLines(self, graph, closestLinesToTargets)
+	local progress = 0
+	local graphSize = getn(graph)
+
+	forEachElement(graph, function(_, node)
+		local nodePoint = node.point
+
+		if self.progress then
+			progress = progress + 1 -- SKIP
+			print(table.concat{"Computing distance outside ", progress, "/", graphSize}) -- SKIP
+		end
+
+		for i = 1, #closestLinesToTargets do
+			local closestLine = closestLinesToTargets[i]
+			local distance = nodePoint:distance(closestLine.closestPoint)
+
+			if node.distanceOutside > distance then
+				node.distanceOutside = distance
+				node.targetIDOutside = i
+			end
+		end
+	end)
+end
+
+local function isWeightChanged(node, weight)
+	return node.distance > weight
+end
+
+local function insertNodeWeightInfo(node, weight, targetId)
+	node.distance = weight
+	node.targetID = targetId
+end
+
+local function calcWeightedDistance(p1Obj, p2Obj, weight, line)
+	local distance = p1Obj:distance(p2Obj)
+	return weight(distance, line)
+end
+
+local function includeWeightToNodesThatBelongClosestLines(self, graph, closestLinesToTargets)
+	for i = 1, #closestLinesToTargets do
+		local closestLine = closestLinesToTargets[i]
+
+		if self.progress then
+			print(table.concat{"Reducing distances ", i, "/", #closestLinesToTargets}) -- SKIP
+		end
+
+		local nPoints = closestLine.lineObj:getNPoints()
+
+		for j = 0, nPoints - 1 do
+			local point = closestLine.lineObj:getPointN(j)
+			local pointId = point:asText()
+			local distWeighted = calcWeightedDistance(point, closestLine.closestPoint,
+													self.weight, closestLine)
+			local node = graph[pointId]
+
+			if isWeightChanged(node, distWeighted) then
+				insertNodeWeightInfo(node, distWeighted, i)
+			end
+		end
+	end
+end
+
+local function isNodeWeighted(node)
+	return node.distance ~= math.huge
+end
+
+local function checkIfNodeWeightWasSetOrUpdated(node, adjacentNode, weight, line)
+	if isNodeWeighted(adjacentNode) then
+		local distWeighted = calcWeightedDistance(node.point, adjacentNode.point, weight, line)
+		distWeighted = distWeighted + adjacentNode.distance
+
+		if isWeightChanged(node, distWeighted) then
+			insertNodeWeightInfo(node, distWeighted, adjacentNode.targetID) --< insert means create or update
+			return true
+		end
+	end
+
+	return false
+end
+
+local function checkInNodeArcs(node, adjacentNode, weight)
+	local changed = false
+	for _, line in pairs(node.arcs) do
+		changed = checkIfNodeWeightWasSetOrUpdated(node, adjacentNode, weight, line)
+	end
+	return changed
+end
+
+local function checkInAdjancentNodeArcs(node, adjacentNode, weight)
+	local changed = false
+
+	for id, line in pairs(adjacentNode.arcs) do
+		if not node.arcs[id] then --< don't need to check again, it was already checked above
+			changed = checkIfNodeWeightWasSetOrUpdated(node, adjacentNode, weight, line)
+		end
+	end
+
+	return changed
+end
+
+local function checkIfNodeWeightWasChangedByAdjacentNode(node, adjacentNode, weight)
+	return checkInNodeArcs(node, adjacentNode, weight) or
+			checkInAdjancentNodeArcs(node, adjacentNode, weight)
+end
+
+local function checkIfNodeWeightWasChanged(self, graph, node)
+	local changed = false
+
+	for i = 1, #node.adjacents do
+		local adjacentId = node.adjacents[i]
+		local adjacentNode = graph[adjacentId]
+		changed = checkIfNodeWeightWasChangedByAdjacentNode(node, adjacentNode, self.weight)
+	end
+
+	return changed
+end
+
+local function hasWeightToInclude(self, graph)
+	local changed = false
+
+	forEachElement(graph, function(_, node)
+		if checkIfNodeWeightWasChanged(self, graph, node) then
+			changed = true
+		end
+	end)
+
+	return changed
+end
+
+local function includeWeightToAllNodes(self, graph)
+	while hasWeightToInclude(self, graph) do end
+end
+
+local function createOpenNetwork(self)
+	local graph = createConnectivityInfoGraph(self)
+	local closestLinesToTargets = createClosestLinesToTargets(self)
+
+	connectEachNodeToTargetClosestLines(self, graph, closestLinesToTargets)
+	includeWeightToNodesThatBelongClosestLines(self, graph, closestLinesToTargets)
+	includeWeightToAllNodes(self, graph)
+
+	return {
+		netpoint = graph,
+		target = closestLinesToTargets,
+		lines = self.lines
+	}
 end
 
 Network_ = {
