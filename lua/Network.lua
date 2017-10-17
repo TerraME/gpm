@@ -269,9 +269,10 @@ local function connectEachNodeToTargetClosestLines(self, graph, closestLinesToTa
 		for i = 1, #closestLinesToTargets do
 			local closestLine = closestLinesToTargets[i]
 			local distance = nodePoint:distance(closestLine.closestPoint)
+			local outDist = self.outside(distance, closestLine)
 
-			if node.distanceOutside > distance then
-				node.distanceOutside = distance
+			if node.distanceOutside > outDist then
+				node.distanceOutside = outDist
 				node.targetIDOutside = i
 			end
 		end
