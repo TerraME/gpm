@@ -12,9 +12,9 @@ local network = Network{
 	progress = false,
 	weight = function(distance, cell)
 		if cell.STATUS == "paved" then
-			return distance / 5
+			return distance * 0.2
 		else
-			return distance / 2
+			return distance * 0.5
 		end
 	end,
 	outside = function(distance) return distance * 2 end
