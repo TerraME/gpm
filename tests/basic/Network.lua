@@ -1,46 +1,109 @@
-local function sumDistanceByNext(node)
-	local next = node.next
-	local sum = 0 --node.distance
-	local currNode = node
-	while next do
-		sum = sum + next.distance - currNode.distance
-		-- if node.line.id == 28 then
-			-- _Gtme.print(sum, next.distance - currNode.distance, next.pos)
+-- local function sumDistanceByNext(node)
+	-- local next = node.next
+	-- local sum = 0 --node.distance
+	-- local currNode = node
+	-- while next do
+		-- if next.last then
+			-- sum = sum + next.distance - currNode.distance
+			-- for i = 1, #next.next do
+				-- sum = sum + sumDistanceByNext(next.next[i]) + next.next[i].distance - next.distance
+			-- end
+			-- return sum
+		-- else
+			-- sum = sum + next.distance - currNode.distance
+		-- -- if node.line.id == 28 then
+			-- -- _Gtme.print(sum, next.distance - currNode.distance, next.pos)
+		-- -- end
 		-- end
-		currNode = next
-		next = next.next
+		-- currNode = next
+		-- next = next.next
+	-- end
+
+	-- return sum
+-- end
+
+-- local function sumDistanceByPrevious(node)
+	-- local previous = node.previous
+	-- local sum = 0
+	-- local currNode = node
+
+	-- while previous do
+		-- if previous.first then
+			-- --_Gtme.print("first", #previous.previous)
+			-- sum = sum + previous.distance - currNode.distance
+			-- for i = 1, #previous.previous do
+				-- --_Gtme.print(previous.pos, previous.previous[i].pos)
+				-- --_Gtme.print(previous.distance,  previous.previous[i].distance, previous.previous[i].distance - previous.distance)
+				-- sum = sum + sumDistanceByPrevious(previous.previous[i]) + previous.previous[i].distance - previous.distance
+
+			-- end
+			-- return sum
+		-- else
+			-- sum = sum + previous.distance - currNode.distance
+			-- -- if (node.line.id == 28) or (node.line.id == 26) then
+				-- -- _Gtme.print(previous.distance - currNode.distance, currNode.pos, previous.pos)
+			-- -- end
+		-- end
+		-- currNode = previous
+		-- previous = previous.previous
+	-- end
+
+	-- return sum
+-- end
+
+local function sumPreviousDistances(node)
+	-- if not previousNode then
+		-- return 0
+	-- end
+	local previousNode = node.previous
+	local currNode = node
+	local sum = 0
+
+	while previousNode do
+		if currNode.router then
+			--_Gtme.print("currNode router", currNode.line.id)
+			for i = 1, #currNode.previous do
+				local dt = currNode.previous[i].distance - currNode.distance
+				sum = sum + sumPreviousDistances(currNode.previous[i]) + dt
+			end
+			return sum			
+		end
+		--_Gtme.print(previousNode.line.id, previousNode.pos)
+		local delta = previousNode.distance - currNode.distance
+		sum = sum + delta
+
+		if previousNode.router then
+			--_Gtme.print("-----------------------------")
+			--_Gtme.print("previous router", previousNode.line.id)
+			--_Gtme.print("router", #previousNode.previous)
+			for i = 1, #previousNode.previous do
+				local dt = previousNode.previous[i].distance - previousNode.distance
+				--_Gtme.print("previous line", previousNode.previous[i].line.id)
+				sum = sum + sumPreviousDistances(previousNode.previous[i]) + dt
+			end
+			return sum
+		end
+		--_Gtme.print(previousNode.line.id, currNode.line.id)
+		currNode = previousNode
+		previousNode = previousNode.previous
 	end
+
+	-- if previousNode.router then
+		-- for i = 1, #previousNode.previous do
+			-- return node.distance - previousNode.distance + sumPreviousDistances(previousNode, previousNode.previous[i])
+		-- end
+	-- --elseif not node.router then
+		-- return 0
+	-- end
 	
+	-- return previousNode.distance - node.distance + sumPreviousDistances(previousNode, previousNode.previous)	
+
 	return sum
 end
 
-local function sumDistanceByPrevious(node)
-	local previous = node.previous
-	local sum = 0
-	local currNode = node
-
-	while previous do
-		if previous.first then
-			--_Gtme.print("first", #previous.previous)
-			sum = sum + previous.distance - currNode.distance
-			for i = 1, #previous.previous do
-				--_Gtme.print(previous.pos, previous.previous[i].pos)
-				--_Gtme.print(previous.distance,  previous.previous[i].distance, previous.previous[i].distance - previous.distance)
-				sum = sum + sumDistanceByPrevious(previous.previous[i]) + previous.previous[i].distance - previous.distance
-			
-			end
-			return sum		
-		else
-			sum = sum + previous.distance - currNode.distance
-			-- if (node.line.id == 28) or (node.line.id == 26) then
-				-- _Gtme.print(previous.distance - currNode.distance, currNode.pos, previous.pos)
-			-- end		
-		end
-		currNode = previous
-		previous = previous.previous		
-	end	
-	
-	return sum
+local function sumDistances(targetNode)
+	return sumPreviousDistances(targetNode.first) + sumPreviousDistances(targetNode.second)
+			+ targetNode.first.distance + targetNode.second.distance - 2*targetNode.distance
 end
 
 local function testNetpointsDistances(unitTest, netpoints, targetNode, targetLine, lines)
@@ -76,28 +139,139 @@ local function testNetpointsDistances(unitTest, netpoints, targetNode, targetLin
 				-- _Gtme.print(acumDistance, currPoint:distance(nextPoint), i)
 			-- end
 		end
-		
-		if targetLine.id == 8 then
-			acumDistance = acumDistance + 743.63102767576 --879.62852450418
-			lineLength = lineLength + 743.63102767576 --879.62852450418
-		end
+
+		-- if targetLine.id == 8 then
+			-- acumDistance = acumDistance + 743.63102767576
+			-- lineLength = lineLength + 743.63102767576
+		-- end
 	end
 	--_Gtme.print("--------------------------")
 
 	unitTest:assertEquals(acumDistance, lineLength, 1.0e-10)
 	_Gtme.print(targetLine.id)
-	local totalDistance = sumDistanceByNext(targetNode) + sumDistanceByPrevious(targetNode)
+	local totalDistance = sumDistances(targetNode) --sumDistanceByNext(targetNode) + sumDistanceByPrevious(targetNode)
 
-
+		-- _Gtme.print("-----++++++++++++++++++++++++++++")
+		-- local nline = 13
+		-- if lines[nline] then
+			-- local sum = 0
+			-- for i = 0, lines[nline].npoints - 2 do
+				-- local pi = lines[nline].geom:getPointN(i)
+				-- local pi1 = lines[nline].geom:getPointN(i + 1)
+				-- local dif = pi1:distance(pi)
+				-- _Gtme.print(dif)
+				-- _Gtme.print(netpoints[pi:asText()].targetId, netpoints[pi:asText()].previous) --, netpoints[pi:asText()].previous.line.id)
+				-- -- for k, v in pairs (netpoints[pi:asText()].previous) do
+					-- -- _Gtme.print("**", k, v, v.line.id)
+				-- -- end
+				-- --_Gtme.print(netpoints[pi1:asText()].targetId, netpoints[pi1:asText()].previous, netpoints[pi1:asText()].previous.line.id)
+				-- sum = sum + dif
+			-- end
+			-- _Gtme.print("length", lines[nline].geom:getLength(), sum)
+		-- end	
+		
+	unitTest:assertEquals(getn(netpoints), 245)	
+	
 	if targetLine.id == 28 then
-		acumDistance = acumDistance + lines[26].geom:getLength() -- + lines[27].geom:getLength()
+		--_Gtme.print(lines[15].geom:getLength() - 525.19123580594)
+		acumDistance = acumDistance
+									-- adjancent lines
+									-- isAdjacentByPoints(endpointsTarget.start, endpointsLine.start)
+									+ lines[26].geom:getLength()
+									-- isAdjacentByPoints(endpointsTarget.start, endpointsLine.end)
+									+ lines[27].geom:getLength()
+									-- isAdjacentByPoints(endpointsTarget.last, endpointsLine.start)
+									+ lines[24].geom:getLength()
+
+									-- non-adjancent lines
+									--isAdjacentByPoints(endpointsLine.first, endpointsULine.last)
+									+ lines[15].geom:getLength() - 525.19123580594 --< distance entering in line 15 by line 10
+									+ lines[17].geom:getLength()
+									-- isAdjacentByPoints(endpointsLine.last, endpointsULine.first)
+									+ lines[25].geom:getLength()
 	elseif targetLine.id == 18 then
-		acumDistance = acumDistance + lines[0].geom:getLength() --+ lines[37].geom:getLength()
-	-- elseif targetLine.id == 8 then
-		-- acumDistance = acumDistance + lines[1].geom:getLength() + lines[35].geom:getLength()
+		--_Gtme.print(lines[3].geom:getLength())
+		acumDistance = acumDistance
+									-- adjancent lines
+									-- isAdjacentByPoints(endpointsTarget.start, endpointsLine.start)
+									+ lines[0].geom:getLength()
+									-- isAdjacentByPoints(endpointsTarget.start, endpointsLine.end)
+									+ lines[37].geom:getLength()
+
+									-- non-adjancent lines
+									-- isAdjacentByPoints(endpointsLine.first, endpointsULine.first)
+									+ lines[13].geom:getLength()
+									--+ lines[3].geom:getLength()
+									+ lines[36].geom:getLength() - 449.43410125262 --< distance entering in line 36 by line 8
+
+									-- isAdjacentByPoints(endpointsLine.first, endpointsULine.last)
+									+ lines[32].geom:getLength() + lines[16].geom:getLength()
+									--+ lines[33].geom:getLength() --< removed by line 8
+									-- isAdjacentByPoints(endpointsLine.last, endpointsULine.first)
+									+ lines[3].geom:getLength()
+	elseif targetLine.id == 8 then
+		--_Gtme.print(lines[36].geom:getLength() - 407.49787123649)
+		--_Gtme.print(lines[36].geom:getLength() - 186.44783835029)
+		acumDistance = acumDistance + lines[10].geom:getLength() - 5033.3341288441 --< distance entering in line 10 by line 8
+									
+									-- adjancent lines
+									-- isAdjacentByPoints(endpointsTarget.start, endpointsLine.end)
+									+ lines[1].geom:getLength() + lines[35].geom:getLength()
+									-- isAdjacentByPoints(endpointsTarget.last, endpointsLine.start)
+									+ lines[20].geom:getLength()
+									-- isAdjacentByPoints(endpointsTarget.last, endpointsLine.last)
+									+ lines[19].geom:getLength()
+
+									-- non-adjancent lines
+									-- isAdjacentByPoints(endpointsLine.first, endpointsULine.first)
+									+ lines[36].geom:getLength() - 670.48413413882 --< distance entering in line 36 by line 18
+									-- isAdjacentByPoints(endpointsLine.first, endpointsULine.last)
+									+ lines[34].geom:getLength()
+									--+ lines[33].geom:getLength() --< removed by line 18
+									--+ lines[16].geom:getLength() --< removed by line 18
+									--+ lines[32].geom:getLength() --< removed by line 18
+									-- isAdjacentByPoints(endpointsLine.last, endpointsULine.first)									
+									+ lines[30].geom:getLength() + lines[21].geom:getLength() 
+									+ lines[31].geom:getLength()
+	elseif targetLine.id == 10 then
+		acumDistance = acumDistance
+									-- adjancent lines
+									-- isAdjacentByPoints(endpointsTarget.last, endpointsLine.start)
+									+ lines[7].geom:getLength()
+									-- isAdjacentByPoints(endpointsTarget.last, endpointsLine.last)
+									+ lines[29].geom:getLength()
+
+									-- non-adjancent lines
+									--+ lines[15].geom:getLength()
 	end
 
 	unitTest:assertEquals(totalDistance, acumDistance, 1.0e-10)
+end
+
+local function testPreviousDataConnections(unitTest, node, previousNode)
+	if not previousNode then
+		return
+	end
+
+	if previousNode.router then
+		unitTest:assert(#previousNode.previous > 1)
+		for i = 1, #previousNode.previous do
+			testPreviousDataConnections(unitTest, previousNode, previousNode.previous[i])
+		end
+	elseif not node.router then
+		unitTest:assertEquals(node.targetId, previousNode.targetId)
+		unitTest:assertEquals(previousNode.next.id, node.id)
+		unitTest:assert(previousNode.distance > node.distance)
+	end
+	
+	unitTest:assertNotNil(node.line)
+
+	testPreviousDataConnections(unitTest, previousNode, previousNode.previous)
+end
+
+local function testDataConnections(unitTest, targetNode)
+	testPreviousDataConnections(unitTest, targetNode, targetNode.first)
+	testPreviousDataConnections(unitTest, targetNode, targetNode.second)
 end
 
 local function testNetpointsConnections(unitTest, netpoints, targetNode, targetLine)
@@ -127,63 +301,27 @@ local function testNetpointsConnections(unitTest, netpoints, targetNode, targetL
 			end
 		end
 	end
-	
+
 	local secPointIdx
-	
+
+	unitTest:assertEquals(targetNode.first.id, firstNode.id)
+	unitTest:assertEquals(firstNode.next.id, targetNode.id)
+
 	if targetLine.id == 10 then
-		unitTest:assertEquals(targetNode.previous.point:asText(), firstNode.point:asText())
+		--unitTest:assertEquals(targetNode.first.point:asText(), firstNode.point:asText()) -- SKIP
 		secPointIdx = firstPointIdx + 1
 	else
-		unitTest:assertEquals(targetNode.next.point:asText(), firstNode.point:asText())
+		--unitTest:assertEquals(targetNode.first.point:asText(), firstNode.point:asText()) -- SKIP
 		secPointIdx = firstPointIdx - 1
 	end
 
 	local secPoint = targetLine.geom:getPointN(secPointIdx)
 	local secNode = netpoints[secPoint:asText()]
-	
-	if targetLine.id == 10 then
-		unitTest:assertEquals(secNode.previous.point:asText(), targetNode.point:asText())
-	else
-		unitTest:assertEquals(secNode.next.point:asText(), targetNode.point:asText())
-	end	
 
-	local previousNode = firstNode
+	unitTest:assertEquals(targetNode.second.id, secNode.id)
+	unitTest:assertEquals(secNode.next.id, targetNode.id)
 
-	for i = firstPointIdx + 1, npoints - 1 do
-		local point = targetLine.geom:getPointN(i)
-		local nodeId = point:asText()
-		unitTest:assert(netpoints[nodeId].distance > previousNode.distance)
-		if (targetLine.id == 10) and (i > secPointIdx) or (targetLine.id ~= 10) then
-			if previousNode.next then
-				unitTest:assertEquals(previousNode.next.point:asText(), nodeId)
-			end
-		end
-		previousNode = netpoints[nodeId]
-	end
-	
-	local i
-	
-	if targetLine.id == 10 then
-		i = firstPointIdx - 1
-		previousNode = firstNode
-		while i >= 6 do
-			local point = targetLine.geom:getPointN(i)
-			local nodeId = point:asText()
-			unitTest:assert(netpoints[nodeId].distance > previousNode.distance)
-			previousNode = netpoints[nodeId]
-			i = i - 1
-		end		
-	else
-		i = secPointIdx - 1
-		previousNode = secNode
-		while i >= 0 do
-			local point = targetLine.geom:getPointN(i)
-			local nodeId = point:asText()
-			unitTest:assert(netpoints[nodeId].distance > previousNode.distance)
-			previousNode = netpoints[nodeId]
-			i = i - 1
-		end		
-	end
+	testDataConnections(unitTest, targetNode)
 end
 
 return {
@@ -242,8 +380,6 @@ return {
 		unitTest:assertEquals(network1.netpoints[network1.lines[8].closestPoint.id].distance, network1.lines[8].shortestPath)
 		unitTest:assertEquals(network1.netpoints[network1.lines[18].closestPoint.id].distance, network1.lines[18].shortestPath)
 		unitTest:assertEquals(network1.netpoints[network1.lines[28].closestPoint.id].distance, network1.lines[28].shortestPath)
-
-		unitTest:assertEquals(getn(network1.netpoints), 111)
 
 		local targetNodes = {}
 
