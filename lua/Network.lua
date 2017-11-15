@@ -551,33 +551,36 @@ end
 
 -- Template Method
 -- Warning: this method is overwrited in some places
-local function linkNodeToNext(newNode, nextNode)
-	newNode.next = nextNode
-	newNode.targetId = nextNode.targetId
+local function linkNodeToNext(node, nextNode)
+	node.next = nextNode
+	node.targetId = nextNode.targetId
 
 	if nextNode.previous then
-		_Gtme.print("insert", nextNode.line.id, newNode.line.id)
+		--_Gtme.print("insert", nextNode.line.id, node.line.id)
 		if nextNode.router then
-			_Gtme.print("router already")
-			for i = 1, #nextNode.previous do
-				_Gtme.print(i, nextNode.previous[i].line.id)
-			end
-			table.insert(nextNode.previous, newNode)
+			--_Gtme.print("router already")
+			--for i = 1, #nextNode.previous do
+			--	_Gtme.print("--", i, nextNode.previous[i].line.id)
+			--end
+			table.insert(nextNode.previous, node)
+			--for i = 1, #nextNode.previous do
+			--	_Gtme.print("---", i, nextNode.previous[i].line.id)
+			--end			
 		else
-			_Gtme.print("not router")
+			--_Gtme.print("not router")
 			nextNode.router = true
 			local nextNodePrevious = nextNode.previous
-			_Gtme.print("line", nextNodePrevious.line.id)
-			if nextNodePrevious.router then
-				customError("router!!!!")
-			end
+			--_Gtme.print("line", nextNodePrevious.line.id)
+			-- if nextNodePrevious.router then
+				-- customError("router!!!!")
+			-- end
 			nextNode.previous = {}
 			table.insert(nextNode.previous, nextNodePrevious)
-			table.insert(nextNode.previous, newNode)
-			--_Gtme.print(nextNode.distance - newNode.distance, nextNode.distance - nextNodePrevious.distance)
+			table.insert(nextNode.previous, node)
+			--_Gtme.print(nextNode.distance - node.distance, nextNode.distance - nextNodePrevious.distance)
 		end
 	else
-		nextNode.previous = newNode
+		nextNode.previous = node
 	end
 end
 
@@ -627,7 +630,6 @@ local function relinkToNextNode(node, nextNode, newDistance)
 	nextNode.distance = newDistance
 	--node.previous = nextNode
 	--nextNode.next = node
-
 	linkNodeToNext(nextNode, node)
 
 	if not nextNode.router then
@@ -640,27 +642,64 @@ local function recalculatePreviousDistances(node, previousNode)
 	if not previousNode then
 		return
 	end
+	
+	--_Gtme.print(node.targetId, previousNode.targetId)
 
 	local newDistance = calculateFullDistance(node, previousNode)
 	previousNode.distance = newDistance
 	previousNode.targetId = node.targetId
+	--relinkToNextNode(node, previousNode, newDistance)
 	recalculatePreviousDistances(previousNode, previousNode.previous)
 end
 
-local function reviewRouterNode(routerNode, node)
+local function removeOldRoute(routerNode, node) -- TODO: improve this name
 	for i = 1, #routerNode.previous do
 		if routerNode.previous[i].line.id == node.line.id then
-			routerNode.previous[i] = nil
-		else
+			table.remove(routerNode.previous, i)
+			return
+		end
+	end
+end
+
+local function reviewRouterNode(routerNode, node)
+	--local previousCopy 
+	--local routeToRemove
+	removeOldRoute(routerNode, node)
+	
+	for i = 1, #routerNode.previous do
+		--_Gtme.print(routerNode.previous[i].line.id, node.line.id)
+		--if routerNode.previous[i].line.id == node.line.id then
+			--_Gtme.print("removed", node.line.id)
+			--routerNode.previous[i] = nil
+			--table.remove(routerNode, i)
+			--table.insert(toRemove, i)
+		--	routeToRemove = i
+		--else
+		if routerNode.targetId ~= routerNode.previous[i].targetId then
+			--_Gtme.print("recalculatePreviousDistances", routerNode.targetId,  
+			--			routerNode.previous[i].targetId, routerNode.previous[i].line.id)
 			recalculatePreviousDistances(routerNode, routerNode.previous[i])
 		end
 	end
-
+	
+	--for i = 1, #toRemove do
+		--routerNode.previous[toRemove[i]] = nil
+	--table.remove(routerNode.previous, routeToRemove)
+	--end
+	
+	-- for i = 1, #routerNode.previous do
+		-- _Gtme.print("-+", i, routerNode.previous[i].line.id)
+	-- end
+	
 	if #routerNode.previous == 1 then
 		local routeNodePrevious =  routerNode.previous[1]
 		routerNode.previous = routeNodePrevious
 		routerNode.router = nil
 	end
+	
+	-- for i = 1, #routerNode.previous do
+		-- _Gtme.print("+", i, routerNode.previous[i].line.id)
+	-- end
 end
 
 local function reviewNextNodes(node, nextNode)
@@ -675,20 +714,28 @@ local function reviewNextNodes(node, nextNode)
 
 		return
 	end
-
+	
 	local newDistance = calculateFullDistance(node, nextNode)
 
 	if nextNode.distance > newDistance then
+		-- if node.router then
+			-- -- --customError("router   "..node.line.id)
+			-- -- node.line = 
+			-- -- table.insert(node.previous, nextNode)
+			-- reviewRouterNode(node, nextNode)
+			-- return
+		-- end		
 		local nextNodeNext = nextNode.next
-		relinkToNextNode(node, nextNode, newDistance)
+		relinkToNextNode(node, nextNode, newDistance)		
 		reviewNextNodes(nextNode, nextNodeNext)
-	else
+	elseif not nextNode.router then
 		nextNode.previous = nil
 	end
-
+	
 	if nextNode.router then
+		nextNode.line = node.line -- TODO: review a better place
 		reviewRouterNode(nextNode, node)
-	end
+	end		
 end
 
 local function reviewExistingNode(graph, existingNode, currNode, newPosition)
@@ -750,10 +797,10 @@ end
 
 local function addAllNodesOfLineForward(graph, line, node, nodePosition)
 	local npoints = line.npoints
-	if line.id == 3 then
-		_Gtme.print("$$$$$$$$$$$$$$$$$$$$$$$")
-		_Gtme.print(line.id, npoints)
-	end
+	-- if line.id == 3 then
+		-- _Gtme.print("$$$$$$$$$$$$$$$$$$$$$$$")
+		-- _Gtme.print(line.id, npoints)
+	-- end
 	if nodePosition == npoints - 1 then
 		return
 	else
@@ -763,10 +810,10 @@ local function addAllNodesOfLineForward(graph, line, node, nodePosition)
 			local nodeId = point:asText()
 
 			if nodeExists(graph[nodeId]) then
-				_Gtme.print("node exists to right", currNode.targetId, currNode.line.id)
+				_Gtme.print("node exists to right", currNode.targetId, currNode.line.id, graph[nodeId].line.id)
 				reviewExistingNode(graph, graph[nodeId], currNode, i)
 			else
-				_Gtme.print(i)
+				--_Gtme.print(i)
 				local nextNode = createNodeByNextPoint(graph, point, i, currNode, line)
 				linkNodeToNext(nextNode, currNode)
 				currNode = nextNode
@@ -1054,7 +1101,9 @@ local function addNodesForward(self, targetLine, point, line)
 	local node = self.netpoints[nid]
 
 	if isNodeBelongingToTargetLine(node, targetLine) then
-		_Gtme.print("addNodesForward", node.targetId, targetLine.id, line.id, line.npoints, line.geom:getLength(), node.distance) --, node.line.geom:getLength())
+		--if node.targetId == 8 then
+		_Gtme.print("addNodesForwardd", node.targetId, targetLine.id, line.id, line.npoints, line.geom:getLength(), node.distance) --, node.line.geom:getLength())
+		--end
 		addAllNodesOfLineForward(self.netpoints, line, node, 0)
 		computedLines[line.id] = line
 	end
@@ -1065,7 +1114,9 @@ local function addNodesBackward(self, targetLine, point, line)
 	local node = self.netpoints[nid]
 
 	if isNodeBelongingToTargetLine(node, targetLine) then
+		--if node.targetId == 8 then
 		_Gtme.print("addNodesBackward", node.targetId, node.line.id, targetLine.id, line.id, line.npoints, line.geom:getLength(), node.distance)
+		--end
 		addAllNodesOfLineBackward(self.netpoints, line, node, line.npoints - 1)
 		computedLines[line.id] = line
 	end
@@ -1132,15 +1183,21 @@ local function addNodesFromNonAdjacentsToTargetLines(self)
 								-- )						
 								then
 							addNodesForward(self, line, endpointsLine.last, uline)
-							-- addNodesWhenPointsAreLastAndFirst(self, line, endpointsLine.last, uline)
-						-- elseif isAdjacentByPoints(endpointsLine.last, endpointsULine.last) then
+						elseif isAdjacentByPoints(endpointsLine.last, endpointsULine.last) 
+									and ((uline.id == 9)
+									or (uline.id == 14)
+								)
+								then
 							-- addNodesWhenPointsAreBothLast(self, line, endpointsLine.last, uline)
+							addNodesBackward(self, line, endpointsLine.last, uline)
 						end
 					--end
 				end
 			end)
 		end
 	end)
+	_Gtme.print("computedLines-------------->", getn(computedLines) + getn(targetLines))
+	_Gtme.print("uncomputedLines-------------->", getn(self.lines) - (getn(computedLines) + getn(targetLines)))
 end
 
 local function createConnectivityInfoGraph(self)
