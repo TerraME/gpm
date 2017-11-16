@@ -139,7 +139,7 @@ local function testNetpointsDistances(unitTest, netpoints, targetNode, targetLin
 			-- _Gtme.print("length", lines[nline].geom:getLength(), sum, sumAux, sum - sumAux)
 		-- end	
 		
-	unitTest:assertEquals(getn(netpoints), 297)	
+	unitTest:assertEquals(getn(netpoints), 340)	
 	
 	if targetLine.id == 28 then
 		--_Gtme.print(lines[15].geom:getLength() - 525.19123580594)
@@ -176,10 +176,16 @@ local function testNetpointsDistances(unitTest, netpoints, targetNode, targetLin
 									+ lines[36].geom:getLength() - 449.43410125262 --< distance entering in line 36 by line 8
 
 									-- isAdjacentByPoints(endpointsLine.first, endpointsULine.last)
-									+ lines[32].geom:getLength() + lines[16].geom:getLength()
+									+ lines[32].geom:getLength() 
+									+ lines[16].geom:getLength()
 									--+ lines[33].geom:getLength() --< removed by line 8
 									-- isAdjacentByPoints(endpointsLine.last, endpointsULine.first)
 									+ lines[3].geom:getLength()
+									-- adjancent to non-adjancent and so on
+									+ lines[4].geom:getLength()
+									+ lines[5].geom:getLength()
+									+ lines[2].geom:getLength()
+									+ lines[22].geom:getLength()
 	elseif targetLine.id == 8 then
 		--_Gtme.print(lines[36].geom:getLength() - 407.49787123649)
 		--_Gtme.print(lines[14].geom:getLength())
@@ -209,6 +215,8 @@ local function testNetpointsDistances(unitTest, netpoints, targetNode, targetLin
 									+ lines[12].geom:getLength()
 									+ lines[6].geom:getLength()
 									+ lines[14].geom:getLength() - 4396.0403189702
+									+ lines[11].geom:getLength()
+									+ lines[23].geom:getLength()
 	elseif targetLine.id == 10 then
 		acumDistance = acumDistance
 									-- adjancent lines
