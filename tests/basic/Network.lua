@@ -237,6 +237,32 @@ local function testNetpointsConnections(unitTest, netpoints, targetNode, targetL
 	testDataConnections(unitTest, targetNode)
 end
 
+local function getTagetNodes(network)
+	local targetNodes = {}
+
+	forEachElement(network.netpoints, function(_, netpoint)
+		if netpoint.line.id == 8 then
+			if netpoint.target then
+				targetNodes[8] = netpoint
+			end
+		elseif netpoint.line.id == 10 then
+			if netpoint.target then
+				targetNodes[10] = netpoint
+			end
+		elseif netpoint.line.id == 18 then
+			if netpoint.target then
+				targetNodes[18] = netpoint
+			end
+		elseif netpoint.line.id == 28 then
+			if netpoint.target then
+				targetNodes[28] = netpoint
+			end
+		end
+	end)
+
+	return targetNodes
+end
+
 return {
 	Network = function(unitTest)
 		local roads = CellularSpace{
@@ -251,7 +277,7 @@ return {
 			lines = roads,
 			target = communities,
 			progress = false,
-			weight = function(distance, cell) -- weights is only the distance
+			weight = function(distance) -- weights is only the distance
 				return distance
 			end,
 			outside = function(distance)
@@ -272,7 +298,7 @@ return {
 		unitTest:assertEquals(network1.lines[18].shortestPath, 83.520707733564, 1.0e-10)
 		unitTest:assertEquals(network1.lines[28].shortestPath, 1041.9740663377, 1.0e-10)
 
-		forEachElement(network1.lines, function(id, line)
+		forEachElement(network1.lines, function(id)
 			if not ((id == 8) or (id == 10) or (id == 18) or (id == 28)) then
 				unitTest:assertNil(network1.lines[id].shortestPath)
 			end
@@ -283,29 +309,17 @@ return {
 		unitTest:assertEquals(network1.netpoints[network1.lines[18].closestPoint.id].distance, network1.lines[18].shortestPath)
 		unitTest:assertEquals(network1.netpoints[network1.lines[28].closestPoint.id].distance, network1.lines[28].shortestPath)
 
-		local targetNodes = {}
+		local targetNodes = getTagetNodes(network1)
 
 		forEachElement(network1.netpoints, function(_, netpoint)
 			if netpoint.line.id == 8 then
 				unitTest:assert(netpoint.distance >= network1.lines[8].shortestPath)
-				if netpoint.target then
-					targetNodes[8] = netpoint
-				end
 			elseif netpoint.line.id == 10 then
 				unitTest:assert(netpoint.distance >= network1.lines[10].shortestPath)
-				if netpoint.target then
-					targetNodes[10] = netpoint
-				end
 			elseif netpoint.line.id == 18 then
 				unitTest:assert(netpoint.distance >= network1.lines[18].shortestPath)
-				if netpoint.target then
-					targetNodes[18] = netpoint
-				end
 			elseif netpoint.line.id == 28 then
 				unitTest:assert(netpoint.distance >= network1.lines[28].shortestPath)
-				if netpoint.target then
-					targetNodes[28] = netpoint
-				end
 			end
 		end)
 
@@ -313,9 +327,69 @@ return {
 			testNetpointsDistances(unitTest, network1.netpoints, targetNodes[i], network1.lines[i], network1.lines)
 			testNetpointsConnections(unitTest, network1.netpoints, targetNodes[i], network1.lines[i])
 		end)
-		
-		
 
+		unitTest:assertEquals(sumDistances(targetNodes[8]), 47958.718817508, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[10]), 10181.40682336, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[18]), 19061.171190073, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[28]), 24344.126540223, 1.0e-9)
+
+		local network2 = Network{
+			lines = roads,
+			target = communities,
+			progress = false,
+			weight = function(distance)
+				return distance * 2
+			end,
+			outside = function(distance)
+				return distance * 2
+			end
+		}
+
+		targetNodes = getTagetNodes(network2)
+
+		unitTest:assertEquals(sumDistances(targetNodes[8]), 2 * 47958.718817508, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[10]), 2 * 10181.40682336, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[18]), 2 * 19061.171190073, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[28]), 2 * 24344.126540223, 1.0e-9)
+
+		local network3 = Network{
+			lines = roads,
+			target = communities,
+			progress = false,
+			weight = function(distance)
+				return distance / 2
+			end,
+			outside = function(distance)
+				return distance / 2
+			end
+		}
+
+		targetNodes = getTagetNodes(network3)
+
+		unitTest:assertEquals(sumDistances(targetNodes[8]), 47958.718817508 / 2, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[10]), 10181.40682336 / 2, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[18]), 19061.171190073 / 2, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[28]), 24344.126540223 / 2, 1.0e-9)
+		
+		local network4 = Network{
+			lines = roads,
+			target = communities,
+			progress = false,
+			weight = function(distance, cell)
+				if cell.STATUS == "paved" then
+					return distance / 2
+				else
+					return distance
+				end
+			end
+		}
+
+		targetNodes = getTagetNodes(network4)
+
+		unitTest:assertEquals(sumDistances(targetNodes[8]), 47958.718817508 / 2, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[10]), 10181.40682336 / 2, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[18]), 19061.171190073 / 2, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[28]), 24344.126540223 / 2, 1.0e-9)		
 	end
 }
 

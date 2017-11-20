@@ -22,14 +22,20 @@
 --
 -------------------------------------------------------------------------------------------
 
-local targetLines = {}
-local computedLines = {} -- without taget lines
+-- Support variables
+local targetLines
+local computedLines -- without taget lines
+
+-- User-defined functions
+local weight
+local outside
 
 local function createLineInfo(line)
 	return {
 		id = line.FID,
 		geom = line.geom:getGeometryN(0),
-		npoints = line.geom:getNPoints()
+		npoints = line.geom:getNPoints(),
+		cell = line
 	}
 end
 
@@ -56,7 +62,6 @@ local function createTargetNode(point, distance, line)
 		id = point:asText(),
 		point = point,
 		distance = distance,
-		--distanceOutside = math.huge,
 		line = line, -- lines which the point belongs
 		targetId = line.id
 	}
@@ -67,7 +72,6 @@ local function createNode(point, distance, line, position, targetId)
 		id = point:asText(),
 		point = point,
 		distance = distance,
-		--distanceOutside = math.huge,
 		line = line, -- lines which the point belongs
 		pos = position,
 		targetId = targetId
@@ -94,6 +98,11 @@ local function findAndAddTargetNodes(self)
 
 		addTargetInfoInLine(targetLine, targetPoint, minDistance)
 		local closestPoint = targetLine.closestPoint
+
+		if outside then
+			targetLine.shortestPath = outside(targetLine.shortestPath)
+		end
+
 		self.netpoints[closestPoint.id] = createTargetNode(closestPoint.point,
 												targetLine.shortestPath, targetLine)
 	end)
@@ -131,14 +140,14 @@ local function checkIfLineCrossesError(lines)
 end
 -------------------------------------------------------------------------
 
-local function findFirstPoint(node)
-	local line = node.line
+local function findFirstPoint(targetNode)
+	local line = targetNode.line
 	local pointInfo = {}
 	pointInfo.distance = math.huge
 
 	for i = 0, line.npoints - 1 do
 		local point = line.geom:getPointN(i)
-		local distance = node.point:distance(point)
+		local distance = targetNode.point:distance(point)
 
 		if pointInfo.distance > distance then
 			pointInfo.point = point
@@ -147,36 +156,21 @@ local function findFirstPoint(node)
 		end
 	end
 
+	if weight then
+		pointInfo.distance = weight(pointInfo.distance, targetNode.line.cell)
+	end
+
 	return pointInfo
 end
 
-local function calculateFullDistance(refNode, nextNode)
-	local distance = refNode.point:distance(nextNode.point) -- TODO: this can be improved using delta distance
-	return refNode.distance + distance
-end
+local function calculateFullDistance(node, point, line)
+	local distance = node.point:distance(point) -- TODO: this can be improved using delta distance
 
-local function reviewPreviousDistances(node, previousNode)
-	while previousNode do
-		local distance = calculateFullDistance(node, previousNode)
-
-		if previousNode.distance > distance then
-			previousNode.distance = distance
-			previousNode.next = node
-			node.previous = previousNode
-
-			node = previousNode
-			previousNode = previousNode.previous
-
-			if previousNode.target then
-				return
-			end
-
-			previousNode.previous = nil
-			node.next = nil
-		else
-			return
-		end
+	if weight then
+		distance = weight(distance, line.cell)
 	end
+
+	return node.distance + distance
 end
 
 local function linkNodeToNext(node, nextNode)
@@ -217,8 +211,7 @@ local function recalculatePreviousDistances(node, previousNode)
 		return
 	end
 
-	local newDistance = calculateFullDistance(node, previousNode)
-	previousNode.distance = newDistance
+	previousNode.distance = calculateFullDistance(node, previousNode.point, previousNode.line)
 	previousNode.targetId = node.targetId
 	recalculatePreviousDistances(previousNode, previousNode.previous)
 end
@@ -267,7 +260,7 @@ local function reviewNextNodes(node, nextNode)
 		return
 	end
 
-	local newDistance = calculateFullDistance(node, nextNode)
+	local newDistance = calculateFullDistance(node, nextNode.point, nextNode.line)
 
 	if nextNode.distance > newDistance then
 		local nextNodeNext = nextNode.next
@@ -283,7 +276,7 @@ local function reviewNextNodes(node, nextNode)
 end
 
 local function reviewExistingNode(existingNode, currNode, newPosition)
-	local newDistance = calculateFullDistance(currNode, existingNode)
+	local newDistance = calculateFullDistance(currNode, existingNode.point, existingNode.line)
 
 	if existingNode.distance > newDistance then
 		local existingNodeNext = existingNode.next
@@ -297,10 +290,7 @@ local function reviewExistingNode(existingNode, currNode, newPosition)
 end
 
 local function createNodeByNextPoint(point, position, currNode, line)
-	local distance = currNode.point:distance(point)
-	local totalDistance = currNode.distance + distance
-	local newNodeId = point:asText()
-
+	local totalDistance = calculateFullDistance(currNode, point, line)
 	return createNode(point, totalDistance, line, position, currNode.targetId)
 end
 
@@ -318,7 +308,7 @@ local function addAllNodesOfLineBackward(graph, line, node, nodePosition)
 				reviewExistingNode(graph[nodeId], currNode, i)
 			else
 				local previousNode = createNodeByNextPoint(point, i, currNode, line)
-				graph[previousNode.id] = previousNode
+				graph[nodeId] = previousNode
 				linkNodeToNext(previousNode, currNode)
 				currNode = previousNode
 			end
@@ -342,7 +332,7 @@ local function addAllNodesOfLineForward(graph, line, node, nodePosition)
 				reviewExistingNode(graph[nodeId], currNode, i)
 			else
 				local nextNode = createNodeByNextPoint(point, i, currNode, line)
-				graph[nextNode.id] = nextNode
+				graph[nodeId] = nextNode
 				linkNodeToNext(nextNode, currNode)
 				currNode = nextNode
 			end
@@ -396,15 +386,13 @@ local function findSecondPointInInterior(firstNode, targetNode)
 end
 
 local function findSecondPoint(firstNode, targetNode)
-	local pointInfo = {}
-
-	pointInfo = findSecondPointInEnds(firstNode, targetNode)
+	local pointInfo = findSecondPointInEnds(firstNode, targetNode)
 
 	if #pointInfo == 0 then
 		pointInfo = findSecondPointInInterior(firstNode, targetNode)
 	end
 
-	pointInfo.distance = targetNode.distance + targetNode.point:distance(pointInfo.point)
+	pointInfo.distance = calculateFullDistance(targetNode, pointInfo.point, targetNode.line)
 
 	return pointInfo
 end
@@ -533,7 +521,7 @@ local function isLineAlreadyComputed(line)
 	return computedLines[line.id] ~= nil
 end
 
-local function hasUncomputedLinesYet(self)
+local function hasUncomputedLines(self)
 	return getn(computedLines) + getn(targetLines) ~= getn(self.lines)
 end
 
@@ -560,7 +548,7 @@ local function addNodesFromNonAdjacentsToTargetLines(self)
 		end
 	end)
 
-	if hasUncomputedLinesYet(self) then
+	if hasUncomputedLines(self) then
 		addNodesFromNonAdjacentsToTargetLines(self)
 	end
 end
@@ -572,6 +560,8 @@ local function createConnectivityInfoGraph(self)
 end
 
 local function createOpenNetwork(self)
+	weight = self.weight
+	outside = self.outside
 	self.lines = createLinesInfo(self.lines)
 	findAndAddTargetNodes(self)
 	createConnectivityInfoGraph(self)
@@ -648,6 +638,11 @@ function Network(data)
 	defaultTableValue(data, "strategy", "open")
 	defaultTableValue(data, "error", 0)
 	defaultTableValue(data, "progress", true)
+
+	targetLines = {}
+	computedLines = {}
+	weight = nil
+	outside = nil
 
 	createOpenNetwork(data)
 
