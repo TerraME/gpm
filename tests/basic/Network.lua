@@ -1,49 +1,29 @@
 local function sumPreviousDistances(node)
-	-- if not previousNode then
-		-- return 0
-	-- end
 	local previousNode = node.previous
 	local currNode = node
 	local sum = 0
 
 	while previousNode do
 		if currNode.router then
-			--_Gtme.print("currNode router", currNode.line.id)
 			for i = 1, #currNode.previous do
 				local dt = currNode.previous[i].distance - currNode.distance
 				sum = sum + sumPreviousDistances(currNode.previous[i]) + dt
 			end
-			return sum			
+			return sum
 		end
-		--_Gtme.print(previousNode.line.id, previousNode.pos)
 		local delta = previousNode.distance - currNode.distance
 		sum = sum + delta
 
 		if previousNode.router then
-			--_Gtme.print("-----------------------------")
-			--_Gtme.print("previous router", previousNode.line.id)
-			--_Gtme.print("router", #previousNode.previous)
 			for i = 1, #previousNode.previous do
 				local dt = previousNode.previous[i].distance - previousNode.distance
-				--_Gtme.print("previous line", previousNode.previous[i].line.id)
 				sum = sum + sumPreviousDistances(previousNode.previous[i]) + dt
 			end
 			return sum
 		end
-		--_Gtme.print(previousNode.line.id, currNode.line.id)
 		currNode = previousNode
 		previousNode = previousNode.previous
 	end
-
-	-- if previousNode.router then
-		-- for i = 1, #previousNode.previous do
-			-- return node.distance - previousNode.distance + sumPreviousDistances(previousNode, previousNode.previous[i])
-		-- end
-	-- --elseif not node.router then
-		-- return 0
-	-- end
-	
-	-- return previousNode.distance - node.distance + sumPreviousDistances(previousNode, previousNode.previous)	
 
 	return sum
 end
@@ -81,68 +61,16 @@ local function testNetpointsDistances(unitTest, netpoints, targetNode, targetLin
 			local currPoint = targetLine.geom:getPointN(i)
 			local nextPoint = targetLine.geom:getPointN(i + 1)
 			acumDistance = acumDistance + currPoint:distance(nextPoint)
-			-- if targetLine.id == 10 then
-				-- -- _Gtme.print(currPoint:distance(nextPoint), i)
-				-- _Gtme.print(acumDistance, currPoint:distance(nextPoint), i)
-			-- end
 		end
-
-		-- if targetLine.id == 8 then
-			-- acumDistance = acumDistance + 743.63102767576
-			-- lineLength = lineLength + 743.63102767576
-		-- end
 	end
-	--_Gtme.print("--------------------------")
 
 	unitTest:assertEquals(acumDistance, lineLength, 1.0e-10)
-	_Gtme.print(targetLine.id)
-	local totalDistance = sumDistances(targetNode) --sumDistanceByNext(targetNode) + sumDistanceByPrevious(targetNode)
 
-		-- _Gtme.print("-----++++++++++++++++++++++++++++")
-		-- local sumAux = 0
-		-- local lock = false
-		-- local nline = 14
-		-- if lines[nline] then
-			-- local sum = 0
-			-- for i = 0, lines[nline].npoints - 2 do
-				-- local pi = lines[nline].geom:getPointN(i)
-				-- local pi1 = lines[nline].geom:getPointN(i + 1)
-				-- local npi = netpoints[pi:asText()]
-				-- local npi1 = netpoints[pi:asText()]
-				-- local dif = pi1:distance(pi)
-				-- _Gtme.print(dif)
-				-- sum = sum + dif
-				
-				-- --_Gtme.print(npi.previous.line.id)
-				-- -- _Gtme.print(npi.previous.id)
-				-- -- _Gtme.print(npi1.id)
-				-- -- _Gtme.print(npi1.next.id, npi1.previous.id)
-				-- _Gtme.print(netpoints[pi:asText()].targetId, netpoints[pi:asText()].previous, sum) --, netpoints[pi:asText()].previous.line.id)
-				-- _Gtme.print(netpoints[pi:asText()].line.id) -- #netpoints[pi:asText()].previous)
-				-- _Gtme.print(netpoints[pi1:asText()].line.id) -- #netpoints[pi:asText()].previous)
-				-- -- _Gtme.print(netpoints[pi:asText()].previous)
-				-- -- if netpoints[pi:asText()].router then
-					-- -- for k, v in pairs (netpoints[pi:asText()].previous) do
-						-- -- _Gtme.print("**", k, v) --, v.line.id)
-					-- -- end
-				-- -- end
-				-- --_Gtme.print(netpoints[pi1:asText()].targetId, netpoints[pi1:asText()].previous, netpoints[pi1:asText()].previous.line.id)
-				
-				-- -- if not lock then
-					-- -- if (netpoints[pi:asText()].targetId == netpoints[pi1:asText()].targetId) then
-						-- -- sumAux = sum
-					-- -- else
-						-- -- lock = true
-					-- -- end
-				-- -- end
-			-- end
-			-- _Gtme.print("length", lines[nline].geom:getLength(), sum, sumAux, sum - sumAux)
-		-- end	
-		
-	unitTest:assertEquals(getn(netpoints), 340)	
-	
+	local totalDistance = sumDistances(targetNode)
+
+	unitTest:assertEquals(getn(netpoints), 340)
+
 	if targetLine.id == 28 then
-		--_Gtme.print(lines[15].geom:getLength() - 525.19123580594)
 		acumDistance = acumDistance
 									-- adjancent lines
 									-- isAdjacentByPoints(endpointsTarget.start, endpointsLine.start)
@@ -161,7 +89,6 @@ local function testNetpointsDistances(unitTest, netpoints, targetNode, targetLin
 									-- isAdjacentByPoints(endpointsLine.last, endpointsULine.last)
 									+ lines[9].geom:getLength()
 	elseif targetLine.id == 18 then
-		--_Gtme.print(lines[3].geom:getLength())
 		acumDistance = acumDistance
 									-- adjancent lines
 									-- isAdjacentByPoints(endpointsTarget.start, endpointsLine.start)
@@ -176,22 +103,20 @@ local function testNetpointsDistances(unitTest, netpoints, targetNode, targetLin
 									+ lines[36].geom:getLength() - 449.43410125262 --< distance entering in line 36 by line 8
 
 									-- isAdjacentByPoints(endpointsLine.first, endpointsULine.last)
-									+ lines[32].geom:getLength() 
+									+ lines[32].geom:getLength()
 									+ lines[16].geom:getLength()
 									--+ lines[33].geom:getLength() --< removed by line 8
 									-- isAdjacentByPoints(endpointsLine.last, endpointsULine.first)
 									+ lines[3].geom:getLength()
+
 									-- adjancent to non-adjancent and so on
 									+ lines[4].geom:getLength()
 									+ lines[5].geom:getLength()
 									+ lines[2].geom:getLength()
 									+ lines[22].geom:getLength()
 	elseif targetLine.id == 8 then
-		--_Gtme.print(lines[36].geom:getLength() - 407.49787123649)
-		--_Gtme.print(lines[14].geom:getLength())
-		--_Gtme.print(lines[14].geom:getLength() - 4396.0403189702 - 391.51758918123)
 		acumDistance = acumDistance + lines[10].geom:getLength() - 5033.3341288441 --< distance entering in line 10 by line 8
-									
+
 									-- adjancent lines
 									-- isAdjacentByPoints(endpointsTarget.start, endpointsLine.end)
 									+ lines[1].geom:getLength() + lines[35].geom:getLength()
@@ -208,9 +133,10 @@ local function testNetpointsDistances(unitTest, netpoints, targetNode, targetLin
 									--+ lines[33].geom:getLength() --< removed by line 18
 									--+ lines[16].geom:getLength() --< removed by line 18
 									--+ lines[32].geom:getLength() --< removed by line 18
-									-- isAdjacentByPoints(endpointsLine.last, endpointsULine.first)									
-									+ lines[30].geom:getLength() + lines[21].geom:getLength() 
+									-- isAdjacentByPoints(endpointsLine.last, endpointsULine.first)
+									+ lines[30].geom:getLength() + lines[21].geom:getLength()
 									+ lines[31].geom:getLength()
+
 									-- adjancent to non-adjancent and so on
 									+ lines[12].geom:getLength()
 									+ lines[6].geom:getLength()
@@ -228,6 +154,7 @@ local function testNetpointsDistances(unitTest, netpoints, targetNode, targetLin
 									-- non-adjancent lines
 									-- isAdjacentByPoints(endpointsLine.last, endpointsULine.last)
 									+ lines[14].geom:getLength() - 2489.1822631646
+
 									-- adjancent to non-adjancent and so on
 									--+ lines[6].geom:getLength() --< removed by 8
 									--+ lines[12].geom:getLength() --< removed by 8
@@ -251,7 +178,7 @@ local function testPreviousDataConnections(unitTest, node, previousNode)
 		unitTest:assertEquals(previousNode.next.id, node.id)
 		unitTest:assert(previousNode.distance > node.distance)
 	end
-	
+
 	unitTest:assertNotNil(node.line)
 
 	testPreviousDataConnections(unitTest, previousNode, previousNode.previous)
@@ -296,10 +223,8 @@ local function testNetpointsConnections(unitTest, netpoints, targetNode, targetL
 	unitTest:assertEquals(firstNode.next.id, targetNode.id)
 
 	if targetLine.id == 10 then
-		--unitTest:assertEquals(targetNode.first.point:asText(), firstNode.point:asText()) -- SKIP
 		secPointIdx = firstPointIdx + 1
 	else
-		--unitTest:assertEquals(targetNode.first.point:asText(), firstNode.point:asText()) -- SKIP
 		secPointIdx = firstPointIdx - 1
 	end
 
@@ -335,16 +260,6 @@ return {
 		}
 
 		unitTest:assertType(network1, "Network")
-		-- unitTest:assertEquals(#network1.distance.lines, #roads.cells) -- SKIP
-		-- unitTest:assertEquals(#network1.distance.target, #communities.cells) -- SKIP
-
-		-- forEachElement(network1.distance.netpoint, function(_, netpoint)
-			-- unitTest:assert(netpoint.distance >= 0) -- SKIP
-			-- unitTest:assert(netpoint.distanceOutside >= 0) -- SKIP
-			-- unitTest:assertType(netpoint.targetIDOutside, "number") -- SKIP
-			-- unitTest:assertType(netpoint.targetID, "number") -- SKIP
-			-- unitTest:assertType(netpoint.point, "userdata") -- SKIP
-		-- end)
 
 		unitTest:assert(network1.lines ~= roads)
 		unitTest:assertEquals(getn(network1.lines), #roads)
@@ -363,7 +278,6 @@ return {
 			end
 		end)
 
-		--unitTest:assertEquals(getn(network1.netpoints), #communities) --SKIP
 		unitTest:assertEquals(network1.netpoints[network1.lines[10].closestPoint.id].distance, network1.lines[10].shortestPath)
 		unitTest:assertEquals(network1.netpoints[network1.lines[8].closestPoint.id].distance, network1.lines[8].shortestPath)
 		unitTest:assertEquals(network1.netpoints[network1.lines[18].closestPoint.id].distance, network1.lines[18].shortestPath)
@@ -372,8 +286,6 @@ return {
 		local targetNodes = {}
 
 		forEachElement(network1.netpoints, function(_, netpoint)
-			--unitTest:assert((#netpoint.arcs == 1) or (#netpoint.arcs == 2)) -- SKIP
-
 			if netpoint.line.id == 8 then
 				unitTest:assert(netpoint.distance >= network1.lines[8].shortestPath)
 				if netpoint.target then
@@ -394,8 +306,6 @@ return {
 				if netpoint.target then
 					targetNodes[28] = netpoint
 				end
-			--else
-			--	unitTest:assertEquals(netpoint.line[1].id, -1) -- SKIP --<< this assert is only to check the elseifs and it mustn't be executed
 			end
 		end)
 
@@ -403,156 +313,8 @@ return {
 			testNetpointsDistances(unitTest, network1.netpoints, targetNodes[i], network1.lines[i], network1.lines)
 			testNetpointsConnections(unitTest, network1.netpoints, targetNodes[i], network1.lines[i])
 		end)
-
-		-- forEachElement(network1.netpoints, function(_, node)
-			-- _Gtme.print(node.line.id)
-			-- if node.next then
-				-- _Gtme.print(node.next.id)
-			-- end
-			-- if node.previous then
-				-- _Gtme.print(node.previous.id)
-			-- end
-		-- end)
-		--testNetpointsDistances(unitTest, network1.netpoints, targetNodes[8], network1.lines[8])
-		--testNetpointsConnections(unitTest, network1.netpoints, targetNodes[8], network1.lines[8])
-
-		-- LINES VAI TER QUE SUMIR, CRIAR MYLYNES
-		--testNetpointsDistances(unitTest, network1.netpoints, targetNodes[10], network1.lines[10])
-		--testNetpointsConnections(unitTest, network1.netpoints, targetNodes[10], network1.lines[10])
-
-		-- forEachElement(network1.netpoints, function(id, line)
-			-- if not ((id == 8) or (id == 10) or (id == 18) or (id == 28)) then
-				-- unitTest:assertNil(network1.lines[id].shortestPath) -- SKIP
-			-- end
-		-- end)
-
-		-- for k, v in pairs(roads) do
-			-- _Gtme.print(k, v)
-			-- break
-		-- end
-
-		-- for k, v in pairs(network1.lines) do
-			-- _Gtme.print(k, v)
-			-- break
-		-- end
-		--_Gtme.print(roads[1])
-		--_Gtme.print(network1.lines[1])
-
-		-- local netpoint = network1.distance.netpoint
-		-- local target = network1.distance.target
-
-		-- for i = 1, #target do
-			-- unitTest:assert((target[i].FID == 18) or (target[i].FID == 10) or -- SKIP
-							-- (target[i].FID == 8) or (target[i].FID == 28))
-		-- end
-
-		-- forEachElement(netpoint, function(_, np)
-			-- for fid, line in pairs(np.arcs) do
-				-- if (fid == 8) or (fid == 35) or (fid == 1) or (fid == 30) or
-					-- (fid == 11) or (fid == 23) or (fid == 31) or (fid == 12) or
-					-- (fid == 34) or (fid == 21) then
-					-- unitTest:assertEquals(target[np.targetID].FID, 8) -- SKIP
-				-- elseif fid == 29 then
-					-- unitTest:assertEquals(target[np.targetID].FID, 10) -- SKIP
-				-- elseif (fid == 18) or (fid == 3) or (fid == 4) or (fid == 37) or
-						-- (fid == 22) or (fid == 2) or (fid == 5) or (fid == 0) or
-						-- (fid == 13) or (fid == 32) then
-					-- unitTest:assertEquals(target[np.targetID].FID, 18) -- SKIP
-				-- elseif (fid == 28) or (fid == 25) or (fid == 24) or (fid == 26) or
-						-- (fid == 27) or (fid == 9) then
-					-- unitTest:assertEquals(target[np.targetID].FID, 28) -- SKIP
-				-- elseif (fid == 10) or (fid == 19) or (fid == 20) or (fid == 6) then
-					-- unitTest:assert((target[np.targetID].FID == 8) or (target[np.targetID].FID == 10)) -- SKIP
-				-- elseif (fid == 7) or (fid == 17) or (fid == 15) then
-					-- unitTest:assert((target[np.targetID].FID == 10) or (target[np.targetID].FID == 28)) -- SKIP
-				-- elseif (fid == 33) or (fid == 36) then
-					-- unitTest:assert((target[np.targetID].FID == 8) or (target[np.targetID].FID == 18)) -- SKIP
-				-- elseif fid == 16 then
-					-- unitTest:assert((target[np.targetID].FID == 10) or (target[np.targetID].FID == 8) or -- SKIP
-									-- (target[np.targetID].FID == 18))
-				-- elseif fid == 14 then
-					-- unitTest:assert((target[np.targetID].FID == 10) or (target[np.targetID].FID == 8) or -- SKIP
-									-- (target[np.targetID].FID == 28))
-				-- else
-					-- unitTest:assertEquals(fid, -1) -- SKIP --<< this assert is only to check the elseifs and it mustn't be executed
-				-- end
-			-- end
-		-- end)
-
-		-- roads = CellularSpace{
-			-- file = filePath("roads.shp", "gpm")
-		-- }
-
-		-- communities = CellularSpace{
-			-- file = filePath("communities.shp", "gpm")
-		-- }
-
-		-- local network2 = Network{
-			-- lines = roads,
-			-- target = communities,
-			-- progress = false,
-			-- weight = function(distance, cell)
-				-- if cell.STATUS == "paved" then
-					-- return distance * 0.2
-				-- else
-					-- return distance * 0.5
-				-- end
-			-- end,
-			-- outside = function(distance)
-				-- return distance * 2
-			-- end
-		-- }
-
-		-- local netpoint = network2.distance.netpoint
-		-- local target = network2.distance.target
-
-		-- for i = 1, #target do
-			-- unitTest:assert((target[i].FID == 18) or (target[i].FID == 10) or -- SKIP
-							-- (target[i].FID == 8) or (target[i].FID == 28))
-		-- end
-
-		-- forEachElement(netpoint, function(_, np)
-			-- for fid, line in pairs(np.arcs) do
-				-- if (fid == 8) or (fid == 35) or (fid == 1) or (fid == 30) or
-					-- (fid == 11) or (fid == 23) or (fid == 31) or (fid == 12) or
-					-- (fid == 34) or (fid == 21) then
-					-- unitTest:assertEquals(target[np.targetID].FID, 8) -- SKIP
-				-- elseif fid == 29 then
-					-- unitTest:assertEquals(target[np.targetID].FID, 10) -- SKIP
-				-- elseif (fid == 18) or (fid == 3) or (fid == 4) or (fid == 37) or
-						-- (fid == 22) or (fid == 2) or (fid == 5) or (fid == 0) or
-						-- (fid == 13) or (fid == 32) then
-					-- unitTest:assertEquals(target[np.targetID].FID, 18) -- SKIP
-				-- elseif (fid == 28) or (fid == 25) or (fid == 24) or (fid == 26) or
-						-- (fid == 27) or (fid == 9) then
-					-- unitTest:assertEquals(target[np.targetID].FID, 28) -- SKIP
-				-- elseif (fid == 10) or (fid == 19) or (fid == 20) or (fid == 6) then
-					-- unitTest:assert((target[np.targetID].FID == 8) or (target[np.targetID].FID == 10)) -- SKIP
-				-- elseif (fid == 7) or (fid == 17) or (fid == 15) then
-					-- unitTest:assert((target[np.targetID].FID == 10) or (target[np.targetID].FID == 28)) -- SKIP
-					-- _Gtme.print(fid, target[np.targetID].FID)
-					-- if fid == 7 then
-						-- for k, v in pairs(np) do
-							-- _Gtme.print(k, v)
-						-- end
-						-- for k, v in pairs(np.arcs) do
-							-- _Gtme.print(k)
-						-- end
-						-- os.exit(0)
-					-- end
-				-- elseif (fid == 33) or (fid == 36) then
-					-- unitTest:assert((target[np.targetID].FID == 8) or (target[np.targetID].FID == 18)) -- SKIP
-				-- elseif fid == 16 then
-					-- unitTest:assert((target[np.targetID].FID == 10) or (target[np.targetID].FID == 8) or -- SKIP
-									-- (target[np.targetID].FID == 18))
-				-- elseif fid == 14 then
-					-- unitTest:assert((target[np.targetID].FID == 10) or (target[np.targetID].FID == 8) or -- SKIP
-									-- (target[np.targetID].FID == 28))
-				-- else
-					-- unitTest:assertEquals(fid, -1) -- SKIP --<< this assert is only to check the elseifs and it mustn't  be executed
-				-- end
-			-- end
-		-- end)
+		
+		
 
 	end
 }
