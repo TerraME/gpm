@@ -260,7 +260,7 @@ local function reviewNextNodes(node, nextNode)
 		return
 	end
 
-	local newDistance = calculateFullDistance(node, nextNode.point, nextNode.line)
+	local newDistance = calculateFullDistance(node, nextNode.point, node.line)
 
 	if nextNode.distance > newDistance then
 		local nextNodeNext = nextNode.next
@@ -276,7 +276,7 @@ local function reviewNextNodes(node, nextNode)
 end
 
 local function reviewExistingNode(existingNode, currNode, newPosition)
-	local newDistance = calculateFullDistance(currNode, existingNode.point, existingNode.line)
+	local newDistance = calculateFullDistance(currNode, existingNode.point, currNode.line)
 
 	if existingNode.distance > newDistance then
 		local existingNodeNext = existingNode.next
@@ -318,13 +318,11 @@ local function addAllNodesOfLineBackward(graph, line, node, nodePosition)
 end
 
 local function addAllNodesOfLineForward(graph, line, node, nodePosition)
-	local npoints = line.npoints
-
-	if nodePosition == npoints - 1 then
+	if nodePosition == line.npoints - 1 then
 		return
 	else
 		local currNode = node
-		for i = nodePosition + 1, npoints - 1 do
+		for i = nodePosition + 1, line.npoints - 1 do
 			local point = line.geom:getPointN(i)
 			local nodeId = point:asText()
 
@@ -641,8 +639,6 @@ function Network(data)
 
 	targetLines = {}
 	computedLines = {}
-	weight = nil
-	outside = nil
 
 	createOpenNetwork(data)
 
