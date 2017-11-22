@@ -56,14 +56,14 @@ local function addTargetInfoInLine(targetLine, targetPoint, distance)
 	targetLines[targetLine.id] = targetLine
 end
 
-local function createTargetNode(point, distance, line)
+local function createTargetNode(point, distance, line, targetId)
 	return {
 		target = true,
 		id = point:asText(),
 		point = point,
 		distance = distance,
 		line = line, -- lines which the point belongs
-		targetId = line.id
+		targetId = targetId
 	}
 end
 
@@ -84,6 +84,7 @@ local function findAndAddTargetNodes(self)
 
 	forEachCell(self.target, function(target)
 		local targetPoint = target.geom:getGeometryN(0)
+		local targetId = target.FID
 		local minDistance = math.huge
 		local targetLine
 
@@ -104,7 +105,7 @@ local function findAndAddTargetNodes(self)
 		end
 
 		self.netpoints[closestPoint.id] = createTargetNode(closestPoint.point,
-												targetLine.shortestPath, targetLine)
+												targetLine.shortestPath, targetLine, targetId)
 	end)
 end
 
@@ -129,14 +130,61 @@ local function checkIfAllLinesAreConnected(lines)
 	end
 end
 
-local function checkIfLineCrossesError(lines)
-	for i = 1, #lines.cells do
-		for j = i + 1, #lines.cells do
-			if lines.cells[i].lineObj:crosses(lines.cells[j].lineObj) then
-				customError("Lines '"..lines.cells[i].FID.."' and '"..lines.cells[j].FID.."' cross each other.")
-			end
+local function checkIfLineCrosses(lineA, lineB)
+	return lineA.geom:crosses(lineB.geom)
+end
+
+local function calculateMinDistance(endpointsA, endpointsB)
+	local distances = {}
+	distances[1] = endpointsA.first:distance(endpointsB.first)
+	distances[2] = endpointsA.first:distance(endpointsB.last)
+	distances[3] = endpointsA.last:distance(endpointsB.first)
+	distances[4] = endpointsA.last:distance(endpointsB.last)
+
+	local minDistance = math.huge
+
+	for i = 1, 4 do
+		if minDistance > distances[i] then
+			minDistance = distances[i]
 		end
 	end
+
+	return minDistance
+end
+
+local function validateLines(self)
+	local linesEndpoints = {}
+	local linesValidated = {}
+
+	forEachElement(self.lines, function(_, line)
+		linesEndpoints[line.id] = {first = line.geom:getStartPoint(), last = line.geom:getEndPoint()}
+		local lineMinDistance = math.huge
+
+		forEachElement(self.lines, function(_, oline)
+			if (oline.id ~= line.id) then
+				if checkIfLineCrosses(line, oline) then
+					customError("Lines '"..line.id.."' and '"..oline.id.."' cross each other.")
+				elseif not (linesValidated[line.id] and linesValidated[oline.id]) then
+					if not linesEndpoints[oline.id] then
+						linesEndpoints[oline.id] = {first = oline.geom:getStartPoint(), last = oline.geom:getEndPoint()}
+					end
+
+					local minDistance = calculateMinDistance(linesEndpoints[line.id], linesEndpoints[oline.id])
+
+					if minDistance <= self.error then
+						linesValidated[line.id] = true
+						linesValidated[oline.id] = true
+					elseif lineMinDistance > minDistance then
+						lineMinDistance = minDistance
+					end
+				end
+			end
+		end)
+
+		if not linesValidated[line.id] then
+			customError("Line: '"..line.id.."' does not touch any other line. The minimum distance found was: "..lineMinDistance..".")
+		end
+	end)
 end
 -------------------------------------------------------------------------
 
@@ -457,10 +505,6 @@ local function addNodesFromTargetLines(self)
 	copyGraphToNetpoints(self.netpoints, graph)
 end
 
-local function isAdjacentByPoints(p1, p2)
-	return p1:distance(p2) == 0
-end
-
 local function isNodeBelongingToTargetLine(node, targetLine)
 	return node.line.id == targetLine.id
 end
@@ -493,25 +537,33 @@ local function isLineUncomputed(line)
 	return not (isTargetLine(line) or computedLines[line.id])
 end
 
+local function isAdjacentByPointsConsideringError(p1, p2, error)
+	return p1:distance(p2) <= error
+end
+
+local function findAdjacentLineAndAddItsPoints(self, line)
+	local endpointsLine = {first = line.geom:getStartPoint(), last = line.geom:getEndPoint()}
+
+	forEachElement(self.lines, function(_, adjacent)
+		if isLineUncomputed(adjacent) then
+			local endpointsAdjacent = {first = adjacent.geom:getStartPoint(), last = adjacent.geom:getEndPoint()}
+
+			if isAdjacentByPointsConsideringError(endpointsLine.first, endpointsAdjacent.first, self.error) then
+				addNodesForward(self, line, endpointsLine.first, adjacent)
+			elseif isAdjacentByPointsConsideringError(endpointsLine.first, endpointsAdjacent.last, self.error) then
+				addNodesBackward(self, line, endpointsLine.first, adjacent)
+			elseif isAdjacentByPointsConsideringError(endpointsLine.last, endpointsAdjacent.first, self.error) then
+				addNodesForward(self, line, endpointsLine.last, adjacent)
+			elseif isAdjacentByPointsConsideringError(endpointsLine.last, endpointsAdjacent.last, self.error) then
+				addNodesBackward(self, line, endpointsLine.last, adjacent)
+			end
+		end
+	end)
+end
+
 local function addNodesFromAdjacentsToTargetLines(self)
 	forEachElement(targetLines, function(_, targetLine)
-		local endpointsTarget = {first = targetLine.geom:getStartPoint(), last = targetLine.geom:getEndPoint()}
-
-		forEachElement(self.lines, function(_, line)
-			if isLineUncomputed(line) then
-				local endpointsLine = {first = line.geom:getStartPoint(), last = line.geom:getEndPoint()}
-
-				if isAdjacentByPoints(endpointsTarget.first, endpointsLine.first) then
-					addNodesForward(self, targetLine, endpointsTarget.first, line)
-				elseif isAdjacentByPoints(endpointsTarget.first, endpointsLine.last) then
-					addNodesBackward(self, targetLine, endpointsTarget.first, line)
-				elseif isAdjacentByPoints(endpointsTarget.last, endpointsLine.first) then
-					addNodesForward(self, targetLine, endpointsTarget.last, line)
-				elseif isAdjacentByPoints(endpointsTarget.last, endpointsLine.last) then
-					addNodesBackward(self, targetLine, endpointsTarget.last, line)
-				end
-			end
-		end)
+		findAdjacentLineAndAddItsPoints(self, targetLine)
 	end)
 end
 
@@ -526,23 +578,7 @@ end
 local function addNodesFromNonAdjacentsToTargetLines(self)
 	forEachElement(self.lines, function(_, line)
 		if isLineAlreadyComputed(line) then
-			local endpointsLine = {first = line.geom:getStartPoint(), last = line.geom:getEndPoint()}
-
-			forEachElement(self.lines, function(_, uline)
-				if isLineUncomputed(uline) then
-					local endpointsULine = {first = uline.geom:getStartPoint(), last = uline.geom:getEndPoint()}
-
-					if isAdjacentByPoints(endpointsLine.first, endpointsULine.first) then
-						addNodesForward(self, line, endpointsLine.first, uline)
-					elseif isAdjacentByPoints(endpointsLine.first, endpointsULine.last) then
-						addNodesBackward(self, line, endpointsLine.first, uline)
-					elseif isAdjacentByPoints(endpointsLine.last, endpointsULine.first) then
-						addNodesForward(self, line, endpointsLine.last, uline)
-					elseif isAdjacentByPoints(endpointsLine.last, endpointsULine.last) then
-						addNodesBackward(self, line, endpointsLine.last, uline)
-					end
-				end
-			end)
+			findAdjacentLineAndAddItsPoints(self, line)
 		end
 	end)
 
@@ -561,6 +597,7 @@ local function createOpenNetwork(self)
 	weight = self.weight
 	outside = self.outside
 	self.lines = createLinesInfo(self.lines)
+	validateLines(self)
 	findAndAddTargetNodes(self)
 	createConnectivityInfoGraph(self)
 end

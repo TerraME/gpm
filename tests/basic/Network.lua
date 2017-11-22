@@ -241,21 +241,21 @@ local function getTagetNodes(network)
 	local targetNodes = {}
 
 	forEachElement(network.netpoints, function(_, netpoint)
-		if netpoint.line.id == 8 then
+		if netpoint.targetId == 2 then
 			if netpoint.target then
-				targetNodes[8] = netpoint
+				targetNodes[2] = netpoint
 			end
-		elseif netpoint.line.id == 10 then
+		elseif netpoint.targetId == 1 then
 			if netpoint.target then
-				targetNodes[10] = netpoint
+				targetNodes[1] = netpoint
 			end
-		elseif netpoint.line.id == 18 then
+		elseif netpoint.targetId == 3 then
 			if netpoint.target then
-				targetNodes[18] = netpoint
+				targetNodes[3] = netpoint
 			end
-		elseif netpoint.line.id == 28 then
+		elseif netpoint.targetId == 0 then
 			if netpoint.target then
-				targetNodes[28] = netpoint
+				targetNodes[0] = netpoint
 			end
 		end
 	end)
@@ -319,8 +319,6 @@ return {
 		unitTest:assertEquals(network1.netpoints[network1.lines[18].closestPoint.id].distance, network1.lines[18].shortestPath)
 		unitTest:assertEquals(network1.netpoints[network1.lines[28].closestPoint.id].distance, network1.lines[28].shortestPath)
 
-		local targetNodes = getTagetNodes(network1)
-
 		forEachElement(network1.netpoints, function(_, netpoint)
 			if netpoint.line.id == 8 then
 				unitTest:assert(netpoint.distance >= network1.lines[8].shortestPath)
@@ -333,21 +331,24 @@ return {
 			end
 		end)
 
-		forEachElement(targetNodes, function(i)
-			testNetpointsDistances(unitTest, network1.netpoints, targetNodes[i], network1.lines[i], network1.lines)
-			testNetpointsConnections(unitTest, network1.netpoints, targetNodes[i], network1.lines[i])
+		local targetNodes = getTagetNodes(network1)
+
+		forEachElement(targetNodes, function(i, targetNode)
+			testNetpointsDistances(unitTest, network1.netpoints, targetNodes[i],
+								network1.lines[targetNode.line.id], network1.lines)
+			testNetpointsConnections(unitTest, network1.netpoints, targetNodes[i], network1.lines[targetNode.line.id])
 		end)
 
-		unitTest:assertEquals(sumDistances(targetNodes[8]), 47958.718817508, 1.0e-9)
-		unitTest:assertEquals(sumDistances(targetNodes[10]), 10181.40682336, 1.0e-9)
-		unitTest:assertEquals(sumDistances(targetNodes[18]), 19061.171190073, 1.0e-9)
-		unitTest:assertEquals(sumDistances(targetNodes[28]), 24344.126540223, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[2]), 47958.718817508, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[1]), 10181.40682336, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[3]), 19061.171190073, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[0]), 24344.126540223, 1.0e-9)
 
 		local linesTargets1 = {}
-		linesTargets1[8] = {}
-		linesTargets1[10] = {}
-		linesTargets1[18] = {}
-		linesTargets1[28] = {}
+		linesTargets1[0] = {}
+		linesTargets1[1] = {}
+		linesTargets1[2] = {}
+		linesTargets1[3] = {}
 
 		forEachElement(network1.netpoints, function(_, netpoint)
 			linesTargets1[netpoint.targetId][netpoint.line.id] = netpoint.targetId
@@ -367,10 +368,10 @@ return {
 
 		targetNodes = getTagetNodes(network2)
 
-		unitTest:assertEquals(sumDistances(targetNodes[8]), 2 * 47958.718817508, 1.0e-9)
-		unitTest:assertEquals(sumDistances(targetNodes[10]), 2 * 10181.40682336, 1.0e-9)
-		unitTest:assertEquals(sumDistances(targetNodes[18]), 2 * 19061.171190073, 1.0e-9)
-		unitTest:assertEquals(sumDistances(targetNodes[28]), 2 * 24344.126540223, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[2]), 2 * 47958.718817508, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[1]), 2 * 10181.40682336, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[3]), 2 * 19061.171190073, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[0]), 2 * 24344.126540223, 1.0e-9)
 
 		local network3 = Network{
 			lines = roads,
@@ -386,10 +387,10 @@ return {
 
 		targetNodes = getTagetNodes(network3)
 
-		unitTest:assertEquals(sumDistances(targetNodes[8]), 47958.718817508 / 2, 1.0e-9)
-		unitTest:assertEquals(sumDistances(targetNodes[10]), 10181.40682336 / 2, 1.0e-9)
-		unitTest:assertEquals(sumDistances(targetNodes[18]), 19061.171190073 / 2, 1.0e-9)
-		unitTest:assertEquals(sumDistances(targetNodes[28]), 24344.126540223 / 2, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[2]), 47958.718817508 / 2, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[1]), 10181.40682336 / 2, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[3]), 19061.171190073 / 2, 1.0e-9)
+		unitTest:assertEquals(sumDistances(targetNodes[0]), 24344.126540223 / 2, 1.0e-9)
 
 		local network4 = Network{
 			lines = roads,
@@ -426,10 +427,10 @@ return {
 		end)
 
 		local linesTargets4 = {}
-		linesTargets4[8] = {}
-		linesTargets4[10] = {}
-		linesTargets4[18] = {}
-		linesTargets4[28] = {}
+		linesTargets4[0] = {}
+		linesTargets4[1] = {}
+		linesTargets4[2] = {}
+		linesTargets4[3] = {}
 
 		forEachElement(network4.netpoints, function(_, netpoint)
 			linesTargets4[netpoint.targetId][netpoint.line.id] = netpoint.targetId
@@ -438,28 +439,28 @@ return {
 			end
 		end)
 
-		local difFrom4To1 = getDifference(8, linesTargets4, linesTargets1)
+		local difFrom4To1 = getDifference(2, linesTargets4, linesTargets1)
 		unitTest:assert(belong(16, difFrom4To1))
 		unitTest:assert(belong(32, difFrom4To1))
 		unitTest:assert(belong(33, difFrom4To1))
 
-		local difFrom1To4 = getDifference(8, linesTargets1, linesTargets4)
+		local difFrom1To4 = getDifference(2, linesTargets1, linesTargets4)
 		unitTest:assert(belong(34, difFrom1To4))
 		unitTest:assert(belong(36, difFrom1To4))
 
-		difFrom4To1 = getDifference(18, linesTargets4, linesTargets1)
+		difFrom4To1 = getDifference(3, linesTargets4, linesTargets1)
 		unitTest:assert(belong(1, difFrom4To1))
 		unitTest:assert(belong(34, difFrom4To1))
 
-		difFrom1To4 = getDifference(18, linesTargets1, linesTargets4)
+		difFrom1To4 = getDifference(3, linesTargets1, linesTargets4)
 		unitTest:assert(belong(16, difFrom1To4))
 
 		targetNodes = getTagetNodes(network4)
 
-		unitTest:assert(sumDistances(targetNodes[8]) < 47958.718817508)
-		unitTest:assert(sumDistances(targetNodes[10]) < 10181.40682336)
-		unitTest:assert(sumDistances(targetNodes[18]) < 19061.171190073)
-		unitTest:assert(sumDistances(targetNodes[28]) < 24344.126540223)
+		unitTest:assert(sumDistances(targetNodes[2]) < 47958.718817508)
+		unitTest:assert(sumDistances(targetNodes[1]) < 10181.40682336)
+		unitTest:assert(sumDistances(targetNodes[3]) < 19061.171190073)
+		unitTest:assert(sumDistances(targetNodes[0]) < 24344.126540223)
 	end
 }
 
