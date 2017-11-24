@@ -21,6 +21,14 @@
 -- of this software and its documentation.
 --
 -------------------------------------------------------------------------------------------
+local function getCellIdByTargetId(self, targetId)
+	local cells = self.destination.cells
+	for i = 1, #cells do
+		if cells[i].FID == targetId then
+			return cells[i]:getId()
+		end
+	end
+end
 
 local function buildOpenGPM(self)
 	local progress = 0
@@ -44,10 +52,10 @@ local function buildOpenGPM(self)
 
 		local target
 
-		forEachElement(network.distance.netpoint, function(_, node)
+		forEachElement(network.netpoints, function(_, node)
 			local distance = self.network.outside(centroid:distance(node.point)) + node.distance
 
-			target = self.destination.cells[node.targetID]:getId()
+			target = getCellIdByTargetId(self, node.targetId)
 
 			local currentDistance = neighbors[originCell:getId()][target]
 
