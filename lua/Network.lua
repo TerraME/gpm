@@ -109,27 +109,6 @@ local function findAndAddTargetNodes(self)
 	end)
 end
 
--- TODO: review validate functions ------------------------------------------
-local function hasConnectionWithAnotherLine(line, lines)
-	for i = 1, #lines do
-		if line.FID ~= lines[i].FID then
-			if line.lineObj:touches(lines[i].lineObj) then
-				return true
-			end
-		end
-	end
-
-	return false
-end
-
-local function checkIfAllLinesAreConnected(lines)
-	for i = 1, #lines.cells do
-		if not hasConnectionWithAnotherLine(lines.cells[i], lines.cells) then
-			customError("The network is disconected.")
-		end
-	end
-end
-
 local function checkIfLineCrosses(lineA, lineB)
 	return lineA.geom:crosses(lineB.geom)
 end
@@ -152,41 +131,109 @@ local function calculateMinDistance(endpointsA, endpointsB)
 	return minDistance
 end
 
+local function validateLine(self, line, linesEndpoints, linesValidated, linesConnected)
+	linesEndpoints[line.id] = {first = line.geom:getStartPoint(), last = line.geom:getEndPoint()}
+	local lineMinDistance = math.huge
+
+	forEachElement(self.lines, function(_, oline)
+		if (oline.id ~= line.id) then
+			if checkIfLineCrosses(line, oline) then
+				customError("Lines '"..line.id.."' and '"..oline.id.."' cross each other.")
+			else
+				if not linesEndpoints[oline.id] then
+					linesEndpoints[oline.id] = {first = oline.geom:getStartPoint(), last = oline.geom:getEndPoint()}
+				end
+
+				local minDistance = calculateMinDistance(linesEndpoints[line.id], linesEndpoints[oline.id])
+
+				if minDistance <= self.error then
+						linesValidated[line.id] = true
+						if not linesConnected[oline.id] then
+							linesConnected[oline.id] = {}
+							table.insert(linesConnected[oline.id], oline.id)
+						end
+						table.insert(linesConnected[oline.id], line.id)
+						return
+				elseif lineMinDistance > minDistance then
+					lineMinDistance = minDistance
+				end
+			end
+		end
+	end)
+
+	if not linesValidated[line.id] then
+		customError("Line: '"..line.id.."' does not touch any other line. The minimum distance found was: "..lineMinDistance..".")
+	end
+end
+
+local function hasConnection(linesA, linesB)
+	for a = 1, #linesA do
+		for b = 1, #linesB do
+			if linesA[a] == linesB[b] then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+local function valueExists(tbl, value)
+	for i = 1, #tbl do
+		if tbl[i] == value then
+			return true
+		end
+	end
+	return false
+end
+
+local function joinLines(linesA, linesB)
+	for i = 1, #linesB do
+		if not valueExists(linesA, linesB[i]) then
+			table.insert(linesA, linesB[i])
+		end
+	end
+end
+
+local function isNetworkConnected(linesConnected)
+	forEachElement(linesConnected, function(a, linesA)
+		if linesA then
+			forEachElement(linesConnected, function(b, linesB)
+				if (a ~= b) and linesB then
+					if hasConnection(linesA, linesB) then
+						joinLines(linesA, linesB)
+						linesConnected[b] = false
+					end
+				end
+			end)
+		end
+	end)
+
+	forEachElement(linesConnected, function(id)
+		if not linesConnected[id] then
+			linesConnected[id] = nil
+		end
+	end)
+
+	if getn(linesConnected) > 1 then
+		return false
+	end
+
+	return true
+end
+
 local function validateLines(self)
 	local linesEndpoints = {}
 	local linesValidated = {}
+	local linesConnected = {}
 
 	forEachElement(self.lines, function(_, line)
-		linesEndpoints[line.id] = {first = line.geom:getStartPoint(), last = line.geom:getEndPoint()}
-		local lineMinDistance = math.huge
-
-		forEachElement(self.lines, function(_, oline)
-			if (oline.id ~= line.id) then
-				if checkIfLineCrosses(line, oline) then
-					customError("Lines '"..line.id.."' and '"..oline.id.."' cross each other.")
-				elseif not (linesValidated[line.id] and linesValidated[oline.id]) then
-					if not linesEndpoints[oline.id] then
-						linesEndpoints[oline.id] = {first = oline.geom:getStartPoint(), last = oline.geom:getEndPoint()}
-					end
-
-					local minDistance = calculateMinDistance(linesEndpoints[line.id], linesEndpoints[oline.id])
-
-					if minDistance <= self.error then
-						linesValidated[line.id] = true
-						linesValidated[oline.id] = true
-					elseif lineMinDistance > minDistance then
-						lineMinDistance = minDistance
-					end
-				end
-			end
-		end)
-
-		if not linesValidated[line.id] then
-			customError("Line: '"..line.id.."' does not touch any other line. The minimum distance found was: "..lineMinDistance..".")
-		end
+		validateLine(self, line, linesEndpoints, linesValidated, linesConnected)
 	end)
+
+	if not isNetworkConnected(linesConnected) then
+		customError("The network is disconected.")
+	end
 end
--------------------------------------------------------------------------
 
 local function findFirstPoint(targetNode)
 	local line = targetNode.line
