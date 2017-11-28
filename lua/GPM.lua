@@ -21,50 +21,34 @@
 -- of this software and its documentation.
 --
 -------------------------------------------------------------------------------------------
-local function getCellIdByTargetId(self, targetId)
-	local cells = self.destination.cells
-	for i = 1, #cells do
-		if cells[i].FID == targetId then
-			return cells[i]:getId()
-		end
-	end
-end
 
 local function buildOpenGPM(self)
-	local progress = 0
-	local numberGeometry = #self.origin
-
 	local neighbors = {}
+	local progress = 0
 
-	forEachCell(self.origin, function(originCell)
-		neighbors[originCell:getId()] = {}
-
-		local geometry = originCell.geom:getGeometryN(0)
-
+	forEachCell(self.origin, function(cell)
+		neighbors[cell:getId()] = {}
+		local cellGeom = cell.geom:getGeometryN(0)
 		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing origin ", progress, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing origin ", progress, "/", #self.origin}) -- SKIP
 		end
 
-		local centroid = geometry:getCentroid()
+		local centroid = cellGeom:getCentroid()
 		local network = self.network
 
-		local target
-
-		forEachElement(network.netpoints, function(_, node)
-			local distance = self.network.outside(centroid:distance(node.point)) + node.distance
-
-			target = getCellIdByTargetId(self, node.targetId)
-
-			local currentDistance = neighbors[originCell:getId()][target]
+		forEachElement(network.netpoints, function(_, netpoint)
+			local distance = self.network.outside(centroid:distance(netpoint.point)) + netpoint.distance
+			local targetId = tostring(netpoint.targetId)
+			local currentDistance = neighbors[cell:getId()][targetId]
 
 			if currentDistance then
 				if distance < currentDistance then
-					neighbors[originCell:getId()][target] = distance
+					neighbors[cell:getId()][targetId] = distance
 				end
 			else
-				neighbors[originCell:getId()][target] = distance
+				neighbors[cell:getId()][targetId] = distance
 			end
 		end)
 	end)
@@ -767,12 +751,10 @@ function GPM(data)
 			if type(data.destination) == "Network" then
 				data.network = data.destination
 				data.destination = data.network.target
-				data.neighbors = buildOpenGPM(data)
+				buildOpenGPM(data)
 			else
 				defaultTableValue(data, "destination", data.origin)
-
 				checkDestination()
-
 				buildDistanceRelation(data)
 			end
 		end,

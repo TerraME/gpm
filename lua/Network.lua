@@ -78,31 +78,36 @@ local function createNode(point, distance, line, position, targetId)
 	}
 end
 
+local function findClosestLine(lines, point)
+	local minDistance = math.huge
+	local closestLine
+	forEachElement(lines, function(_, line)
+		local distance = point:distance(line.geom)
+		if minDistance > distance then
+			minDistance = distance
+			closestLine = line
+		end
+	end)
+
+	if outside then
+		minDistance = outside(minDistance)
+	end
+
+	return {line = closestLine, distance = minDistance}
+end
+
 -- TODO(avancinirodrigo): this method can be improved by some tree
 local function findAndAddTargetNodes(self)
 	self.netpoints = {}
 
 	forEachCell(self.target, function(target)
 		local targetPoint = target.geom:getGeometryN(0)
-		local targetId = target.FID
-		local minDistance = math.huge
-		local targetLine
+		local targetId = tonumber(target:getId())
+		local closestLine = findClosestLine(self.lines, targetPoint)
+		local targetLine = closestLine.line
 
-		forEachElement(self.lines, function(_, line)
-			local distance = targetPoint:distance(line.geom)
-
-			if distance < minDistance then
-				minDistance = distance
-				targetLine = line
-			end
-		end)
-
-		addTargetInfoInLine(targetLine, targetPoint, minDistance)
+		addTargetInfoInLine(closestLine.line, targetPoint, closestLine.distance)
 		local closestPoint = targetLine.closestPoint
-
-		if outside then
-			targetLine.shortestPath = outside(targetLine.shortestPath)
-		end
 
 		self.netpoints[closestPoint.id] = createTargetNode(closestPoint.point,
 												targetLine.shortestPath, targetLine, targetId)
@@ -147,13 +152,12 @@ local function validateLine(self, line, linesEndpoints, linesValidated, linesCon
 				local minDistance = calculateMinDistance(linesEndpoints[line.id], linesEndpoints[oline.id])
 
 				if minDistance <= self.error then
-						linesValidated[line.id] = true
-						if not linesConnected[oline.id] then
-							linesConnected[oline.id] = {}
-							table.insert(linesConnected[oline.id], oline.id)
-						end
-						table.insert(linesConnected[oline.id], line.id)
-						return
+					linesValidated[line.id] = true
+					if not linesConnected[oline.id] then
+						linesConnected[oline.id] = {}
+						table.insert(linesConnected[oline.id], oline.id)
+					end
+					table.insert(linesConnected[oline.id], line.id)
 				elseif lineMinDistance > minDistance then
 					lineMinDistance = minDistance
 				end
@@ -468,17 +472,19 @@ local function findSecondPointInInterior(firstNode, targetNode)
 		elseif (xt < xa) and (xf < xt) then
 			pointInfo.point = pAfter
 			pointInfo.pos = firstNode.pos + 1
-		else
-			customError("Same x", xt, xb, xa, x1) -- TODO: needs test
 		end
 	else -- inverted line
-		customError("Inverted line") -- TODO: needs test
+		customError("Inverted line "..xf..", "..xt..", "..xb..", "..xa) -- TODO: needs test
 	end
 
 	return pointInfo
 end
 
 local function findSecondPoint(firstNode, targetNode)
+	if firstNode.point:getX() == targetNode.point:getX() then
+		return {point = firstNode.point, pos = firstNode.pos}
+	end
+
 	local pointInfo = findSecondPointInEnds(firstNode, targetNode)
 
 	if #pointInfo == 0 then

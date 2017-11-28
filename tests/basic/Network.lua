@@ -275,8 +275,6 @@ end
 
 return {
 	Network = function(unitTest)
-		local linesTargets1 = {}
-
 		local networkSetWeightAndOutsideEqualDistance = function()
 			local roads = CellularSpace{
 				file = filePath("roads.shp", "gpm")
@@ -346,16 +344,6 @@ return {
 			unitTest:assertEquals(sumDistances(targetNodes[1]), 10181.40682336, 1.0e-9)
 			unitTest:assertEquals(sumDistances(targetNodes[3]), 19061.171190073, 1.0e-9)
 			unitTest:assertEquals(sumDistances(targetNodes[0]), 24344.126540223, 1.0e-9)
-
-			linesTargets1[0] = {}
-			linesTargets1[1] = {}
-			linesTargets1[2] = {}
-			linesTargets1[3] = {}
-
-			forEachElement(network.netpoints, function(_, netpoint)
-				linesTargets1[netpoint.targetId][netpoint.line.id] = netpoint.targetId
-			end)
-
 		end
 
 		local networkSetWeightAndOutsideMultipliedBy2 = function()
@@ -379,8 +367,12 @@ return {
 				end
 			}
 
+			unitTest:assertEquals(network.lines[10].shortestPath, 599.05719061263 * 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[8].shortestPath, 59.688264448298 * 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[18].shortestPath, 83.520707733564 * 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[28].shortestPath, 1041.9740663377 * 2, 1.0e-10)			
+			
 			local targetNodes = getTagetNodes(network)
-
 			unitTest:assertEquals(sumDistances(targetNodes[2]), 2 * 47958.718817508, 1.0e-9)
 			unitTest:assertEquals(sumDistances(targetNodes[1]), 2 * 10181.40682336, 1.0e-9)
 			unitTest:assertEquals(sumDistances(targetNodes[3]), 2 * 19061.171190073, 1.0e-9)
@@ -410,8 +402,12 @@ return {
 				end
 			}
 
+			unitTest:assertEquals(network.lines[10].shortestPath, 599.05719061263 / 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[8].shortestPath, 59.688264448298 / 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[18].shortestPath, 83.520707733564 / 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[28].shortestPath, 1041.9740663377 / 2, 1.0e-10)					
+			
 			local targetNodes = getTagetNodes(network)
-
 			unitTest:assertEquals(sumDistances(targetNodes[2]), 47958.718817508 / 2, 1.0e-9)
 			unitTest:assertEquals(sumDistances(targetNodes[1]), 10181.40682336 / 2, 1.0e-9)
 			unitTest:assertEquals(sumDistances(targetNodes[3]), 19061.171190073 / 2, 1.0e-9)
@@ -427,6 +423,28 @@ return {
 				file = filePath("communities.shp", "gpm")
 			}
 
+			local network1 = Network{
+				lines = roads,
+				target = communities,
+				progress = false,
+				weight = function(distance) -- weights is only the distance
+					return distance
+				end,
+				outside = function(distance)
+					return distance
+				end
+			}
+			
+			local linesTargets1 = {}
+			linesTargets1[0] = {}
+			linesTargets1[1] = {}
+			linesTargets1[2] = {}
+			linesTargets1[3] = {}
+
+			forEachElement(network1.netpoints, function(_, netpoint)
+				linesTargets1[netpoint.targetId][netpoint.line.id] = netpoint.targetId
+			end)			
+			
 			local network = Network{
 				lines = roads,
 				target = communities,
