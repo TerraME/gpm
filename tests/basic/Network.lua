@@ -379,8 +379,6 @@ return {
 			unitTest:assertEquals(sumDistances(targetNodes[0]), 2 * 24344.126540223, 1.0e-9)
 		end
 
-
-
 		local networkSetWeightAndOutsideDividedBy2 = function()
 			local roads = CellularSpace{
 				file = filePath("roads.shp", "gpm")
