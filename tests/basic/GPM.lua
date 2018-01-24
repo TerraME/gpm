@@ -53,7 +53,7 @@ strategy     string [border]
 				lines = roads,
 				target = communities,
 				progress = false,
-				weight = function(distance, cell)
+				weight = function(distance)
 					return distance
 				end,
 				outside = function(distance) return distance end
@@ -590,16 +590,16 @@ strategy     string [border]
 		end
 
 		fillMinimumNetwork()
-		fillMaximumNetwork() -- TODO: maximum is not working properly		
-		fillCountNetwork() -- TODO: count is not working properly		
-		fillCountNetworkWithMax()		
-		gpmBorderWithSumAndAverage()		
-		gpmNetworkWithMinimumAndMaximumAndCount()		
-		gpmContains()		
-		gpmLength()		
-		gpmMinimum()		
-		gpmAll()		
-		gpmCountAndMinimum()		
+		fillMaximumNetwork() -- TODO: maximum is not working properly
+		fillCountNetwork() -- TODO: count is not working properly
+		fillCountNetworkWithMax()
+		gpmBorderWithSumAndAverage()
+		gpmNetworkWithMinimumAndMaximumAndCount()
+		gpmContains()
+		gpmLength()
+		gpmMinimum()
+		gpmAll()
+		gpmCountAndMinimum()
 		gpmAreaWithCount()
 	end,
 	save = function(unitTest)

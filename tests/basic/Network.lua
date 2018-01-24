@@ -370,8 +370,8 @@ return {
 			unitTest:assertEquals(network.lines[10].shortestPath, 599.05719061263 * 2, 1.0e-10)
 			unitTest:assertEquals(network.lines[8].shortestPath, 59.688264448298 * 2, 1.0e-10)
 			unitTest:assertEquals(network.lines[18].shortestPath, 83.520707733564 * 2, 1.0e-10)
-			unitTest:assertEquals(network.lines[28].shortestPath, 1041.9740663377 * 2, 1.0e-10)			
-			
+			unitTest:assertEquals(network.lines[28].shortestPath, 1041.9740663377 * 2, 1.0e-10)
+
 			local targetNodes = getTagetNodes(network)
 			unitTest:assertEquals(sumDistances(targetNodes[2]), 2 * 47958.718817508, 1.0e-9)
 			unitTest:assertEquals(sumDistances(targetNodes[1]), 2 * 10181.40682336, 1.0e-9)
@@ -403,8 +403,8 @@ return {
 			unitTest:assertEquals(network.lines[10].shortestPath, 599.05719061263 / 2, 1.0e-10)
 			unitTest:assertEquals(network.lines[8].shortestPath, 59.688264448298 / 2, 1.0e-10)
 			unitTest:assertEquals(network.lines[18].shortestPath, 83.520707733564 / 2, 1.0e-10)
-			unitTest:assertEquals(network.lines[28].shortestPath, 1041.9740663377 / 2, 1.0e-10)					
-			
+			unitTest:assertEquals(network.lines[28].shortestPath, 1041.9740663377 / 2, 1.0e-10)
+
 			local targetNodes = getTagetNodes(network)
 			unitTest:assertEquals(sumDistances(targetNodes[2]), 47958.718817508 / 2, 1.0e-9)
 			unitTest:assertEquals(sumDistances(targetNodes[1]), 10181.40682336 / 2, 1.0e-9)
@@ -432,7 +432,7 @@ return {
 					return distance
 				end
 			}
-			
+
 			local linesTargets1 = {}
 			linesTargets1[0] = {}
 			linesTargets1[1] = {}
@@ -441,8 +441,8 @@ return {
 
 			forEachElement(network1.netpoints, function(_, netpoint)
 				linesTargets1[netpoint.targetId][netpoint.line.id] = netpoint.targetId
-			end)			
-			
+			end)
+
 			local network = Network{
 				lines = roads,
 				target = communities,
