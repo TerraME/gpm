@@ -657,27 +657,37 @@ metaTableNetwork_ = {
 	__index = Network_
 }
 
---- Type for network creation. Given geometry of the line type,
--- constructs a geometry network. This type is used to calculate the best path.
--- @arg data.error Error argument to connect the lines in the Network (optional).
--- If data.error case is not defined , assigned the value 0.
--- @arg data.lines CellularSpace with routes to create network.
+--- Type that represents a network. It uses a set of lines and a set of destinations
+-- that will be the end points of the network. This type requires that the network
+-- is fully connected, meaning that it is possible to
+-- reach any line from any other line of the network.
+-- Distances within and without the network are computed in different ways.
+-- In this sense, the distances within the network are proportionally shorter
+-- then the distances outside the network. Tipically, using the Network
+-- changes the representation from space to time, meaning that travelling within
+-- the network is faster than outside.
+-- A Network can then be used to create a GPM, using a set of origins.
+-- @arg data.error As default, two lines are connected in the Network only if they share
+-- exactly the same point. This argument allows two lines to be connected when there is a
+-- maximum error in the distance up to the its value.
+-- Therefore, the default value for this argument is zero.
+-- @arg data.lines A base::CellularSpace with lines to create network. It can be for example a set of roads.
 -- @arg data.outside User-defined function that computes the distance based on an
--- Euclidean to enter and to leave the Network.
--- If not set a function, will return to own distance.
--- @arg data.progress print as values are being processed (optional).
+-- Euclidean distance to enter and to leave the Network.
+-- If not set a function, will return the distance itself.
+-- @arg data.progress Optional boolean value indicating whether Network will print messages
+-- while processing values. The default value is true.
 -- @arg data.strategy Strategy to be used in the network (optional).
--- @arg data.target CellularSpace that receives end points of the networks.
+-- @arg data.target A base::CellularSpace with the destinations of the network.
 -- @arg data.weight User defined function to change the network distance.
--- If not set a function, will return to own distance.
+-- If not set a function, will return the distance itself. Note that,
+-- if the user does not use this argument neither outside function, the
+-- paths will never use the network, as the distance within the network will always
+-- be greater than the distance outside the network.
 -- @usage import("gpm")
--- local roads = CellularSpace{
---     file = filePath("roads.shp", "gpm")
--- }
 --
--- local communities = CellularSpace{
---     file = filePath("communities.shp", "gpm")
--- }
+-- roads = CellularSpace{file = filePath("roads.shp", "gpm")}
+-- communities = CellularSpace{file = filePath("communities.shp", "gpm")}
 --
 -- network = Network{
 --     lines = roads,
@@ -729,3 +739,4 @@ function Network(data)
 	setmetatable(data, metaTableNetwork_)
 	return data
 end
+

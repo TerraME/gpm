@@ -325,7 +325,7 @@ end
 GPM_ = {
 	type_ = "GPM",
 	--- Create attributes in the origin according to the relations established by GPM.
-	-- These attributes are created in memory, and must be saved manually if needed.
+	-- These attributes are created in memory, and must be saved manually afterwards if needed.
 	-- @arg data.attribute Name of the attribute to be created.
 	-- @arg data.strategy The strategy used to create attributes. See the table below.
 	-- @tabular strategy
@@ -336,9 +336,10 @@ GPM_ = {
 	-- "maximum" & Use the maximum value among the available neighbors. & attribute & missing, copy \
 	-- "minimum" & Use the minimum value among the available neighbors. & attribute & missing, copy \
 	-- "sum" & Sum all the weights into one single attribute. Missing values are set to zero. & attribute & \
-	-- @arg data.max The maximum value. The default is math.huge.
+	-- @arg data.max An optional number with the maximum output value. If it is greater than max,
+	-- then it will be max. The default is math.huge.
 	-- @arg data.missing Value of the output used when there is no input value available. The
-	-- default value is math.huge for "minimum" and -math.huge for "maximum".
+	-- default value is math.huge for strategy "minimum" and -math.huge for strategy "maximum".
 	-- @arg data.copy An attribute (or a set of attributes) to be copied from the destination
 	-- to the origin, given the selected neighbor. It can be a string, a vector of strings
 	-- with the attribute names, or a named table, where the values represent the attribute names from
@@ -346,13 +347,8 @@ GPM_ = {
 	-- @usage
 	-- import("gpm")
 	--
-	-- cells = CellularSpace{
-	--     file = filePath("cells.shp", "gpm")
-	-- }
-	--
-	-- farms = CellularSpace{
-	--     file = filePath("farms.shp", "gpm")
-	-- }
+	-- cells = CellularSpace{file = filePath("cells.shp", "gpm")}
+	-- farms = CellularSpace{file = filePath("farms.shp", "gpm")}
 	--
 	-- gpm = GPM{
 	--     origin = cells,
@@ -549,21 +545,14 @@ GPM_ = {
 			end
 		}
 	end,
-	--- Save the neighborhood into a file.
+	--- Save the GPM into a neighborhood file.
 	-- @arg file A string or a base::File with the name of the file to be saved.
-	-- The file can have three extension '.gal', '.gwt', or '.gpm'.
+	-- Three extensions are allowed: '.gal', '.gwt', or '.gpm'.
 	-- @usage import("gpm")
-	-- local roads = CellularSpace{
-	--     file = filePath("roads.shp", "gpm")
-	-- }
 	--
-	-- communities = CellularSpace{
-	--     file = filePath("communities.shp", "gpm")
-	-- }
-	--
-	-- cells = CellularSpace{
-	--     file = filePath("cells.shp", "gpm")
-	-- }
+	-- roads = CellularSpace{file = filePath("roads.shp", "gpm")}
+	-- communities = CellularSpace{file = filePath("communities.shp", "gpm")}
+	-- cells = CellularSpace{file = filePath("cells.shp", "gpm")}
 	--
 	-- network = Network{
 	--     lines = roads,
@@ -619,38 +608,42 @@ metaTableGPM_ = {
 }
 
 --- Type to create a Generalised Proximity Matrix (GPM).
--- It has several strategies that can use geometry as well as Area, Intersection, Distance and Network.
--- @arg data.distance Distance around to end points (optional).
--- @arg data.destination base::CellularSpace or a Network, containing the destination points.
--- @arg data.origin A base::CellularSpace with geometry representing entry points on the network.
--- @arg data.progress print as values are being processed default is true (optional).
--- @arg data.strategy A string with the strategy to be used for creating the GPM (optional).
+-- GPM is a concept used to establish relations between geographical objects.
+-- It has several strategies to define how two objects are connected, from basic
+-- geographical relations such as intersection area and border to (for instance) road Networks.
+-- @arg data.distance Maximum distance allowed to connect an origin to a destination.
+-- @arg data.destination A base::CellularSpace or a Network, containing the destination points.
+-- The GPM will connect the objects from the origin to the destination.
+-- It is possible to use the origin as destination as well.
+-- @arg data.origin A base::CellularSpace representing the objects to be connected.
+-- @arg data.progress Optional boolean value indicating whether GPM will print messages
+-- while processing values. The default value is true.
+-- @arg data.strategy An optional string with the strategy to create a GPM.
 -- See the table below.
 -- @tabular strategy
 -- Strategy & Description & Compulsory Arguments & Optional Arguments \
--- "area" & Creates relation between two layer using the intersection areas of their polygons.
+-- "area" & Create relations between objects that have intersection areas. This
+-- strategy can only be used with objects represented as polygons.
+-- The weight of each relation is the intersection area.
 -- & destination, origin & progress \
--- "border" & Creates relation between neighboring polygons,
--- each polygon reference his neighbors and the area touched. & strategy, origin & progress \
--- "contains" & Returns which polygons contain the reference points.
--- & destination, origin, strategy & progress \
--- "distance" & Returns the cells within the distance to the nearest centroid,
--- the cells will always be related to the nearest target. &
--- origin, destination & distance, progress \
--- "length" & Create relations between objects whose intersection is a line.
--- & strategy, origin, destination & progress \
+-- "border" & Create relations between polygons that share borders. The weight
+-- of each relation is the length of the intersection border divided by the perimeter
+-- of the origin, which is a value between zero and one. & strategy, origin & progress \
+-- "contains" & Connect a destination to an origin that contains it. It requires that
+-- both origin and destination are represented as polygons. The weight of each relation
+-- will be one. & destination, origin, strategy & progress \
+-- "distance" & Connects all objects from the origin to the destination according to their
+-- distances. If the argument distance is used, then only the objects that have distance
+-- less than this value are connected. The weight of the relation will be the distance
+-- between the two objects. & origin, destination & distance, progress \
+-- "length" & Create relations between polygons that share borders. The weight
+-- of each relation is the length of the intersection border. &
+-- strategy, origin, destination & progress \
 -- @usage import("gpm")
--- local roads = CellularSpace{
---     file = filePath("roads.shp", "gpm")
--- }
 --
--- local communities = CellularSpace{
---     file = filePath("communities.shp", "gpm")
--- }
---
--- local cells = CellularSpace{
---     file = filePath("cells.shp", "gpm")
--- }
+-- roads = CellularSpace{file = filePath("roads.shp", "gpm")}
+-- communities = CellularSpace{file = filePath("communities.shp", "gpm")}
+-- cells = CellularSpace{file = filePath("cells.shp", "gpm")}
 --
 -- network = Network{
 --     lines = roads,
