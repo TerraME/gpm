@@ -141,27 +141,28 @@ local function validateLine(self, line, linesEndpoints, linesValidated, linesCon
 	local lineMinDistance = math.huge
 
 	forEachElement(self.lines, function(_, oline)
-		if (oline.id ~= line.id) then
-			if checkIfLineCrosses(line, oline) then
-				customError("Lines '"..line.id.."' and '"..oline.id.."' cross each other.")
-			else
-				if not linesEndpoints[oline.id] then
-					linesEndpoints[oline.id] = {first = oline.geom:getStartPoint(), last = oline.geom:getEndPoint()}
-				end
+		if oline.id == line.id then return end
 
-				local minDistance = calculateMinDistance(linesEndpoints[line.id], linesEndpoints[oline.id])
+		if checkIfLineCrosses(line, oline) then
+			customError("Lines '"..line.id.."' and '"..oline.id.."' cross each other.")
+		end
 
-				if minDistance <= self.error then
-					linesValidated[line.id] = true
-					if not linesConnected[oline.id] then
-						linesConnected[oline.id] = {}
-						table.insert(linesConnected[oline.id], oline.id)
-					end
-					table.insert(linesConnected[oline.id], line.id)
-				elseif lineMinDistance > minDistance then
-					lineMinDistance = minDistance
-				end
+		if not linesEndpoints[oline.id] then
+			linesEndpoints[oline.id] = {first = oline.geom:getStartPoint(), last = oline.geom:getEndPoint()}
+		end
+
+		local minDistance = calculateMinDistance(linesEndpoints[line.id], linesEndpoints[oline.id])
+
+		if minDistance <= self.error then
+			linesValidated[line.id] = true
+			if not linesConnected[oline.id] then
+				linesConnected[oline.id] = {}
+				table.insert(linesConnected[oline.id], oline.id)
 			end
+
+			table.insert(linesConnected[oline.id], line.id)
+		elseif lineMinDistance > minDistance then
+			lineMinDistance = minDistance
 		end
 	end)
 
@@ -178,6 +179,7 @@ local function hasConnection(linesA, linesB)
 			end
 		end
 	end
+
 	return false
 end
 
@@ -187,6 +189,7 @@ local function valueExists(tbl, value)
 			return true
 		end
 	end
+
 	return false
 end
 
@@ -200,16 +203,14 @@ end
 
 local function isNetworkConnected(linesConnected)
 	forEachElement(linesConnected, function(a, linesA)
-		if linesA then
-			forEachElement(linesConnected, function(b, linesB)
-				if (a ~= b) and linesB then
-					if hasConnection(linesA, linesB) then
-						joinLines(linesA, linesB)
-						linesConnected[b] = false
-					end
-				end
-			end)
-		end
+		if not linesA then return end
+
+		forEachElement(linesConnected, function(b, linesB)
+			if (a ~= b) and linesB and hasConnection(linesA, linesB) then
+				joinLines(linesA, linesB)
+				linesConnected[b] = false
+			end
+		end)
 	end)
 
 	forEachElement(linesConnected, function(id)
@@ -394,45 +395,42 @@ local function createNodeByNextPoint(point, position, currNode, line)
 end
 
 local function addAllNodesOfLineBackward(graph, line, node, nodePosition)
-	if nodePosition == 0 then
-		return
-	else
-		local i = nodePosition - 1
-		local currNode = node
-		while i >= 0 do
-			local point = line.geom:getPointN(i)
-			local nodeId = point:asText()
+	if nodePosition == 0 then return end
 
-			if graph[nodeId] then
-				reviewExistingNode(graph[nodeId], currNode, i)
-			else
-				local previousNode = createNodeByNextPoint(point, i, currNode, line)
-				graph[nodeId] = previousNode
-				linkNodeToNext(previousNode, currNode)
-				currNode = previousNode
-			end
-			i = i - 1
+	local i = nodePosition - 1
+	local currNode = node
+	while i >= 0 do
+		local point = line.geom:getPointN(i)
+		local nodeId = point:asText()
+
+		if graph[nodeId] then
+			reviewExistingNode(graph[nodeId], currNode, i)
+		else
+			local previousNode = createNodeByNextPoint(point, i, currNode, line)
+			graph[nodeId] = previousNode
+			linkNodeToNext(previousNode, currNode)
+			currNode = previousNode
 		end
+
+		i = i - 1
 	end
 end
 
 local function addAllNodesOfLineForward(graph, line, node, nodePosition)
-	if nodePosition == line.npoints - 1 then
-		return
-	else
-		local currNode = node
-		for i = nodePosition + 1, line.npoints - 1 do
-			local point = line.geom:getPointN(i)
-			local nodeId = point:asText()
+	if nodePosition == line.npoints - 1 then return end
 
-			if nodeExists(graph[nodeId]) then
-				reviewExistingNode(graph[nodeId], currNode, i)
-			else
-				local nextNode = createNodeByNextPoint(point, i, currNode, line)
-				graph[nodeId] = nextNode
-				linkNodeToNext(nextNode, currNode)
-				currNode = nextNode
-			end
+	local currNode = node
+	for i = nodePosition + 1, line.npoints - 1 do
+		local point = line.geom:getPointN(i)
+		local nodeId = point:asText()
+
+		if nodeExists(graph[nodeId]) then
+			reviewExistingNode(graph[nodeId], currNode, i)
+		else
+			local nextNode = createNodeByNextPoint(point, i, currNode, line)
+			graph[nodeId] = nextNode
+			linkNodeToNext(nextNode, currNode)
+			currNode = nextNode
 		end
 	end
 end
@@ -513,18 +511,14 @@ local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 
 	if firstNode.pos == 0 then
 		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
+	elseif firstNode.pos == line.npoints - 1 then
+		addAllNodesOfLineBackward(graph, targetNode, firstNode, graph[secNode.id], firstNode.pos)
+	elseif secPoint.pos > firstNode.pos then
+		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
+		addAllNodesOfLineBackward(graph, line, firstNode, firstNode.pos)
 	else
-		if firstNode.pos == line.npoints - 1 then
-			addAllNodesOfLineBackward(graph, targetNode, firstNode, graph[secNode.id], firstNode.pos)
-		else
-			if secPoint.pos > firstNode.pos then
-				addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
-				addAllNodesOfLineBackward(graph, line, firstNode, firstNode.pos)
-			else
-				addAllNodesOfLineForward(graph, line, firstNode, firstNode.pos)
-				addAllNodesOfLineBackward(graph, line, graph[secNode.id], graph[secNode.id].pos)
-			end
-		end
+		addAllNodesOfLineForward(graph, line, firstNode, firstNode.pos)
+		addAllNodesOfLineBackward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 	end
 end
 
