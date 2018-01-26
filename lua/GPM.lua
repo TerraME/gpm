@@ -22,47 +22,34 @@
 --
 -------------------------------------------------------------------------------------------
 
-local gis = getPackage("gis")
-local tl = gis.TerraLib{}
-
 local function buildOpenGPM(self)
-	local counterCode = 0
-	local numberGeometry = #self.origin
-
 	local neighbors = {}
+	local progress = 0
 
-	forEachCell(self.origin, function(originCell)
-		neighbors[originCell:getId()] = {}
-
-		local geometry = tl.castGeomToSubtype(originCell.geom:getGeometryN(0))
-
-		counterCode = counterCode + 1
+	forEachCell(self.origin, function(cell)
+		neighbors[cell:getId()] = {}
+		local cellGeom = cell.geom:getGeometryN(0)
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing origin ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing origin ", progress, "/", #self.origin}) -- SKIP
 		end
 
-		local centroid = geometry:getCentroid()
+		local centroid = cellGeom:getCentroid()
 		local network = self.network
 
-		local target
-		local i = 1
-		forEachElement(network.distance.netpoint, function(point)
-			local distance = self.network.outside(centroid:distance(network.distance.netpoint[point].point)) + network.distance.netpoint[point].distance
-
-			target = network.distance.netpoint[point].targetID
-			target = self.destination.cells[target]:getId()
-
-			local currentDistance = neighbors[originCell:getId()][target]
+		forEachElement(network.netpoints, function(_, netpoint)
+			local distance = self.network.outside(centroid:distance(netpoint.point)) + netpoint.distance
+			local targetId = tostring(netpoint.targetId)
+			local currentDistance = neighbors[cell:getId()][targetId]
 
 			if currentDistance then
 				if distance < currentDistance then
-					neighbors[originCell:getId()][target] = distance
+					neighbors[cell:getId()][targetId] = distance
 				end
 			else
-				neighbors[originCell:getId()][target] = distance
+				neighbors[cell:getId()][targetId] = distance
 			end
-			i = i + 1
 		end)
 	end)
 
@@ -162,23 +149,23 @@ end
 local function buildDistanceRelation(self)
 	local destination = self.destination
 	local maxDistance = self.distance or math.huge
-	local counterCode = 0
+	local progress = 0
 	local numberGeometry = #self.origin
 	local neighbors = {}
 
 	forEachCell(self.origin, function(originCell)
-		counterCode = counterCode + 1
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing distance ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing distance ", progress, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbors[originCell:getId()] = {}
 
-		local geometry = tl.castGeomToSubtype(originCell.geom:getGeometryN(0))
+		local geometry = originCell.geom:getGeometryN(0)
 
 		forEachCell(destination, function(polygon)
-			local targetPolygon = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+			local targetPolygon = polygon.geom:getGeometryN(0)
 			local distance = targetPolygon:distance(geometry:getCentroid())
 
 			if --[[targetPolygon:contains(geometry) or]] distance < maxDistance then
@@ -193,31 +180,30 @@ end
 local function buildBorderRelation(self)
 	local origin = self.origin
 	local destination = self.destination
-	local counterCode = 0
+	local progress = 0
 	local numberGeometry = #origin
 	local neighbors = {}
 
 	forEachCell(origin, function(polygon)
-		counterCode = counterCode + 1
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing intersection ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing intersection ", progress, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbors[polygon:getId()] = {}
 
-		local geometry = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometry = polygon.geom:getGeometryN(0)
 		local geometryPerimeter = geometry:getPerimeter()
 
 		forEachCell(destination, function(neighbor)
-			local geometryNeighbor = tl.castGeomToSubtype(neighbor.geom:getGeometryN(0))
+			local geometryNeighbor = neighbor.geom:getGeometryN(0)
 
 			if not geometry:touches(geometryNeighbor) or polygon.FID == neighbor.FID then return end
 
-			local intersection = geometry:intersection(geometryNeighbor)
-			local geometryBorder = tl.castGeomToSubtype(intersection)
+			local geometryBorder = geometry:intersection(geometryNeighbor) -- TODO: intersection works with different returns from a same geometry type
 
-			if geometryBorder.getLength then
+			if geometryBorder:getLength() then
 				local lengthBorder = geometryBorder:getLength()
 
 				neighbors[polygon:getId()][neighbor:getId()] = lengthBorder / geometryPerimeter
@@ -231,23 +217,23 @@ end
 local function buildContainsRelation(self)
 	local origin = self.origin
 	local destination = self.destination
-	local counterCode = 0
+	local progress = 0
 	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
-		local geometryOrigin = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometryOrigin = polygon.geom:getGeometryN(0)
 
-		counterCode = counterCode + 1
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing contains ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing contains ", progress, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbor[polygon:getId()] = {}
 
 		forEachCell(destination, function(dest)
-			local geometryDestination = tl.castGeomToSubtype(dest.geom:getGeometryN(0))
+			local geometryDestination = dest.geom:getGeometryN(0)
 
 			if geometryOrigin:contains(geometryDestination) then
 				neighbor[polygon:getId()][dest:getId()] = 1
@@ -261,30 +247,29 @@ end
 local function buildAreaRelation(self)
 	local origin = self.origin
 	local destination = self.destination
-	local counterCode = 0
+	local progress = 0
 	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
-		local geometryOrigin = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometryOrigin = polygon.geom:getGeometryN(0)
 
-		counterCode = counterCode + 1
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing area ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing area ", progress, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbor[polygon:getId()] = {}
 
 		forEachCell(destination, function(geometric)
-			local geometryObject = tl.castGeomToSubtype(geometric.geom:getGeometryN(0))
+			local geometryObject = geometric.geom:getGeometryN(0)
 
 			if geometryOrigin:touches(geometryObject) or geometryOrigin:intersects(geometryObject) then
-				local intersection = geometryOrigin:intersection(geometryObject)
-				local geometryIntersection = tl.castGeomToSubtype(intersection)
+				local geometryIntersection = geometryOrigin:intersection(geometryObject)
 				local areaIntersection
 
-				if string.find(geometryIntersection:getGeometryType(),"Polygon") then
+				if string.find(geometryIntersection:getGeometryType(), "Polygon") then
 					areaIntersection = geometryIntersection:getArea()
 				else
 					return
@@ -301,27 +286,26 @@ end
 local function buildLengthRelation(self)
 	local origin = self.origin
 	local destination = self.destination
-	local counterCode = 0
+	local progress = 0
 	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
-		local geometryOrigin = tl.castGeomToSubtype(polygon.geom:getGeometryN(0))
+		local geometryOrigin = polygon.geom:getGeometryN(0)
 
-		counterCode = counterCode + 1
+		progress = progress + 1
 
 		if self.progress then
-			print(table.concat{"Processing length ", counterCode, "/", numberGeometry}) -- SKIP
+			print(table.concat{"Processing length ", progress, "/", numberGeometry}) -- SKIP
 		end
 
 		neighbor[polygon:getId()] = {}
 
 		forEachCell(destination, function(geometric)
-			local geometryObject = tl.castGeomToSubtype(geometric.geom:getGeometryN(0))
+			local geometryObject = geometric.geom:getGeometryN(0)
 
 			if geometryOrigin:touches(geometryObject) or geometryOrigin:intersects(geometryObject) then
-				local intersection = geometryOrigin:intersection(geometryObject)
-				local geometryIntersection = tl.castGeomToSubtype(intersection)
+				local geometryIntersection = geometryOrigin:intersection(geometryObject) -- TODO: see above
 				local lengthIntersection
 
 				if string.find(geometryIntersection:getGeometryType(), "LineString") then
@@ -767,12 +751,10 @@ function GPM(data)
 			if type(data.destination) == "Network" then
 				data.network = data.destination
 				data.destination = data.network.target
-				data.neighbors = buildOpenGPM(data)
+				buildOpenGPM(data)
 			else
 				defaultTableValue(data, "destination", data.origin)
-
 				checkDestination()
-
 				buildDistanceRelation(data)
 			end
 		end,

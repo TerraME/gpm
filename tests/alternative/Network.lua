@@ -115,7 +115,7 @@ return {
 				target = communities,
 				weight = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end,
-				error = 9000
+				error = 900
 			}
 		end
 
