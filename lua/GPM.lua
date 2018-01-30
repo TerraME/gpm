@@ -325,19 +325,29 @@ end
 GPM_ = {
 	type_ = "GPM",
 	--- Create attributes in the origin according to the relations established by GPM.
+	-- The values of each created attribute is always related to the weights of the
+	-- connections in the GPM.
 	-- These attributes are created in memory, and must be saved manually afterwards if needed.
 	-- @arg data.attribute Name of the attribute to be created.
 	-- @arg data.strategy The strategy used to create attributes. See the table below.
 	-- @tabular strategy
 	-- Strategy & Description & Mandatory Arguments & Optional Arguments \
-	-- "all" & Create one attribute for each available neighbor. & attribute & missing \
-	-- "average" & Average of all the weights into one single attribute. Missing values are set to zero. & attribute & \
+	-- "all" & Create one attribute for each available destination. The selected attribute name
+	-- to be created will be the prefix for the attributes to be created. For each connection
+	-- with unique identifier x, one attribute with the selected attribute name followed by _x
+	-- will be created. If an origin is not connected to a given destination, the output for
+	-- the attribute for the origin will be the value of missing. & attribute & missing \
+	-- "average" & Average of all connection weights into one single attribute. Missing values
+	-- are set to zero. & attribute & \
 	-- "count" & Count the number of neighbors. & attribute & max \
-	-- "maximum" & Use the maximum value among the available neighbors. & attribute & missing, copy \
-	-- "minimum" & Use the minimum value among the available neighbors. & attribute & missing, copy \
+	-- "maximum" & Create an attribute using the maximum value among the weights of the
+	-- connections. & attribute & missing, copy \
+	-- "minimum" & Create an attribute using the minimum value among the weights of the
+	-- connections. & attribute & missing, copy \
 	-- "sum" & Sum all the weights into one single attribute. Missing values are set to zero. & attribute & \
 	-- @arg data.max An optional number with the maximum output value. If it is greater than max,
-	-- then it will be max. The default is math.huge.
+	-- then it will be max. The default is math.huge, meaning that there is no limitation on the
+	-- maximum value.
 	-- @arg data.missing Value of the output used when there is no input value available. The
 	-- default value is math.huge for strategy "minimum" and -math.huge for strategy "maximum".
 	-- @arg data.copy An attribute (or a set of attributes) to be copied from the destination
@@ -611,6 +621,9 @@ metaTableGPM_ = {
 -- GPM is a concept used to establish relations between geographical objects.
 -- It has several strategies to define how two objects are connected, from basic
 -- geographical relations such as intersection area and border to (for instance) road Networks.
+-- The relations created by GPM are not stored in extenal sources nor in attributes of the
+-- CellularSpaces it connects. It is necessary to use some functions of this type in order
+-- to create attributes or neighborhoods and to save the output.
 -- @arg data.distance Maximum distance allowed to connect an origin to a destination.
 -- @arg data.destination A base::CellularSpace or a Network, containing the destination points.
 -- The GPM will connect the objects from the origin to the destination.
