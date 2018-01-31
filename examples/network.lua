@@ -21,7 +21,7 @@ cells = CellularSpace{
 network = Network{
 	target = communities,
 	lines = roads,
-	weight = function(distance, cell)
+	inside = function(distance, cell)
 		if cell.STATUS == "paved" then
 			return distance / 5
 		else

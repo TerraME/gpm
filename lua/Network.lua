@@ -27,7 +27,7 @@ local targetLines
 local computedLines -- without taget lines
 
 -- User-defined functions
-local weight
+local inside
 local outside
 
 local function createLineInfo(line)
@@ -256,8 +256,8 @@ local function findFirstPoint(targetNode)
 		end
 	end
 
-	if weight then
-		pointInfo.distance = weight(pointInfo.distance, targetNode.line.cell)
+	if inside then
+		pointInfo.distance = inside(pointInfo.distance, targetNode.line.cell)
 	end
 
 	return pointInfo
@@ -266,8 +266,8 @@ end
 local function calculateFullDistance(node, point, line)
 	local distance = node.point:distance(point) -- TODO: this can be improved using delta distance
 
-	if weight then
-		distance = weight(distance, line.cell)
+	if inside then
+		distance = inside(distance, line.cell)
 	end
 
 	return node.distance + distance
@@ -641,7 +641,7 @@ local function createConnectivityInfoGraph(self)
 end
 
 local function createOpenNetwork(self)
-	weight = self.weight
+	inside = self.inside
 	outside = self.outside
 	self.lines = createLinesInfo(self.lines)
 	validateLines(self)
@@ -662,8 +662,9 @@ metaTableNetwork_ = {
 -- is fully connected, meaning that it is possible to
 -- reach any line from any other line of the network.
 -- Distances within and without the network are computed in different ways.
--- In this sense, the distances within the network are proportionally shorter
--- then the distances outside the network. Tipically, using the Network
+-- In this sense, the distances inside the network should be proportionally
+-- shorter then the distances outside the network in order to allow the shortest
+-- paths to be within the network. Tipically, using the Network
 -- changes the representation from space to time, meaning that travelling within
 -- the network is faster than outside.
 -- A Network can then be used to create a GPM, using a set of origins.
@@ -672,18 +673,27 @@ metaTableNetwork_ = {
 -- maximum error in the distance up to the its value.
 -- Therefore, the default value for this argument is zero.
 -- @arg data.lines A base::CellularSpace with lines to create network. It can be for example a set of roads.
--- @arg data.outside User-defined function that computes the distance based on an
--- Euclidean distance to enter and to leave the Network.
+-- @arg data.outside User-defined function that converts the distance based on an
+-- Euclidean distance to a distance in the geographical space. This function is
+-- applied to enter and to leave the network, as well as to try to see whether
+-- the distance without using the network is shorter than using the network.
 -- If not set a function, will return the distance itself.
+-- This function gets one argument with the distance in Eucldean space
+-- and must return the distance in the geographical space.
 -- @arg data.progress Optional boolean value indicating whether Network will print messages
 -- while processing values. The default value is true.
--- @arg data.strategy Strategy to be used in the network (optional).
 -- @arg data.target A base::CellularSpace with the destinations of the network.
--- @arg data.weight User defined function to change the network distance.
+-- @arg data.inside User defined function that converts the distance based on
+-- an Euclidean distance to a distance in the geographical space. This function
+-- is applied to every path within the network.
 -- If not set a function, will return the distance itself. Note that,
 -- if the user does not use this argument neither outside function, the
 -- paths will never use the network, as the distance within the network will always
 -- be greater than the distance outside the network.
+-- This function gets two arguments, the distance in Euclidean space and the
+-- line, and must return the distance in the geographical space. This means
+-- that it is possible to use properties from the lines such as paved or
+-- non-paved roads.
 -- @usage import("gpm")
 --
 -- roads = CellularSpace{file = filePath("roads.shp", "gpm")}
@@ -693,7 +703,7 @@ metaTableNetwork_ = {
 --     lines = roads,
 --     target = communities,
 --     progress = false,
---     weight = function(distance, cell)
+--     inside = function(distance, cell)
 --         if cell.STATUS == "paved" then
 --             return distance / 5
 --         else
@@ -706,7 +716,7 @@ metaTableNetwork_ = {
 -- }
 function Network(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"target", "lines", "strategy", "weight", "outside", "error", "progress"})
+	verifyUnnecessaryArguments(data, {"target", "lines", "inside", "outside", "error", "progress"})
 	mandatoryTableArgument(data, "lines", "CellularSpace")
 
 	if data.lines.geometry then
@@ -720,14 +730,13 @@ function Network(data)
 	end
 
 	mandatoryTableArgument(data, "target", "CellularSpace")
-	mandatoryTableArgument(data, "weight", "function")
+	mandatoryTableArgument(data, "inside", "function")
 	mandatoryTableArgument(data, "outside", "function")
 
 	if data.target.geometry == false then
 		customError("The CellularSpace in argument 'target' must be loaded without using argument 'geometry'.")
 	end
 
-	defaultTableValue(data, "strategy", "open")
 	defaultTableValue(data, "error", 0)
 	defaultTableValue(data, "progress", true)
 

@@ -568,7 +568,7 @@ GPM_ = {
 	--     lines = roads,
 	--     target = communities,
 	--     progress = false,
-	--     weight = function(distance, cell)
+	--     inside = function(distance, cell)
 	--         if cell.STATUS == "paved" then
 	--             return distance / 5
 	--         else
@@ -618,15 +618,16 @@ metaTableGPM_ = {
 }
 
 --- Type to create a Generalised Proximity Matrix (GPM).
--- GPM is a concept used to establish relations between geographical objects.
+-- GPM is a concept used to establish relations between origins and destinations,
+-- represented as geographical objects.
 -- It has several strategies to define how two objects are connected, from basic
--- geographical relations such as intersection area and border to (for instance) road Networks.
+-- geographical relations such as intersection area and border to connectivity networks.
 -- The relations created by GPM are not stored in extenal sources nor in attributes of the
 -- CellularSpaces it connects. It is necessary to use some functions of this type in order
 -- to create attributes or neighborhoods and to save the output.
 -- @arg data.distance Maximum distance allowed to connect an origin to a destination.
 -- @arg data.destination A base::CellularSpace or a Network, containing the destination points.
--- The GPM will connect the objects from the origin to the destination.
+-- When the destination is a Network, the real destinations are the targets of the network.
 -- It is possible to use the origin as destination as well.
 -- @arg data.origin A base::CellularSpace representing the objects to be connected.
 -- @arg data.progress Optional boolean value indicating whether GPM will print messages
@@ -662,7 +663,7 @@ metaTableGPM_ = {
 --     lines = roads,
 --     target = communities,
 --     progress = false,
---     weight = function(distance, cell)
+--     inside = function(distance, cell)
 --         if cell.STATUS == "paved" then
 --             return distance / 5
 --         else
