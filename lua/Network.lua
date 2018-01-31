@@ -206,7 +206,7 @@ local function isNetworkConnected(linesConnected)
 		if not linesA then return end
 
 		forEachElement(linesConnected, function(b, linesB)
-			if (a ~= b) and linesB and hasConnection(linesA, linesB) then
+			if a ~= b and linesB and hasConnection(linesA, linesB) then
 				joinLines(linesA, linesB)
 				linesConnected[b] = false
 			end
@@ -220,7 +220,20 @@ local function isNetworkConnected(linesConnected)
 	end)
 
 	if getn(linesConnected) > 1 then
-		return false
+		local first
+		local second
+
+		forEachOrderedElement(linesConnected, function(idx)
+			if not first then
+				first = idx
+			elseif not second then
+				second = idx
+			else
+				return false
+			end
+		end)
+
+		return false, first, second
 	end
 
 	return true
@@ -235,8 +248,10 @@ local function validateLines(self)
 		validateLine(self, line, linesEndpoints, linesValidated, linesConnected)
 	end)
 
-	if not isNetworkConnected(linesConnected) then
-		customError("The network is disconected.")
+	local result, first, second = isNetworkConnected(linesConnected)
+
+	if not result then
+		customError("The network is disconnected. For example, objects '"..first.."' and '"..second.."' belong to two separated networks.")
 	end
 end
 

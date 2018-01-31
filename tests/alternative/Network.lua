@@ -106,7 +106,7 @@ return {
 			}
 		end
 
-		unitTest:assertError(error_func, "The network is disconected.")
+		unitTest:assertError(error_func, "The network is disconnected. For example, objects '1' and '2' belong to two separated networks.")
 
 		roads = CellularSpace{
 			file = filePath("error/".."roads_overlay_points.shp", "gpm"),
