@@ -10,7 +10,7 @@ local network = Network{
 	lines = roads,
 	target = communities,
 	progress = false,
-	weight = function(distance, cell)
+	inside = function(distance, cell)
 		if cell.STATUS == "paved" then
 			return distance / 5
 		else

@@ -13,7 +13,7 @@ return {
 			Network{
 				lines = 2,
 				target = communities,
-				weight = function(distance) return distance end,
+				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
 		end
@@ -24,7 +24,7 @@ return {
 			Network{
 				lines = communities,
 				target = communities,
-				weight = function(distance) return distance end,
+				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
 		end
@@ -35,42 +35,29 @@ return {
 			Network{
 				lines = roads,
 				target = 2,
-				weight = function(distance) return distance end,
+				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
 		end
 
 		unitTest:assertError(error_func, incompatibleTypeMsg("target", "CellularSpace", 2))
 
-		local warning_func = function()
+		error_func = function()
 			Network{
 				lines = roads,
 				target = communities,
-				strategy = "open",
-				progress = false,
-				weight = function(distance) return distance end,
+				inside = 2,
 				outside = function(distance) return distance * 2 end
 			}
 		end
 
-		unitTest:assertWarning(warning_func, defaultValueMsg("strategy", "open"))
+		unitTest:assertError(error_func, incompatibleTypeMsg("inside", "function", 2))
 
 		error_func = function()
 			Network{
 				lines = roads,
 				target = communities,
-				weight = 2,
-				outside = function(distance) return distance * 2 end
-			}
-		end
-
-		unitTest:assertError(error_func, incompatibleTypeMsg("weight", "function", 2))
-
-		error_func = function()
-			Network{
-				lines = roads,
-				target = communities,
-				weight = function(distance) return distance end,
+				inside = function(distance) return distance end,
 				outside = 2
 			}
 		end
@@ -81,7 +68,7 @@ return {
 			Network{
 				lines = roads,
 				target = communities,
-				weight = function(distance) return distance end,
+				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end,
 				error = "error"
 			}
@@ -102,7 +89,7 @@ return {
 			Network{
 				lines = roads,
 				target = communities,
-				weight = function(distance) return distance end,
+				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
 		end
@@ -113,13 +100,13 @@ return {
 			Network{
 				lines = roads,
 				target = communities,
-				weight = function(distance) return distance end,
+				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end,
 				error = 900
 			}
 		end
 
-		unitTest:assertError(error_func, "The network is disconected.")
+		unitTest:assertError(error_func, "The network is disconnected. For example, objects '1' and '2' belong to two separated networks.")
 
 		roads = CellularSpace{
 			file = filePath("error/".."roads_overlay_points.shp", "gpm"),
@@ -130,7 +117,7 @@ return {
 			Network{
 				lines = roads,
 				target = communities,
-				weight = function(distance) return distance end,
+				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
 		end
@@ -147,7 +134,7 @@ return {
 			Network{
 				lines = cs,
 				target = communities,
-				weight = function(distance) return distance end,
+				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
 		end
@@ -158,7 +145,7 @@ return {
 			Network{
 				lines = roads,
 				target = cs,
-				weight = function(distance) return distance end,
+				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
 		end

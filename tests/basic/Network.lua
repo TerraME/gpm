@@ -288,7 +288,7 @@ return {
 				lines = roads,
 				target = communities,
 				progress = false,
-				weight = function(distance) -- weights is only the distance
+				inside = function(distance) -- weights is only the distance
 					return distance
 				end,
 				outside = function(distance)
@@ -359,7 +359,7 @@ return {
 				lines = roads,
 				target = communities,
 				progress = false,
-				weight = function(distance)
+				inside = function(distance)
 					return distance * 2
 				end,
 				outside = function(distance)
@@ -392,7 +392,7 @@ return {
 				lines = roads,
 				target = communities,
 				progress = false,
-				weight = function(distance)
+				inside = function(distance)
 					return distance / 2
 				end,
 				outside = function(distance)
@@ -425,7 +425,7 @@ return {
 				lines = roads,
 				target = communities,
 				progress = false,
-				weight = function(distance) -- weights is only the distance
+				inside = function(distance) -- weights is only the distance
 					return distance
 				end,
 				outside = function(distance)
@@ -447,7 +447,7 @@ return {
 				lines = roads,
 				target = communities,
 				progress = false,
-				weight = function(distance, cell)
+				inside = function(distance, cell)
 					if cell.STATUS == "paved" then
 						return distance / 10
 					else

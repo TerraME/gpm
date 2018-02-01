@@ -27,7 +27,7 @@ local targetLines
 local computedLines -- without taget lines
 
 -- User-defined functions
-local weight
+local inside
 local outside
 
 local function createLineInfo(line)
@@ -141,27 +141,28 @@ local function validateLine(self, line, linesEndpoints, linesValidated, linesCon
 	local lineMinDistance = math.huge
 
 	forEachElement(self.lines, function(_, oline)
-		if (oline.id ~= line.id) then
-			if checkIfLineCrosses(line, oline) then
-				customError("Lines '"..line.id.."' and '"..oline.id.."' cross each other.")
-			else
-				if not linesEndpoints[oline.id] then
-					linesEndpoints[oline.id] = {first = oline.geom:getStartPoint(), last = oline.geom:getEndPoint()}
-				end
+		if oline.id == line.id then return end
 
-				local minDistance = calculateMinDistance(linesEndpoints[line.id], linesEndpoints[oline.id])
+		if checkIfLineCrosses(line, oline) then
+			customError("Lines '"..line.id.."' and '"..oline.id.."' cross each other.")
+		end
 
-				if minDistance <= self.error then
-					linesValidated[line.id] = true
-					if not linesConnected[oline.id] then
-						linesConnected[oline.id] = {}
-						table.insert(linesConnected[oline.id], oline.id)
-					end
-					table.insert(linesConnected[oline.id], line.id)
-				elseif lineMinDistance > minDistance then
-					lineMinDistance = minDistance
-				end
+		if not linesEndpoints[oline.id] then
+			linesEndpoints[oline.id] = {first = oline.geom:getStartPoint(), last = oline.geom:getEndPoint()}
+		end
+
+		local minDistance = calculateMinDistance(linesEndpoints[line.id], linesEndpoints[oline.id])
+
+		if minDistance <= self.error then
+			linesValidated[line.id] = true
+			if not linesConnected[oline.id] then
+				linesConnected[oline.id] = {}
+				table.insert(linesConnected[oline.id], oline.id)
 			end
+
+			table.insert(linesConnected[oline.id], line.id)
+		elseif lineMinDistance > minDistance then
+			lineMinDistance = minDistance
 		end
 	end)
 
@@ -178,6 +179,7 @@ local function hasConnection(linesA, linesB)
 			end
 		end
 	end
+
 	return false
 end
 
@@ -187,6 +189,7 @@ local function valueExists(tbl, value)
 			return true
 		end
 	end
+
 	return false
 end
 
@@ -200,16 +203,14 @@ end
 
 local function isNetworkConnected(linesConnected)
 	forEachElement(linesConnected, function(a, linesA)
-		if linesA then
-			forEachElement(linesConnected, function(b, linesB)
-				if (a ~= b) and linesB then
-					if hasConnection(linesA, linesB) then
-						joinLines(linesA, linesB)
-						linesConnected[b] = false
-					end
-				end
-			end)
-		end
+		if not linesA then return end
+
+		forEachElement(linesConnected, function(b, linesB)
+			if a ~= b and linesB and hasConnection(linesA, linesB) then
+				joinLines(linesA, linesB)
+				linesConnected[b] = false
+			end
+		end)
 	end)
 
 	forEachElement(linesConnected, function(id)
@@ -219,7 +220,20 @@ local function isNetworkConnected(linesConnected)
 	end)
 
 	if getn(linesConnected) > 1 then
-		return false
+		local first
+		local second
+
+		forEachOrderedElement(linesConnected, function(idx)
+			if not first then
+				first = idx
+			elseif not second then
+				second = idx
+			else
+				return false
+			end
+		end)
+
+		return false, first, second
 	end
 
 	return true
@@ -234,8 +248,10 @@ local function validateLines(self)
 		validateLine(self, line, linesEndpoints, linesValidated, linesConnected)
 	end)
 
-	if not isNetworkConnected(linesConnected) then
-		customError("The network is disconected.")
+	local result, first, second = isNetworkConnected(linesConnected)
+
+	if not result then
+		customError("The network is disconnected. For example, objects '"..first.."' and '"..second.."' belong to two separated networks.")
 	end
 end
 
@@ -255,8 +271,8 @@ local function findFirstPoint(targetNode)
 		end
 	end
 
-	if weight then
-		pointInfo.distance = weight(pointInfo.distance, targetNode.line.cell)
+	if inside then
+		pointInfo.distance = inside(pointInfo.distance, targetNode.line.cell)
 	end
 
 	return pointInfo
@@ -265,8 +281,8 @@ end
 local function calculateFullDistance(node, point, line)
 	local distance = node.point:distance(point) -- TODO: this can be improved using delta distance
 
-	if weight then
-		distance = weight(distance, line.cell)
+	if inside then
+		distance = inside(distance, line.cell)
 	end
 
 	return node.distance + distance
@@ -394,45 +410,42 @@ local function createNodeByNextPoint(point, position, currNode, line)
 end
 
 local function addAllNodesOfLineBackward(graph, line, node, nodePosition)
-	if nodePosition == 0 then
-		return
-	else
-		local i = nodePosition - 1
-		local currNode = node
-		while i >= 0 do
-			local point = line.geom:getPointN(i)
-			local nodeId = point:asText()
+	if nodePosition == 0 then return end
 
-			if graph[nodeId] then
-				reviewExistingNode(graph[nodeId], currNode, i)
-			else
-				local previousNode = createNodeByNextPoint(point, i, currNode, line)
-				graph[nodeId] = previousNode
-				linkNodeToNext(previousNode, currNode)
-				currNode = previousNode
-			end
-			i = i - 1
+	local i = nodePosition - 1
+	local currNode = node
+	while i >= 0 do
+		local point = line.geom:getPointN(i)
+		local nodeId = point:asText()
+
+		if graph[nodeId] then
+			reviewExistingNode(graph[nodeId], currNode, i)
+		else
+			local previousNode = createNodeByNextPoint(point, i, currNode, line)
+			graph[nodeId] = previousNode
+			linkNodeToNext(previousNode, currNode)
+			currNode = previousNode
 		end
+
+		i = i - 1
 	end
 end
 
 local function addAllNodesOfLineForward(graph, line, node, nodePosition)
-	if nodePosition == line.npoints - 1 then
-		return
-	else
-		local currNode = node
-		for i = nodePosition + 1, line.npoints - 1 do
-			local point = line.geom:getPointN(i)
-			local nodeId = point:asText()
+	if nodePosition == line.npoints - 1 then return end
 
-			if nodeExists(graph[nodeId]) then
-				reviewExistingNode(graph[nodeId], currNode, i)
-			else
-				local nextNode = createNodeByNextPoint(point, i, currNode, line)
-				graph[nodeId] = nextNode
-				linkNodeToNext(nextNode, currNode)
-				currNode = nextNode
-			end
+	local currNode = node
+	for i = nodePosition + 1, line.npoints - 1 do
+		local point = line.geom:getPointN(i)
+		local nodeId = point:asText()
+
+		if nodeExists(graph[nodeId]) then
+			reviewExistingNode(graph[nodeId], currNode, i)
+		else
+			local nextNode = createNodeByNextPoint(point, i, currNode, line)
+			graph[nodeId] = nextNode
+			linkNodeToNext(nextNode, currNode)
+			currNode = nextNode
 		end
 	end
 end
@@ -513,18 +526,14 @@ local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 
 	if firstNode.pos == 0 then
 		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
+	elseif firstNode.pos == line.npoints - 1 then
+		addAllNodesOfLineBackward(graph, targetNode, firstNode, graph[secNode.id], firstNode.pos)
+	elseif secPoint.pos > firstNode.pos then
+		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
+		addAllNodesOfLineBackward(graph, line, firstNode, firstNode.pos)
 	else
-		if firstNode.pos == line.npoints - 1 then
-			addAllNodesOfLineBackward(graph, targetNode, firstNode, graph[secNode.id], firstNode.pos)
-		else
-			if secPoint.pos > firstNode.pos then
-				addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
-				addAllNodesOfLineBackward(graph, line, firstNode, firstNode.pos)
-			else
-				addAllNodesOfLineForward(graph, line, firstNode, firstNode.pos)
-				addAllNodesOfLineBackward(graph, line, graph[secNode.id], graph[secNode.id].pos)
-			end
-		end
+		addAllNodesOfLineForward(graph, line, firstNode, firstNode.pos)
+		addAllNodesOfLineBackward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 	end
 end
 
@@ -647,7 +656,7 @@ local function createConnectivityInfoGraph(self)
 end
 
 local function createOpenNetwork(self)
-	weight = self.weight
+	inside = self.inside
 	outside = self.outside
 	self.lines = createLinesInfo(self.lines)
 	validateLines(self)
@@ -663,33 +672,53 @@ metaTableNetwork_ = {
 	__index = Network_
 }
 
---- Type for network creation. Given geometry of the line type,
--- constructs a geometry network. This type is used to calculate the best path.
--- @arg data.error Error argument to connect the lines in the Network (optional).
--- If data.error case is not defined , assigned the value 0.
--- @arg data.lines CellularSpace with routes to create network.
--- @arg data.outside User-defined function that computes the distance based on an
--- Euclidean to enter and to leave the Network.
--- If not set a function, will return to own distance.
--- @arg data.progress print as values are being processed (optional).
--- @arg data.strategy Strategy to be used in the network (optional).
--- @arg data.target CellularSpace that receives end points of the networks.
--- @arg data.weight User defined function to change the network distance.
--- If not set a function, will return to own distance.
+--- Type that represents a network. It uses a set of lines and a set of destinations
+-- that will be the end points of the network. This type requires that the network
+-- is fully connected, meaning that it is possible to
+-- reach any line from any other line of the network.
+-- Distances within and without the network are computed in different ways.
+-- In this sense, the distances inside the network should be proportionally
+-- shorter then the distances outside the network in order to allow the shortest
+-- paths to be within the network. Tipically, using the Network
+-- changes the representation from space to time, meaning that travelling within
+-- the network is faster than outside.
+-- A Network can then be used to create a GPM, using a set of origins.
+-- @arg data.error As default, two lines are connected in the Network only if they share
+-- exactly the same point. This argument allows two lines to be connected when there is a
+-- maximum error in the distance up to the its value.
+-- Therefore, the default value for this argument is zero.
+-- @arg data.lines A base::CellularSpace with lines to create network. It can be for example a set of roads.
+-- @arg data.outside User-defined function that converts the distance based on an
+-- Euclidean distance to a distance in the geographical space. This function is
+-- applied to enter and to leave the network, as well as to try to see whether
+-- the distance without using the network is shorter than using the network.
+-- If not set a function, will return the distance itself.
+-- This function gets one argument with the distance in Eucldean space
+-- and must return the distance in the geographical space.
+-- @arg data.progress Optional boolean value indicating whether Network will print messages
+-- while processing values. The default value is true.
+-- @arg data.target A base::CellularSpace with the destinations of the network.
+-- @arg data.inside User defined function that converts the distance based on
+-- an Euclidean distance to a distance in the geographical space. This function
+-- is applied to every path within the network.
+-- If not set a function, will return the distance itself. Note that,
+-- if the user does not use this argument neither outside function, the
+-- paths will never use the network, as the distance within the network will always
+-- be greater than the distance outside the network.
+-- This function gets two arguments, the distance in Euclidean space and the
+-- line, and must return the distance in the geographical space. This means
+-- that it is possible to use properties from the lines such as paved or
+-- non-paved roads.
 -- @usage import("gpm")
--- local roads = CellularSpace{
---     file = filePath("roads.shp", "gpm")
--- }
 --
--- local communities = CellularSpace{
---     file = filePath("communities.shp", "gpm")
--- }
+-- roads = CellularSpace{file = filePath("roads.shp", "gpm")}
+-- communities = CellularSpace{file = filePath("communities.shp", "gpm")}
 --
 -- network = Network{
 --     lines = roads,
 --     target = communities,
 --     progress = false,
---     weight = function(distance, cell)
+--     inside = function(distance, cell)
 --         if cell.STATUS == "paved" then
 --             return distance / 5
 --         else
@@ -702,7 +731,7 @@ metaTableNetwork_ = {
 -- }
 function Network(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"target", "lines", "strategy", "weight", "outside", "error", "progress"})
+	verifyUnnecessaryArguments(data, {"target", "lines", "inside", "outside", "error", "progress"})
 	mandatoryTableArgument(data, "lines", "CellularSpace")
 
 	if data.lines.geometry then
@@ -716,14 +745,13 @@ function Network(data)
 	end
 
 	mandatoryTableArgument(data, "target", "CellularSpace")
-	mandatoryTableArgument(data, "weight", "function")
+	mandatoryTableArgument(data, "inside", "function")
 	mandatoryTableArgument(data, "outside", "function")
 
 	if data.target.geometry == false then
 		customError("The CellularSpace in argument 'target' must be loaded without using argument 'geometry'.")
 	end
 
-	defaultTableValue(data, "strategy", "open")
 	defaultTableValue(data, "error", 0)
 	defaultTableValue(data, "progress", true)
 
@@ -735,3 +763,4 @@ function Network(data)
 	setmetatable(data, metaTableNetwork_)
 	return data
 end
+

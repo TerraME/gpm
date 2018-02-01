@@ -53,7 +53,7 @@ strategy     string [border]
 				lines = roads,
 				target = communities,
 				progress = false,
-				weight = function(distance)
+				inside = function(distance)
 					return distance
 				end,
 				outside = function(distance) return distance end
@@ -615,7 +615,7 @@ strategy     string [border]
 			lines = roads,
 			target = communities,
 			progress = false,
-			weight = function(distance, cell)
+			inside = function(distance, cell)
 				if cell.STATUS == "paved" then
 					return distance * 0.2
 				else
