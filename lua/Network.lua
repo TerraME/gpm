@@ -220,23 +220,69 @@ local function isNetworkConnected(linesConnected)
 	end)
 
 	if getn(linesConnected) > 1 then
-		local first
-		local second
-
-		forEachOrderedElement(linesConnected, function(idx)
-			if not first then
-				first = idx
-			elseif not second then
-				second = idx
-			else
-				return false
-			end
-		end)
-
-		return false, first, second
+		return false
 	end
 
 	return true
+end
+
+local function addNetIdInfo(netIdName, cs, linesConnected)
+	local netId = 0
+	for _, v in pairs(linesConnected) do
+		for i = 1, #v do
+			forEachCell(cs, function(cell)
+				if not cell[netIdName] then
+					if cell.FID == v[i] then
+						cell[netIdName] = netId
+					end
+				end
+			end)
+		end
+		netId = netId + 1
+	end
+end
+
+local function saveErrorInfo(self, linesConnected)
+	local gis = getPackage("gis")
+	local linesCs = self.linesCs
+	local errorLayerName = "neterror"
+	local netIdName = "net_id"
+	local errMsg
+
+	if linesCs.project then
+		addNetIdInfo(netIdName, linesCs, linesConnected)
+		linesCs:save(errorLayerName, netIdName)
+		errMsg = "It was created a new Layer '"..errorLayerName
+				.."' in the project with a new attribute '"..netIdName
+	else
+		local proj = gis.Project{
+			file = "network_report.tview",
+			clean = true,
+			author = "TerraME-Network",
+			title = "Error Report"
+		}
+
+		local linesCsLayer = gis.Layer{
+			project = proj,
+			name = errorLayerName,
+			file = linesCs.file
+		}
+
+		local cs = CellularSpace{
+			project = proj,
+			layer = linesCsLayer.name,
+			missing = linesCs.missing
+		}
+
+		addNetIdInfo(netIdName, cs, linesConnected)
+		cs:save(linesCsLayer.name, netIdName)
+		proj.file:delete()
+		errMsg = "It was created a new data '"..errorLayerName
+				.."."..File(linesCsLayer.file):extension()
+				.. "' with a new attribute '"..netIdName
+	end
+
+	return errMsg.."' for analysis."
 end
 
 local function validateLines(self)
@@ -248,10 +294,9 @@ local function validateLines(self)
 		validateLine(self, line, linesEndpoints, linesValidated, linesConnected)
 	end)
 
-	local result, first, second = isNetworkConnected(linesConnected)
-
-	if not result then
-		customError("The network is disconnected. For example, objects '"..first.."' and '"..second.."' belong to two separated networks.")
+	if not isNetworkConnected(linesConnected) then
+		local errMsg = saveErrorInfo(self, linesConnected)
+		customError("The network is disconnected. "..errMsg)
 	end
 end
 
@@ -658,6 +703,7 @@ end
 local function createOpenNetwork(self)
 	inside = self.inside
 	outside = self.outside
+	self.linesCs = self.lines
 	self.lines = createLinesInfo(self.lines)
 	validateLines(self)
 	findAndAddTargetNodes(self)
