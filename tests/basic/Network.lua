@@ -514,10 +514,37 @@ return {
 			unitTest:assert(sumDistances(targetNodes[0]) < 24344.126540223)
 		end
 
+		local networkWithInvertedLine = function()
+			local roads = CellularSpace{
+				file = filePath("test/netinverted1.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/ports_antaq_sirgas2000_south1.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance) -- weights is only the distance
+					return distance
+				end,
+				outside = function(distance)
+					return distance
+				end
+			}
+
+			unitTest:assertEquals(getn(network.netpoints), 45314)
+			unitTest:assertEquals(network.lines[43].shortestPath, 1531.231486377, 1.0e-9) --< inverted line
+		end
+
 		networkSetWeightAndOutsideEqualDistance()
 		networkSetWeightAndOutsideMultipliedBy2()
 		networkSetWeightAndOutsideDividedBy2()
 		networkSetWeightDividedBy10()
+		networkWithInvertedLine()
 	end
 }
 

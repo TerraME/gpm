@@ -513,39 +513,40 @@ local function findSecondPointInEnds(firstNode, targetNode)
 	return pointInfo
 end
 
+local function isTargetBetween(pTarget, pFirst, pOther)
+	local xt = pTarget:getX()
+	local xf = pFirst:getX()
+	local xo = pOther:getX()
+
+	if ((xo < xt) and (xt < xf)) or ((xo > xt) and (xt > xf)) then
+		return true
+	end
+
+	return false
+end
+
 local function findSecondPointInInterior(firstNode, targetNode)
 	local line = targetNode.line
 	local pointInfo = {}
 	local pAfter = line.geom:getPointN(firstNode.pos + 1)
 	local pBefore = line.geom:getPointN(firstNode.pos - 1)
-	local xb = pBefore:getX()
-	local xa = pAfter:getX()
-	local xf = firstNode.point:getX()
-	local xt = targetNode.point:getX()
 
-	if xf > xb then
-		if (xt > xb) and (xf > xt) then
-			pointInfo.point = pBefore
-			pointInfo.pos = firstNode.pos - 1
-		elseif (xt < xa) and (xf < xt) then
-			pointInfo.point = pAfter
-			pointInfo.pos = firstNode.pos + 1
-		end
-	else -- inverted line
-		customError("Inverted line "..xf..", "..xt..", "..xb..", "..xa) -- TODO: needs test
+	if isTargetBetween(targetNode.point, firstNode.point, pAfter) then
+		pointInfo.point = pAfter
+		pointInfo.pos = firstNode.pos + 1
+	else
+		pointInfo.point = pBefore
+		pointInfo.pos = firstNode.pos - 1
 	end
 
 	return pointInfo
 end
 
 local function findSecondPoint(firstNode, targetNode)
-	if firstNode.point:getX() == targetNode.point:getX() then
-		return {point = firstNode.point, pos = firstNode.pos}
-	end
-
 	local pointInfo = findSecondPointInEnds(firstNode, targetNode)
 
-	if #pointInfo == 0 then
+	local hasNotFound = not pointInfo.point
+	if hasNotFound then
 		pointInfo = findSecondPointInInterior(firstNode, targetNode)
 	end
 
@@ -572,7 +573,7 @@ local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 	if firstNode.pos == 0 then
 		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 	elseif firstNode.pos == line.npoints - 1 then
-		addAllNodesOfLineBackward(graph, targetNode, firstNode, graph[secNode.id], firstNode.pos)
+		addAllNodesOfLineBackward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 	elseif secPoint.pos > firstNode.pos then
 		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 		addAllNodesOfLineBackward(graph, line, firstNode, firstNode.pos)
