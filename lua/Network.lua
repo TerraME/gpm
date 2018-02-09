@@ -49,9 +49,14 @@ local function createLinesInfo(lines)
 	return linesInfo
 end
 
-local function addTargetInfoInLine(targetLine, targetPoint, distance)
+local function createClosestPoint(targetPoint, targetLine)
 	local closestPoint = targetPoint:closestPoint(targetLine.geom)
-	targetLine.closestPoint = {id = closestPoint:asText(), point = closestPoint} -- closest point info
+	return {id = closestPoint:asText(), point = closestPoint}
+end
+
+local function addTargetInfoInLine(targetLine, closestPoint, distance)
+	--local closestPoint = targetPoint:closestPoint(targetLine.geom)
+	targetLine.closestPoint = closestPoint --{id = closestPoint:asText(), point = closestPoint} -- closest point info
 	targetLine.shortestPath = distance
 	targetLines[targetLine.id] = targetLine
 end
@@ -96,6 +101,46 @@ local function findClosestLine(lines, point)
 	return {line = closestLine, distance = minDistance}
 end
 
+local function checkAndRemoveTargetIfLineHasMoreThanOneOfIt(targets)
+	local targetList = {}
+	for _, node in pairs(targets) do
+		table.insert(targetList, node)
+	end
+
+	local targetsToRemove = {}
+
+	for i = 1, #targetList do
+		local n1 = targetList[i]
+		if not targetsToRemove[n1.id] then
+			for j = i + 1, #targetList do
+				local n2 = targetList[j]
+				if not targetsToRemove[n2.id] then
+					if n1.line.id == n2.line.id then
+						local dist = n1.point:distance(n2.point)
+
+						if inside then
+							dist = inside(dist, n1.line.cell)
+						end
+
+						if (n1.distance > dist) and (n1.distance > n2.distance) then
+							targetsToRemove[n1.id] = true
+						elseif (n2.distance > dist) and (n2.distance > n1.distance) then
+							targetsToRemove[n2.id] = true
+						end
+					end
+				end
+			end
+		end
+	end
+
+	for id, node in pairs(targets) do
+		if targetsToRemove[id] then
+			customWarning("Target '"..node.targetId.."' is too far of line '"..node.line.id.."' with distance '"..node.distance.."'. It was removed.")
+			targets[id] = nil
+		end
+	end
+end
+
 -- TODO(avancinirodrigo): this method can be improved by some tree
 local function findAndAddTargetNodes(self)
 	self.netpoints = {}
@@ -105,13 +150,15 @@ local function findAndAddTargetNodes(self)
 		local targetId = tonumber(target:getId())
 		local closestLine = findClosestLine(self.lines, targetPoint)
 		local targetLine = closestLine.line
+		local closestPoint = createClosestPoint(targetPoint, closestLine.line)
 
-		addTargetInfoInLine(closestLine.line, targetPoint, closestLine.distance)
-		local closestPoint = targetLine.closestPoint
+		addTargetInfoInLine(closestLine.line, closestPoint, closestLine.distance)
 
 		self.netpoints[closestPoint.id] = createTargetNode(closestPoint.point,
 												targetLine.shortestPath, targetLine, targetId)
 	end)
+
+	checkAndRemoveTargetIfLineHasMoreThanOneOfIt(self.netpoints)
 end
 
 local function checkIfLineCrosses(lineA, lineB)
@@ -309,7 +356,7 @@ local function findFirstPoint(targetNode)
 		local point = line.geom:getPointN(i)
 		local distance = targetNode.point:distance(point)
 
-		if pointInfo.distance > distance then
+		if (pointInfo.distance > distance) and (distance > 0) then
 			pointInfo.point = point
 			pointInfo.distance = distance
 			pointInfo.pos = i
@@ -573,7 +620,7 @@ local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 	if firstNode.pos == 0 then
 		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 	elseif firstNode.pos == line.npoints - 1 then
-		addAllNodesOfLineBackward(graph, line, graph[secNode.id], graph[secNode.id].pos)
+		addAllNodesOfLineBackward(graph, line, graph[secNode.id], graph[secNode.id].pos) -- TODO: move it up
 	elseif secPoint.pos > firstNode.pos then
 		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 		addAllNodesOfLineBackward(graph, line, firstNode, firstNode.pos)

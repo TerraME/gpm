@@ -540,11 +540,61 @@ return {
 			unitTest:assertEquals(network.lines[43].shortestPath, 1531.231486377, 1.0e-9) --< inverted line
 		end
 
+		local networkWithTwoTargetsInSameLine = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_ne1.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/ports_sirgas2000_ne1.shp", "gpm"),
+				missing = 0
+			}
+
+			local network
+
+			local moreThanOneTargetInSameLine = function()
+				network = Network{
+					lines = roads,
+					target = ports,
+					progress = false,
+					inside = function(distance) -- weights is only the distance
+						return distance
+					end,
+					outside = function(distance)
+						return distance * 4
+					end
+				}
+			end
+
+			unitTest:assertWarning(moreThanOneTargetInSameLine,
+								"Target '1' is too far of line '6' with distance '63302.072308726'. It was removed.")
+			unitTest:assertEquals(getn(network.netpoints), 6570)
+
+			local targetNodes = getTagetNodes(network)
+			unitTest:assertEquals(getn(targetNodes), 1)
+
+			local network1 = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance) -- weights is only the distance
+					return distance * 10
+				end,
+				outside = function(distance)
+					return distance
+				end
+			}
+
+			local targetNodes1 = getTagetNodes(network1)
+			unitTest:assertEquals(getn(targetNodes1), 2)
+		end
+
 		networkSetWeightAndOutsideEqualDistance()
 		networkSetWeightAndOutsideMultipliedBy2()
 		networkSetWeightAndOutsideDividedBy2()
 		networkSetWeightDividedBy10()
 		networkWithInvertedLine()
+		networkWithTwoTargetsInSameLine()
 	end
 }
 
