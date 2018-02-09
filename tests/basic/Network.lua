@@ -589,12 +589,47 @@ return {
 			unitTest:assertEquals(getn(targetNodes1), 2)
 		end
 
+		local networkValidateFalse = function()
+			local roads = CellularSpace{
+				file = filePath("roads.shp", "gpm")
+			}
+
+			local communities = CellularSpace{
+				file = filePath("communities.shp", "gpm")
+			}
+
+			local network = Network{
+				lines = roads,
+				target = communities,
+				progress = false,
+				inside = function(distance)
+					return distance * 2
+				end,
+				outside = function(distance)
+					return distance * 2
+				end,
+				validate = false
+			}
+
+			unitTest:assertEquals(network.lines[10].shortestPath, 599.05719061263 * 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[8].shortestPath, 59.688264448298 * 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[18].shortestPath, 83.520707733564 * 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[28].shortestPath, 1041.9740663377 * 2, 1.0e-10)
+
+			local targetNodes = getTagetNodes(network)
+			unitTest:assertEquals(sumDistances(targetNodes[2]), 2 * 47958.718817508, 1.0e-9)
+			unitTest:assertEquals(sumDistances(targetNodes[1]), 2 * 10181.40682336, 1.0e-9)
+			unitTest:assertEquals(sumDistances(targetNodes[3]), 2 * 19061.171190073, 1.0e-9)
+			unitTest:assertEquals(sumDistances(targetNodes[0]), 2 * 24344.126540223, 1.0e-9)
+		end
+
 		networkSetWeightAndOutsideEqualDistance()
 		networkSetWeightAndOutsideMultipliedBy2()
 		networkSetWeightAndOutsideDividedBy2()
 		networkSetWeightDividedBy10()
 		networkWithInvertedLine()
 		networkWithTwoTargetsInSameLine()
+		networkValidateFalse()
 	end
 }
 

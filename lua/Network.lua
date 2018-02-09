@@ -753,7 +753,9 @@ local function createOpenNetwork(self)
 	outside = self.outside
 	self.linesCs = self.lines
 	self.lines = createLinesInfo(self.lines)
-	validateLines(self)
+	if self.validate then
+		validateLines(self)
+	end
 	findAndAddTargetNodes(self)
 	createConnectivityInfoGraph(self)
 end
@@ -803,6 +805,8 @@ metaTableNetwork_ = {
 -- line, and must return the distance in the geographical space. This means
 -- that it is possible to use properties from the lines such as paved or
 -- non-paved roads.
+-- @arg data.validate A boolean value that check if the lines is valid to build the Network.
+-- It is recommended that the lines be validated once at least. The default value is true.
 -- @usage import("gpm")
 --
 -- roads = CellularSpace{file = filePath("roads.shp", "gpm")}
@@ -825,7 +829,7 @@ metaTableNetwork_ = {
 -- }
 function Network(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"target", "lines", "inside", "outside", "error", "progress"})
+	verifyUnnecessaryArguments(data, {"target", "lines", "inside", "outside", "error", "progress", "validate"})
 	mandatoryTableArgument(data, "lines", "CellularSpace")
 
 	if data.lines.geometry then
@@ -848,6 +852,7 @@ function Network(data)
 
 	defaultTableValue(data, "error", 0)
 	defaultTableValue(data, "progress", true)
+	defaultTableValue(data, "validate", true)
 
 	targetLines = {}
 	computedLines = {}
