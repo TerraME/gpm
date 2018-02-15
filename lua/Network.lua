@@ -55,8 +55,7 @@ local function createClosestPoint(targetPoint, targetLine)
 end
 
 local function addTargetInfoInLine(targetLine, closestPoint, distance)
-	--local closestPoint = targetPoint:closestPoint(targetLine.geom)
-	targetLine.closestPoint = closestPoint --{id = closestPoint:asText(), point = closestPoint} -- closest point info
+	targetLine.closestPoint = closestPoint
 	targetLine.shortestPath = distance
 	targetLines[targetLine.id] = targetLine
 end
@@ -214,7 +213,7 @@ local function validateLine(self, line, linesEndpoints, linesValidated, linesCon
 	end)
 
 	if not linesValidated[line.id] then
-		customError("Line: '"..line.id.."' does not touch any other line. The minimum distance found was: "..lineMinDistance..".")
+		customError("Line '"..line.id.."' does not touch any other line. The minimum distance found was: "..lineMinDistance..".")
 	end
 end
 

@@ -94,7 +94,7 @@ return {
 			}
 		end
 
-		unitTest:assertError(error_func, "Line: '7' does not touch any other line. The minimum distance found was: 843.46359196883.")
+		unitTest:assertError(error_func, "Line '7' does not touch any other line. The minimum distance found was: 843.46359196883.")
 
 		roads = CellularSpace{
 			file = filePath("error/".."roads_overlay_points.shp", "gpm"),
