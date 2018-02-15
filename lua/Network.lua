@@ -134,7 +134,8 @@ local function checkAndRemoveTargetIfLineHasMoreThanOneOfIt(targets)
 
 	for id, node in pairs(targets) do
 		if targetsToRemove[id] then
-			customWarning("Target '"..node.targetId.."' is too far of line '"..node.line.id.."' with distance '"..node.distance.."'. It was removed.")
+			customWarning("Line '"..node.line.id.."' has more than one target. Target '"..node.targetId
+							.."' is too far with distance '"..node.distance.."' and it was removed.")
 			targets[id] = nil
 		end
 	end

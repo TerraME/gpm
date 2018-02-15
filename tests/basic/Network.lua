@@ -575,7 +575,7 @@ return {
 			end
 
 			unitTest:assertWarning(moreThanOneTargetInSameLine,
-								"Target '1' is too far of line '6' with distance '63302.072308726'. It was removed.")
+								"Line '6' has more than one target. Target '1' is too far with distance '63302.072308726' and it was removed.")
 			unitTest:assertEquals(getn(network.netpoints), 6570)
 
 			local targetNodes = getTagetNodes(network)
