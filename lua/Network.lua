@@ -413,8 +413,15 @@ local function relinkToNextNode(node, nextNode, newDistance)
 	end
 end
 
+local reviewRouterNode -- forward function
+
 local function recalculatePreviousDistances(node, previousNode)
 	if not previousNode then
+		return
+	end
+
+	if previousNode.router then
+		reviewRouterNode(previousNode, node)
 		return
 	end
 
@@ -440,7 +447,7 @@ local function convertRouterNodeToSimple(routerNode)
 	routerNode.router = nil
 end
 
-local function reviewRouterNode(routerNode, node)
+reviewRouterNode = function(routerNode, node)
 	removeOldRoute(routerNode, node)
 
 	for i = 1, #routerNode.previous do

@@ -273,6 +273,14 @@ local function getDifference(targetId, from, to)
 	return dif
 end
 
+local function getAnyNodeFromLine(netpoints, lineId)
+	for _, n in pairs(netpoints) do
+		if n.line.id == lineId then
+			return n
+		end
+	end
+end
+
 return {
 	Network = function(unitTest)
 		local networkSetWeightAndOutsideEqualDistance = function()
@@ -557,7 +565,7 @@ return {
 					lines = roads,
 					target = ports,
 					progress = false,
-					inside = function(distance) -- weights is only the distance
+					inside = function(distance)
 						return distance
 					end,
 					outside = function(distance)
@@ -577,7 +585,7 @@ return {
 				lines = roads,
 				target = ports,
 				progress = false,
-				inside = function(distance) -- weights is only the distance
+				inside = function(distance)
 					return distance * 10
 				end,
 				outside = function(distance)
@@ -623,6 +631,38 @@ return {
 			unitTest:assertEquals(sumDistances(targetNodes[0]), 2 * 24344.126540223, 1.0e-9)
 		end
 
+		local networkReviewMoreThanOneRouterNode = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_ne2.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/ports_sirgas2000_ne2.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				validate = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			unitTest:assertEquals(getn(network.netpoints), 130046)
+
+			local netpoint44 = getAnyNodeFromLine(network.netpoints, 44)
+			local netpoint153 = getAnyNodeFromLine(network.netpoints, 153)
+
+			unitTest:assertEquals(netpoint44.targetId, netpoint153.targetId) --< more than one router
+			unitTest:assertEquals(netpoint44.targetId, 1)
+		end
+
 		networkSetWeightAndOutsideEqualDistance()
 		networkSetWeightAndOutsideMultipliedBy2()
 		networkSetWeightAndOutsideDividedBy2()
@@ -630,6 +670,7 @@ return {
 		networkWithInvertedLine()
 		networkWithTwoTargetsInSameLine()
 		networkValidateFalse()
+		networkReviewMoreThanOneRouterNode()
 	end
 }
 
