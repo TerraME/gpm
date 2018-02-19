@@ -489,13 +489,19 @@ local function reviewNextNodes(node, nextNode)
 	end
 end
 
-local function reviewExistingNode(existingNode, currNode, newPosition)
+local function reviewExistingNode(existingNode, currNode, newPosition, newLine)
 	local newDistance = calculateFullDistance(currNode, existingNode.point, currNode.line)
 
 	if existingNode.distance > newDistance then
 		local existingNodeNext = existingNode.next
 		relinkToNextNode(currNode, existingNode, newDistance)
-		existingNode.line = currNode.line
+
+		if newLine.npoints == 2 then
+			existingNode.line = newLine
+		else
+			existingNode.line = currNode.line
+		end
+
 		existingNode.pos = newPosition
 		reviewNextNodes(existingNode, existingNodeNext)
 	else
@@ -518,7 +524,7 @@ local function addAllNodesOfLineBackward(graph, line, node, nodePosition)
 		local nodeId = point:asText()
 
 		if graph[nodeId] then
-			reviewExistingNode(graph[nodeId], currNode, i)
+			reviewExistingNode(graph[nodeId], currNode, i, line)
 		else
 			local previousNode = createNodeByNextPoint(point, i, currNode, line)
 			graph[nodeId] = previousNode
@@ -539,7 +545,7 @@ local function addAllNodesOfLineForward(graph, line, node, nodePosition)
 		local nodeId = point:asText()
 
 		if nodeExists(graph[nodeId]) then
-			reviewExistingNode(graph[nodeId], currNode, i)
+			reviewExistingNode(graph[nodeId], currNode, i, line)
 		else
 			local nextNode = createNodeByNextPoint(point, i, currNode, line)
 			graph[nodeId] = nextNode
@@ -869,4 +875,3 @@ function Network(data)
 	setmetatable(data, metaTableNetwork_)
 	return data
 end
-

@@ -663,6 +663,32 @@ return {
 			unitTest:assertEquals(netpoint44.targetId, 1)
 		end
 
+		local networkReviewLineWith2Points = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_south2.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			unitTest:assertEquals(getn(network.netpoints), 6956)
+			unitTest:assertEquals(network.lines[25].npoints, 2)
+		end
+
 		networkSetWeightAndOutsideEqualDistance()
 		networkSetWeightAndOutsideMultipliedBy2()
 		networkSetWeightAndOutsideDividedBy2()
@@ -671,6 +697,7 @@ return {
 		networkWithTwoTargetsInSameLine()
 		networkValidateFalse()
 		networkReviewMoreThanOneRouterNode()
+		networkReviewLineWith2Points()
 	end
 }
 
