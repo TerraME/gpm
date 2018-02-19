@@ -276,15 +276,15 @@ end
 local function addNetIdInfo(netIdName, cs, linesConnected)
 	local netId = 0
 	for _, v in pairs(linesConnected) do
-		for i = 1, #v do
-			forEachCell(cs, function(cell)
-				if not cell[netIdName] then
+		forEachCell(cs, function(cell)
+			if not cell[netIdName] then
+				for i = 1, #v do
 					if cell.FID == v[i] then
 						cell[netIdName] = netId
 					end
 				end
-			end)
-		end
+			end
+		end)
 		netId = netId + 1
 	end
 end
@@ -299,8 +299,8 @@ local function saveErrorInfo(self, linesConnected)
 	if linesCs.project then
 		addNetIdInfo(netIdName, linesCs, linesConnected)
 		linesCs:save(errorLayerName, netIdName)
-		errMsg = "It was created a new Layer '"..errorLayerName
-				.."' in the project with a new attribute '"..netIdName
+		errMsg = "Layer '"..errorLayerName.."' was automatically created with attribute '"
+				..netIdName.."' containing the separated networks."
 	else
 		local proj = gis.Project{
 			file = "network_report.tview",
@@ -324,12 +324,12 @@ local function saveErrorInfo(self, linesConnected)
 		addNetIdInfo(netIdName, cs, linesConnected)
 		cs:save(linesCsLayer.name, netIdName)
 		proj.file:delete()
-		errMsg = "It was created a new data '"..errorLayerName
-				.."."..File(linesCsLayer.file):extension()
-				.. "' with a new attribute '"..netIdName
+		errMsg = "Data '"..errorLayerName.."."..File(linesCsLayer.file):extension()
+				.. "' was automatically created with attribute '"
+				..netIdName.."' containing the separated networks."
 	end
 
-	return errMsg.."' for analysis."
+	return errMsg
 end
 
 local function validateLines(self)

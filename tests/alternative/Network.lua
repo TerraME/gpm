@@ -182,7 +182,7 @@ return {
 			}
 		end
 
-		unitTest:assertError(disconnWithProjectError, "The network is disconnected. It was created a new Layer 'neterror' in the project with a new attribute 'net_id' for analysis.")
+		unitTest:assertError(disconnWithProjectError, "The network is disconnected. Layer 'neterror' was automatically created with attribute 'net_id' containing the separated networks.")
 
 		local neterrorLayer = gis.Layer{
 			project = proj,
@@ -210,7 +210,7 @@ return {
 			}
 		end
 
-		unitTest:assertError(disconnectedError, "The network is disconnected. It was created a new data 'neterror.shp' with a new attribute 'net_id' for analysis.")
+		unitTest:assertError(disconnectedError, "The network is disconnected. Data 'neterror.shp' was automatically created with attribute 'net_id' containing the separated networks.")
 
 		local neterror = CellularSpace{
 			file = "neterror.shp",
