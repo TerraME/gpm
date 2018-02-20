@@ -22,6 +22,23 @@
 --
 -------------------------------------------------------------------------------------------
 
+local function progressMsg(self, relation, progress)
+	return "GPM processing "..relation.." "..progress.." of "..#self.origin.."."
+end
+
+local function updateProgressMsg(self, relation, progress)
+	if self.progress then
+		io.write(progressMsg(self, relation, progress), "\r") -- SKIP
+		io.flush()
+	end
+end
+
+local function finalizeProgressMsg(self, relation, progress)
+	if self.progress then
+		print(progressMsg(self, relation, progress))
+	end
+end
+
 local function buildOpenGPM(self)
 	local neighbors = {}
 	local progress = 0
@@ -29,11 +46,9 @@ local function buildOpenGPM(self)
 	forEachCell(self.origin, function(cell)
 		neighbors[cell:getId()] = {}
 		local cellGeom = cell.geom:getGeometryN(0)
-		progress = progress + 1
 
-		if self.progress then
-			print(table.concat{"Processing origin ", progress, "/", #self.origin}) -- SKIP
-		end
+		progress = progress + 1
+		updateProgressMsg(self, "origin", progress)
 
 		local centroid = cellGeom:getCentroid()
 		local network = self.network
@@ -52,6 +67,8 @@ local function buildOpenGPM(self)
 			end
 		end)
 	end)
+
+	finalizeProgressMsg(self, "origin", progress)
 
 	self.neighbor = neighbors
 end
@@ -150,15 +167,11 @@ local function buildDistanceRelation(self)
 	local destination = self.destination
 	local maxDistance = self.distance or math.huge
 	local progress = 0
-	local numberGeometry = #self.origin
 	local neighbors = {}
 
 	forEachCell(self.origin, function(originCell)
 		progress = progress + 1
-
-		if self.progress then
-			print(table.concat{"Processing distance ", progress, "/", numberGeometry}) -- SKIP
-		end
+		updateProgressMsg(self, "distance", progress)
 
 		neighbors[originCell:getId()] = {}
 
@@ -174,6 +187,8 @@ local function buildDistanceRelation(self)
 		end)
 	end)
 
+	finalizeProgressMsg(self, "distance", progress)
+
 	self.neighbor = neighbors
 end
 
@@ -181,15 +196,11 @@ local function buildBorderRelation(self)
 	local origin = self.origin
 	local destination = self.destination
 	local progress = 0
-	local numberGeometry = #origin
 	local neighbors = {}
 
 	forEachCell(origin, function(polygon)
 		progress = progress + 1
-
-		if self.progress then
-			print(table.concat{"Processing intersection ", progress, "/", numberGeometry}) -- SKIP
-		end
+		updateProgressMsg(self, "intersection", progress)
 
 		neighbors[polygon:getId()] = {}
 
@@ -211,6 +222,8 @@ local function buildBorderRelation(self)
 		end)
 	end)
 
+	finalizeProgressMsg(self, "intersection", progress)
+
 	self.neighbor = neighbors
 end
 
@@ -218,17 +231,13 @@ local function buildContainsRelation(self)
 	local origin = self.origin
 	local destination = self.destination
 	local progress = 0
-	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
 		local geometryOrigin = polygon.geom:getGeometryN(0)
 
 		progress = progress + 1
-
-		if self.progress then
-			print(table.concat{"Processing contains ", progress, "/", numberGeometry}) -- SKIP
-		end
+		updateProgressMsg(self, "contains", progress)
 
 		neighbor[polygon:getId()] = {}
 
@@ -241,6 +250,8 @@ local function buildContainsRelation(self)
 		end)
 	end)
 
+	finalizeProgressMsg(self, "contains", progress)
+
 	self.neighbor = neighbor
 end
 
@@ -248,17 +259,13 @@ local function buildAreaRelation(self)
 	local origin = self.origin
 	local destination = self.destination
 	local progress = 0
-	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
 		local geometryOrigin = polygon.geom:getGeometryN(0)
 
 		progress = progress + 1
-
-		if self.progress then
-			print(table.concat{"Processing area ", progress, "/", numberGeometry}) -- SKIP
-		end
+		updateProgressMsg(self, "area", progress)
 
 		neighbor[polygon:getId()] = {}
 
@@ -280,6 +287,8 @@ local function buildAreaRelation(self)
 		end)
 	end)
 
+	finalizeProgressMsg(self, "area", progress)
+
 	self.neighbor = neighbor
 end
 
@@ -287,17 +296,13 @@ local function buildLengthRelation(self)
 	local origin = self.origin
 	local destination = self.destination
 	local progress = 0
-	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
 		local geometryOrigin = polygon.geom:getGeometryN(0)
 
 		progress = progress + 1
-
-		if self.progress then
-			print(table.concat{"Processing length ", progress, "/", numberGeometry}) -- SKIP
-		end
+		updateProgressMsg(self, "length", progress)
 
 		neighbor[polygon:getId()] = {}
 
@@ -318,6 +323,8 @@ local function buildLengthRelation(self)
 			end
 		end)
 	end)
+
+	finalizeProgressMsg(self, "length", progress)
 
 	self.neighbor = neighbor
 end

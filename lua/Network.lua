@@ -739,8 +739,16 @@ local function isLineAlreadyComputed(line)
 	return computedLines[line.id] ~= nil
 end
 
+local function totalComputedLines()
+	return getn(computedLines) + getn(targetLines)
+end
+
 local function hasUncomputedLines(self)
-	return getn(computedLines) + getn(targetLines) ~= getn(self.lines)
+	return totalComputedLines() ~= getn(self.lines)
+end
+
+local function progressMsg(lines)
+	return "Network processing "..totalComputedLines().." of "..getn(lines).." lines."
 end
 
 local function addNodesFromNonAdjacentsToTargetLines(self)
@@ -750,8 +758,15 @@ local function addNodesFromNonAdjacentsToTargetLines(self)
 		end
 	end)
 
+	if self.progress then
+		io.write(progressMsg(self.lines), "\r")
+		io.flush()
+	end
+
 	if hasUncomputedLines(self) then
 		addNodesFromNonAdjacentsToTargetLines(self)
+	elseif self.progress then
+		print(progressMsg(self.lines))
 	end
 end
 
