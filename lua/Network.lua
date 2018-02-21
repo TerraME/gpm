@@ -35,13 +35,22 @@ local Direction = {
 	backward = 1
 }
 
+local function addLineEndpointsInfo(line)
+	line.first = line.geom:getStartPoint()
+	line.last = line.geom:getEndPoint()
+end
+
 local function createLineInfo(line)
-	return {
+	local lineInfo = {
 		id = line.FID,
 		geom = line.geom:getGeometryN(0),
 		npoints = line.geom:getNPoints(),
-		cell = line
+		cell = line,
 	}
+
+	addLineEndpointsInfo(lineInfo)
+
+	return lineInfo
 end
 
 local function createLinesInfo(lines)
@@ -189,7 +198,7 @@ local function calculateMinDistance(endpointsA, endpointsB)
 end
 
 local function validateLine(self, line, linesEndpoints, linesValidated, linesConnected)
-	linesEndpoints[line.id] = {first = line.geom:getStartPoint(), last = line.geom:getEndPoint()}
+	linesEndpoints[line.id] = {first = line.first, last = line.last}
 	local lineMinDistance = math.huge
 
 	forEachElement(self.lines, function(_, oline)
@@ -200,7 +209,7 @@ local function validateLine(self, line, linesEndpoints, linesValidated, linesCon
 		end
 
 		if not linesEndpoints[oline.id] then
-			linesEndpoints[oline.id] = {first = oline.geom:getStartPoint(), last = oline.geom:getEndPoint()}
+			linesEndpoints[oline.id] = {first = oline.first, last = oline.last}
 		end
 
 		local minDistance = calculateMinDistance(linesEndpoints[line.id], linesEndpoints[oline.id])
@@ -694,7 +703,6 @@ local function addNodesInDirection(self, targetLine, point, line, direction)
 	if not node then
 		customError("Line '"..targetLine.id.."' was added because the value of argument 'error: "..self.error
 					.."'. Remove the error argument and correct the lines disconnected.")
-		_Gtme.print(line.id)
 	elseif isNodeBelongingToTargetLine(node, targetLine) then
 		if direction == Direction.forward then
 			addAllNodesOfLineForward(self.netpoints, line, node, 0)
@@ -714,20 +722,16 @@ local function isAdjacentByPointsConsideringError(p1, p2, error)
 end
 
 local function findAdjacentLineAndAddItsPoints(self, line)
-	local endpointsLine = {first = line.geom:getStartPoint(), last = line.geom:getEndPoint()}
-
 	forEachElement(self.lines, function(_, adjacent)
 		if isLineUncomputed(adjacent) then
-			local endpointsAdjacent = {first = adjacent.geom:getStartPoint(), last = adjacent.geom:getEndPoint()}
-
-			if isAdjacentByPointsConsideringError(endpointsLine.first, endpointsAdjacent.first, self.error) then
-				addNodesInDirection(self, line, endpointsLine.first, adjacent, Direction.forward)
-			elseif isAdjacentByPointsConsideringError(endpointsLine.first, endpointsAdjacent.last, self.error) then
-				addNodesInDirection(self, line, endpointsLine.first, adjacent, Direction.backward)
-			elseif isAdjacentByPointsConsideringError(endpointsLine.last, endpointsAdjacent.first, self.error) then
-				addNodesInDirection(self, line, endpointsLine.last, adjacent, Direction.forward)
-			elseif isAdjacentByPointsConsideringError(endpointsLine.last, endpointsAdjacent.last, self.error) then
-				addNodesInDirection(self, line, endpointsLine.last, adjacent, Direction.backward)
+			if isAdjacentByPointsConsideringError(line.first, adjacent.first, self.error) then
+				addNodesInDirection(self, line, line.first, adjacent, Direction.forward)
+			elseif isAdjacentByPointsConsideringError(line.first, adjacent.last, self.error) then
+				addNodesInDirection(self, line, line.first, adjacent, Direction.backward)
+			elseif isAdjacentByPointsConsideringError(line.last, adjacent.first, self.error) then
+				addNodesInDirection(self, line, line.last, adjacent, Direction.forward)
+			elseif isAdjacentByPointsConsideringError(line.last, adjacent.last, self.error) then
+				addNodesInDirection(self, line, line.last, adjacent, Direction.backward)
 			end
 		end
 	end)
