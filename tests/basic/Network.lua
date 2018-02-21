@@ -689,6 +689,48 @@ return {
 			unitTest:assertEquals(network.lines[25].npoints, 2)
 		end
 
+		local problemWhenErrorArgumentIsTooBig = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_south3.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			local netWithAcceptableError = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				error = 5,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			forEachElement(network.netpoints, function(id)
+				local d1 = network.netpoints[id].distance
+				local d2 = netWithAcceptableError.netpoints[id].distance
+				unitTest:assertEquals(d1, d2)
+			end)
+		end
+
 		networkSetWeightAndOutsideEqualDistance()
 		networkSetWeightAndOutsideMultipliedBy2()
 		networkSetWeightAndOutsideDividedBy2()
@@ -698,6 +740,7 @@ return {
 		networkValidateFalse()
 		networkReviewMoreThanOneRouterNode()
 		networkReviewLineWith2Points()
+		problemWhenErrorArgumentIsTooBig()
 	end
 }
 

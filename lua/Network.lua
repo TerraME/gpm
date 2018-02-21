@@ -30,6 +30,11 @@ local computedLines -- without taget lines
 local inside
 local outside
 
+local Direction = {
+	forward = 0,
+	backward = 1
+}
+
 local function createLineInfo(line)
 	return {
 		id = line.FID,
@@ -214,7 +219,8 @@ local function validateLine(self, line, linesEndpoints, linesValidated, linesCon
 	end)
 
 	if not linesValidated[line.id] then
-		customError("Line '"..line.id.."' does not touch any other line. The minimum distance found was: "..lineMinDistance..".")
+		customError("Line '"..line.id.."' does not touch any other line. The minimum distance found was: "..lineMinDistance..". "
+				.."If the distance is small, set the error argument, otherwise, correct the line.")
 	end
 end
 
@@ -681,22 +687,20 @@ local function isTargetLine(line)
 	return targetLines[line.id] ~= nil
 end
 
-local function addNodesForward(self, targetLine, point, line)
+local function addNodesInDirection(self, targetLine, point, line, direction)
 	local nid = point:asText()
 	local node = self.netpoints[nid]
 
-	if isNodeBelongingToTargetLine(node, targetLine) then
-		addAllNodesOfLineForward(self.netpoints, line, node, 0)
-		computedLines[line.id] = line
-	end
-end
-
-local function addNodesBackward(self, targetLine, point, line)
-	local nid = point:asText()
-	local node = self.netpoints[nid]
-
-	if isNodeBelongingToTargetLine(node, targetLine) then
-		addAllNodesOfLineBackward(self.netpoints, line, node, line.npoints - 1)
+	if not node then
+		customError("Line '"..targetLine.id.."' was added because the value of argument 'error: "..self.error
+					.."'. Remove the error argument and correct the lines disconnected.")
+		_Gtme.print(line.id)
+	elseif isNodeBelongingToTargetLine(node, targetLine) then
+		if direction == Direction.forward then
+			addAllNodesOfLineForward(self.netpoints, line, node, 0)
+		else
+			addAllNodesOfLineBackward(self.netpoints, line, node, line.npoints - 1)
+		end
 		computedLines[line.id] = line
 	end
 end
@@ -717,13 +721,13 @@ local function findAdjacentLineAndAddItsPoints(self, line)
 			local endpointsAdjacent = {first = adjacent.geom:getStartPoint(), last = adjacent.geom:getEndPoint()}
 
 			if isAdjacentByPointsConsideringError(endpointsLine.first, endpointsAdjacent.first, self.error) then
-				addNodesForward(self, line, endpointsLine.first, adjacent)
+				addNodesInDirection(self, line, endpointsLine.first, adjacent, Direction.forward)
 			elseif isAdjacentByPointsConsideringError(endpointsLine.first, endpointsAdjacent.last, self.error) then
-				addNodesBackward(self, line, endpointsLine.first, adjacent)
+				addNodesInDirection(self, line, endpointsLine.first, adjacent, Direction.backward)
 			elseif isAdjacentByPointsConsideringError(endpointsLine.last, endpointsAdjacent.first, self.error) then
-				addNodesForward(self, line, endpointsLine.last, adjacent)
+				addNodesInDirection(self, line, endpointsLine.last, adjacent, Direction.forward)
 			elseif isAdjacentByPointsConsideringError(endpointsLine.last, endpointsAdjacent.last, self.error) then
-				addNodesBackward(self, line, endpointsLine.last, adjacent)
+				addNodesInDirection(self, line, endpointsLine.last, adjacent, Direction.backward)
 			end
 		end
 	end)

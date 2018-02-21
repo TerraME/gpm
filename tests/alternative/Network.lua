@@ -94,7 +94,7 @@ return {
 			}
 		end
 
-		unitTest:assertError(error_func, "Line '7' does not touch any other line. The minimum distance found was: 843.46359196883.")
+		unitTest:assertError(error_func, "Line '7' does not touch any other line. The minimum distance found was: 843.46359196883. If the distance is small, set the error argument, otherwise, correct the line.")
 
 		roads = CellularSpace{
 			file = filePath("error/".."roads_overlay_points.shp", "gpm"),
@@ -221,5 +221,31 @@ return {
 
 		File(roadsCurrDir):delete()
 		neterror.file:delete()
+
+		local roadsSouth = CellularSpace{
+			file = filePath("test/roads_sirgas2000_south3.shp", "gpm")
+		}
+
+		local ports = CellularSpace{
+			file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
+			missing = 0
+		}
+
+		local errorArgumentError = function()
+			Network{
+				lines = roadsSouth,
+				target = ports,
+				progress = false,
+				error = 400,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+		end
+
+		unitTest:assertError(errorArgumentError, "Line '47' was added because the value of argument 'error: 400'. Remove the error argument and correct the lines disconnected.")
 	end
 }
