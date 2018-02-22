@@ -35,6 +35,8 @@ end
 
 local function finalizeProgressMsg(self, relation, progress)
 	if self.progress then
+		io.write("                                               ", "\r")
+		io.flush()
 		print(progressMsg(self, relation, progress))
 	end
 end

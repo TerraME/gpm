@@ -263,8 +263,17 @@ local function joinLines(linesA, linesB)
 	end
 end
 
-local function isNetworkConnected(linesConnected)
+local function progressConnectingMsg(linesConnected)
+	return "Network number of networks "..getn(linesConnected).."."
+end
+
+local function isNetworkConnected(self, linesConnected)
 	forEachElement(linesConnected, function(a, linesA)
+		if self.progress then
+			io.write(progressConnectingMsg(linesConnected), "\r")
+			io.flush()
+		end
+
 		if not linesA then return end
 
 		forEachElement(linesConnected, function(b, linesB)
@@ -280,6 +289,12 @@ local function isNetworkConnected(linesConnected)
 			linesConnected[id] = nil
 		end
 	end)
+
+	if self.progress then
+		io.write("                                               ", "\r")
+		io.flush()
+		print(progressConnectingMsg(linesConnected))
+	end
 
 	if getn(linesConnected) > 1 then
 		return false
@@ -347,16 +362,38 @@ local function saveErrorInfo(self, linesConnected)
 	return errMsg
 end
 
+local function progressMsg(current, total)
+	return "Network validating "..getn(current).." of "..getn(total).." lines."
+end
+
+local function updateProgressMsg(self, current)
+	if self.progress then
+		io.write(progressMsg(current, self.lines), "\r")
+		io.flush()
+	end
+end
+
+local function finalizeProgressMsg(self, current)
+	if self.progress then
+		io.write("                                               ", "\r")
+		io.flush()
+		print(progressMsg(current, self.lines))
+	end
+end
+
 local function validateLines(self)
 	local linesEndpoints = {}
 	local linesValidated = {}
 	local linesConnected = {}
 
 	forEachElement(self.lines, function(_, line)
+		updateProgressMsg(self, linesValidated)
 		validateLine(self, line, linesEndpoints, linesValidated, linesConnected)
 	end)
 
-	if not isNetworkConnected(linesConnected) then
+	finalizeProgressMsg(self, linesValidated)
+
+	if not isNetworkConnected(self, linesConnected) then
 		local errMsg = saveErrorInfo(self, linesConnected)
 		customError("The network is disconnected. "..errMsg)
 	end
@@ -755,7 +792,7 @@ local function hasUncomputedLines(self)
 	return totalComputedLines() ~= getn(self.lines)
 end
 
-local function progressMsg(lines)
+local function progressProcessingMsg(lines)
 	return "Network processing "..totalComputedLines().." of "..getn(lines).." lines."
 end
 
@@ -767,14 +804,16 @@ local function addNodesFromNonAdjacentsToTargetLines(self)
 	end)
 
 	if self.progress then
-		io.write(progressMsg(self.lines), "\r")
+		io.write(progressProcessingMsg(self.lines), "\r")
 		io.flush()
 	end
 
 	if hasUncomputedLines(self) then
 		addNodesFromNonAdjacentsToTargetLines(self)
 	elseif self.progress then
-		print(progressMsg(self.lines))
+		io.write("                                               ", "\r")
+		io.flush()
+		print(progressProcessingMsg(self.lines))
 	end
 end
 

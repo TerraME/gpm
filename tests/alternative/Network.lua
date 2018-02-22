@@ -89,6 +89,7 @@ return {
 			Network{
 				lines = roads,
 				target = communities,
+				progress = false,
 				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
@@ -105,6 +106,7 @@ return {
 			Network{
 				lines = roads,
 				target = communities,
+				progress = false,
 				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
@@ -122,6 +124,7 @@ return {
 			Network{
 				lines = cs,
 				target = communities,
+				progress = false,
 				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
@@ -133,6 +136,7 @@ return {
 			Network{
 				lines = roads,
 				target = cs,
+				progress = false,
 				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
@@ -176,6 +180,7 @@ return {
 			Network{
 				lines = roadsCs,
 				target = communities,
+				progress = false,
 				inside = function(distance) return distance end,
 				outside = function(distance) return distance end,
 				error = 900
@@ -204,6 +209,7 @@ return {
 			Network{
 				lines = roads,
 				target = communities,
+				progress = false,
 				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end,
 				error = 900
