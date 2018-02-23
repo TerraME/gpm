@@ -24,7 +24,7 @@
 
 -- Support variables
 local targetLines
-local computedLines -- without taget lines
+local computedLines -- without target lines
 
 -- User-defined functions
 local inside
@@ -267,7 +267,9 @@ local function progressConnectingMsg(linesConnected)
 	return "Network number of networks "..getn(linesConnected).."."
 end
 
-local function isNetworkConnected(self, linesConnected)
+local function joinConnectedLines(self, linesConnected)
+	local hadSomeJunction = false
+
 	forEachElement(linesConnected, function(a, linesA)
 		if self.progress then
 			io.write(progressConnectingMsg(linesConnected), "\r")
@@ -280,15 +282,24 @@ local function isNetworkConnected(self, linesConnected)
 			if a ~= b and linesB and hasConnection(linesA, linesB) then
 				joinLines(linesA, linesB)
 				linesConnected[b] = false
+				hadSomeJunction = true
 			end
 		end)
 	end)
 
-	forEachElement(linesConnected, function(id)
-		if not linesConnected[id] then
-			linesConnected[id] = nil
-		end
-	end)
+	if hadSomeJunction then
+		forEachElement(linesConnected, function(id)
+			if not linesConnected[id] then
+				linesConnected[id] = nil
+			end
+		end)
+
+		joinConnectedLines(self, linesConnected)
+	end
+end
+
+local function isNetworkConnected(self, linesConnected)
+	joinConnectedLines(self, linesConnected)
 
 	if self.progress then
 		io.write("                                               ", "\r")

@@ -731,6 +731,31 @@ return {
 			end)
 		end
 
+		local joinConnectedLinesTest = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_south6.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/port_estrela_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			unitTest:assertEquals(getn(network.netpoints), 3947)
+		end
+
 		networkSetWeightAndOutsideEqualDistance()
 		networkSetWeightAndOutsideMultipliedBy2()
 		networkSetWeightAndOutsideDividedBy2()
@@ -741,6 +766,7 @@ return {
 		networkReviewMoreThanOneRouterNode()
 		networkReviewLineWith2Points()
 		problemWhenErrorArgumentIsTooBig()
+		joinConnectedLinesTest()
 	end
 }
 
