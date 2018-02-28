@@ -35,6 +35,16 @@ local Direction = {
 	backward = 1
 }
 
+local LineAdjancency = {
+	firstTofirst = 1,
+	firstTolast = 2,
+	lastTofirst = 3,
+	lastTolast = 4,
+}
+
+local nonAdjacentLinesCache
+local adjacentLines
+
 local function addLineEndpointsInfo(line)
 	line.first = line.geom:getStartPoint()
 	line.last = line.geom:getEndPoint()
@@ -181,51 +191,139 @@ end
 
 local function calculateMinDistance(endpointsA, endpointsB)
 	local distances = {}
-	distances[1] = endpointsA.first:distance(endpointsB.first)
-	distances[2] = endpointsA.first:distance(endpointsB.last)
-	distances[3] = endpointsA.last:distance(endpointsB.first)
-	distances[4] = endpointsA.last:distance(endpointsB.last)
+	distances[LineAdjancency.firstTofirst] = endpointsA.first:distance(endpointsB.first)
+	distances[LineAdjancency.firstTolast] = endpointsA.first:distance(endpointsB.last)
+	distances[LineAdjancency.lastTofirst] = endpointsA.last:distance(endpointsB.first)
+	distances[LineAdjancency.lastTolast] = endpointsA.last:distance(endpointsB.last)
 
 	local minDistance = math.huge
-
+	local lineAdjacency
 	for i = 1, 4 do
 		if minDistance > distances[i] then
 			minDistance = distances[i]
+			lineAdjacency = i
 		end
 	end
 
-	return minDistance
+	return {distance = minDistance, adjacency = lineAdjacency}
 end
 
-local function validateLine(self, line, linesEndpoints, linesValidated, linesConnected)
-	linesEndpoints[line.id] = {first = line.first, last = line.last}
+local function addAdjacentLineInfo(line, oline, minDistanceInfo)
+	table.insert(adjacentLines[line.id], {id = oline.id, distance = minDistanceInfo.distance, adjacency = minDistanceInfo.adjacency})
+end
+
+local function invertAdjacentLineInfo(minDistanceInfo)
+	if minDistanceInfo.adjacency == LineAdjancency.firstTolast then
+		minDistanceInfo.adjacency = LineAdjancency.lastTofirst
+	elseif minDistanceInfo.adjacency == LineAdjancency.lastTofirst then
+		minDistanceInfo.adjacency = LineAdjancency.firstTolast
+	end
+	return minDistanceInfo
+end
+
+local function progressMsg(current, total, action)
+	return "Network "..action.." "..getn(current).." of "..getn(total).." lines."
+end
+
+local function updateProgressMsg(self, current, action)
+	if self.progress then
+		io.write(progressMsg(current, self.lines, action), "\r")
+		io.flush()
+	end
+end
+
+local function finalizeProgressMsg(self, current, action)
+	if self.progress then
+		io.write("                                               ", "\r")
+		io.flush()
+		print(progressMsg(current, self.lines, action))
+	end
+end
+
+local function addTableKeyIfNotExists(tbl, key)
+	if not tbl[key] then
+		tbl[key] = {}
+	end
+end
+
+local function createTableList(tbl)
+	local list = {}
+	for _, v in pairs(tbl) do
+		table.insert(list, v)
+	end
+	return list
+end
+
+local function findAndAddAjacentLines(self)
+	local linesList = createTableList(self.lines)
+
+	for i = 1, #linesList do
+		updateProgressMsg(self, adjacentLines, "reading")
+		addTableKeyIfNotExists(adjacentLines, linesList[i].id)
+		for j = i + 1, #linesList do
+			local minDistanceInfo = calculateMinDistance(linesList[i], linesList[j])
+			if minDistanceInfo.distance <= self.error then
+				addAdjacentLineInfo(linesList[i], linesList[j], minDistanceInfo)
+				addTableKeyIfNotExists(adjacentLines, linesList[j].id)
+				addAdjacentLineInfo(linesList[j], linesList[i], invertAdjacentLineInfo(minDistanceInfo))
+			end
+		end
+	end
+
+	finalizeProgressMsg(self, adjacentLines, "reading")
+end
+
+local function addNonAdjacentLinesCache(lineAId, lineBId)
+	if not nonAdjacentLinesCache[lineAId] then
+		nonAdjacentLinesCache[lineAId] = {}
+	end
+
+	if not nonAdjacentLinesCache[lineBId] then
+		nonAdjacentLinesCache[lineBId] = {}
+	end
+
+	nonAdjacentLinesCache[lineAId][lineBId] = true
+	nonAdjacentLinesCache[lineBId][lineAId] = true
+end
+
+local function isLinesNonAdjacent(lineAId, lineBId)
+	if nonAdjacentLinesCache[lineAId] and nonAdjacentLinesCache[lineAId][lineBId] then
+		return true
+	end
+
+	return false
+end
+
+local function validateLine(self, line, linesValidated, linesConnected)
 	local lineMinDistance = math.huge
+	adjacentLines[line.id] = {}
 
-	forEachElement(self.lines, function(_, oline)
-		if oline.id == line.id then return end
-
-		if checkIfLineCrosses(line, oline) then
-			customError("Lines '"..line.id.."' and '"..oline.id.."' cross each other.")
-		end
-
-		if not linesEndpoints[oline.id] then
-			linesEndpoints[oline.id] = {first = oline.first, last = oline.last}
-		end
-
-		local minDistance = calculateMinDistance(linesEndpoints[line.id], linesEndpoints[oline.id])
-
-		if minDistance <= self.error then
-			linesValidated[line.id] = true
-			if not linesConnected[oline.id] then
-				linesConnected[oline.id] = {}
-				table.insert(linesConnected[oline.id], oline.id)
+	for _, oline in pairs(self.lines) do
+		if oline.id ~= line.id then
+			if checkIfLineCrosses(line, oline) then
+				customError("Lines '"..line.id.."' and '"..oline.id.."' cross each other.")
 			end
 
-			table.insert(linesConnected[oline.id], line.id)
-		elseif lineMinDistance > minDistance then
-			lineMinDistance = minDistance
+			if not isLinesNonAdjacent(line.id, oline.id) then
+				local minDistanceInfo = calculateMinDistance(line, oline)
+
+				if minDistanceInfo.distance <= self.error then
+					linesValidated[line.id] = true
+					if not linesConnected[oline.id] then
+						linesConnected[oline.id] = {}
+						table.insert(linesConnected[oline.id], oline.id)
+					end
+
+					table.insert(linesConnected[oline.id], line.id)
+					addAdjacentLineInfo(line, oline, minDistanceInfo)
+				elseif lineMinDistance > minDistanceInfo.distance then
+					lineMinDistance = minDistanceInfo.distance
+				else
+					addNonAdjacentLinesCache(line.id, oline.id)
+				end
+			end
 		end
-	end)
+	end
 
 	if not linesValidated[line.id] then
 		customError("Line '"..line.id.."' does not touch any other line. The minimum distance found was: "..lineMinDistance..". "
@@ -373,36 +471,18 @@ local function saveErrorInfo(self, linesConnected)
 	return errMsg
 end
 
-local function progressMsg(current, total)
-	return "Network validating "..getn(current).." of "..getn(total).." lines."
-end
-
-local function updateProgressMsg(self, current)
-	if self.progress then
-		io.write(progressMsg(current, self.lines), "\r")
-		io.flush()
-	end
-end
-
-local function finalizeProgressMsg(self, current)
-	if self.progress then
-		io.write("                                               ", "\r")
-		io.flush()
-		print(progressMsg(current, self.lines))
-	end
-end
-
 local function validateLines(self)
-	local linesEndpoints = {}
 	local linesValidated = {}
 	local linesConnected = {}
 
-	forEachElement(self.lines, function(_, line)
-		updateProgressMsg(self, linesValidated)
-		validateLine(self, line, linesEndpoints, linesValidated, linesConnected)
-	end)
+	for _, line in pairs(self.lines) do
+		updateProgressMsg(self, linesValidated, "validating")
+		validateLine(self, line, linesValidated, linesConnected)
+	end
 
-	finalizeProgressMsg(self, linesValidated)
+	nonAdjacentLinesCache = nil
+
+	finalizeProgressMsg(self, linesValidated, "validating")
 
 	if not isNetworkConnected(self, linesConnected) then
 		local errMsg = saveErrorInfo(self, linesConnected)
@@ -765,30 +845,27 @@ local function isLineUncomputed(line)
 	return not (isTargetLine(line) or computedLines[line.id])
 end
 
-local function isAdjacentByPointsConsideringError(p1, p2, error)
-	return p1:distance(p2) <= error
-end
-
-local function findAdjacentLineAndAddItsPoints(self, line)
-	forEachElement(self.lines, function(_, adjacent)
+local function findAdjacentLineAndAddItsPoints(self, line, adjacents)
+	for i = 1, #adjacents do
+		local adjacent = self.lines[adjacents[i].id]
 		if isLineUncomputed(adjacent) then
-			if isAdjacentByPointsConsideringError(line.first, adjacent.first, self.error) then
+			if adjacents[i].adjacency == LineAdjancency.firstTofirst then
 				addNodesInDirection(self, line, line.first, adjacent, Direction.forward)
-			elseif isAdjacentByPointsConsideringError(line.first, adjacent.last, self.error) then
+			elseif adjacents[i].adjacency == LineAdjancency.firstTolast then
 				addNodesInDirection(self, line, line.first, adjacent, Direction.backward)
-			elseif isAdjacentByPointsConsideringError(line.last, adjacent.first, self.error) then
+			elseif adjacents[i].adjacency == LineAdjancency.lastTofirst then
 				addNodesInDirection(self, line, line.last, adjacent, Direction.forward)
-			elseif isAdjacentByPointsConsideringError(line.last, adjacent.last, self.error) then
+			elseif adjacents[i].adjacency == LineAdjancency.lastTolast then
 				addNodesInDirection(self, line, line.last, adjacent, Direction.backward)
 			end
 		end
-	end)
+	end
 end
 
 local function addNodesFromAdjacentsToTargetLines(self)
-	forEachElement(targetLines, function(_, targetLine)
-		findAdjacentLineAndAddItsPoints(self, targetLine)
-	end)
+	for _, targetLine in pairs(targetLines) do
+		findAdjacentLineAndAddItsPoints(self, targetLine, adjacentLines[targetLine.id])
+	end
 end
 
 local function isLineAlreadyComputed(line)
@@ -808,15 +885,13 @@ local function progressProcessingMsg(lines)
 end
 
 local function addNodesFromNonAdjacentsToTargetLines(self)
-	forEachElement(self.lines, function(_, line)
+	for _, line in pairs(self.lines) do
 		if isLineAlreadyComputed(line) then
-			findAdjacentLineAndAddItsPoints(self, line)
+			findAdjacentLineAndAddItsPoints(self, line, adjacentLines[line.id])
+		elseif self.progress then
+			io.write(progressProcessingMsg(self.lines), "\r")
+			io.flush()
 		end
-	end)
-
-	if self.progress then
-		io.write(progressProcessingMsg(self.lines), "\r")
-		io.flush()
 	end
 
 	if hasUncomputedLines(self) then
@@ -841,6 +916,8 @@ local function createOpenNetwork(self)
 	self.lines = createLinesInfo(self.lines)
 	if self.validate then
 		validateLines(self)
+	else
+		findAndAddAjacentLines(self)
 	end
 	findAndAddTargetNodes(self)
 	createConnectivityInfoGraph(self)
@@ -942,6 +1019,8 @@ function Network(data)
 
 	targetLines = {}
 	computedLines = {}
+	nonAdjacentLinesCache = {}
+	adjacentLines = {}
 
 	createOpenNetwork(data)
 
