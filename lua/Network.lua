@@ -1060,7 +1060,10 @@ metaTableNetwork_ = {
 -- @arg data.error As default, two lines are connected in the Network only if they share
 -- exactly the same point. This argument allows two lines to be connected when there is a
 -- maximum error in the distance up to the its value.
--- Therefore, the default value for this argument is zero.
+-- The maximum error must be just a insignificant value, otherwise, the Network might connect
+-- lines that are parallels or so close or another collateral effect.
+-- Therefore, the ideal solution for it is to correct the data.
+-- The default value for this argument is zero.
 -- @arg data.lines A base::CellularSpace with lines to create network. It can be for example a set of roads.
 -- @arg data.outside User-defined function that converts the distance based on an
 -- Euclidean distance to a distance in the geographical space. This function is
