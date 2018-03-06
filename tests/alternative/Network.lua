@@ -253,5 +253,44 @@ return {
 		end
 
 		unitTest:assertError(errorArgumentError, "Line '47' was added because the value of argument 'error: 400'. Remove the error argument and correct the lines disconnected.")
+	end,
+	distances = function(unitTest)
+		local roads = CellularSpace{
+			file = filePath("test/roads_sirgas2000_south3.shp", "gpm")
+		}
+
+		local ports = CellularSpace{
+			file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
+			missing = 0
+		}
+
+		local network = Network{
+			lines = roads,
+			target = ports,
+			progress = false,
+			inside = function(distance)
+				return distance
+			end,
+			outside = function(distance)
+				return distance * 4
+			end
+		}
+
+		local pointParameterError = function()
+			network:distances(123, "lines")
+		end
+		unitTest:assertError(pointParameterError, incompatibleTypeMsg(1, "Cell", 123))
+
+		local port = ports:get("0")
+
+		local entranceParameterError = function()
+			network:distances(port, true)
+		end
+		unitTest:assertError(entranceParameterError, incompatibleTypeMsg(2, "string", true))
+
+		local invalidEntranceError = function()
+			network:distances(port, "rtree")
+		end
+		unitTest:assertError(invalidEntranceError, "Attribute 'entrance' must be 'lines' or 'points', but received 'rtree'.")
 	end
 }

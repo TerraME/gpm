@@ -589,6 +589,62 @@ strategy     string [border]
 			unitTest:assertSnapshot(map, "gpm_area.png")
 		end
 
+		local gpmEntranceLines = function()
+			local communities = CellularSpace{
+				file = filePath("communities.shp", "gpm")
+			}
+
+			local roads = CellularSpace{
+				file = filePath("roads.shp", "gpm")
+			}
+
+			local cells = CellularSpace{
+				file = filePath("cells.shp", "gpm")
+			}
+
+			local network = Network{
+				target = communities,
+				lines = roads,
+				progress = false,
+				inside = function(distance, cell)
+					if cell.STATUS == "paved" then
+						return distance / 5
+					else
+						return distance / 2
+					end
+				end,
+				outside = function(distance) return distance * 4 end
+			}
+
+			local gpm = GPM{
+				destination = network,
+				origin = cells,
+				entrance = "lines",
+				progress = false
+			}
+
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "dist",
+				copy = "LOCALIDADE"
+			}
+
+			local gpm2 = GPM{
+				destination = network,
+				origin = cells,
+				progress = false
+			}
+
+			gpm2:fill{
+				strategy = "minimum",
+				attribute = "dist2"
+			}
+
+			forEachCell(cells, function(cell)
+				unitTest:assertEquals(cell.dist, cell.dist2)
+			end)
+		end
+
 		fillMinimumNetwork()
 		fillMaximumNetwork() -- TODO: maximum is not working properly
 		fillCountNetwork() -- TODO: count is not working properly
@@ -601,6 +657,7 @@ strategy     string [border]
 		gpmAll()
 		gpmCountAndMinimum()
 		gpmAreaWithCount()
+		gpmEntranceLines()
 	end,
 	save = function(unitTest)
 		local communities = CellularSpace{

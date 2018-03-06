@@ -767,6 +767,38 @@ return {
 		networkReviewLineWith2Points()
 		problemWhenErrorArgumentIsTooBig()
 		joinConnectedLinesTest()
+	end,
+	distances = function(unitTest)
+		local roads = CellularSpace{
+			file = filePath("test/roads_sirgas2000_south3.shp", "gpm")
+		}
+
+		local ports = CellularSpace{
+			file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
+			missing = 0
+		}
+
+		local network = Network{
+			lines = roads,
+			target = ports,
+			progress = false,
+			inside = function(distance)
+				return distance
+			end,
+			outside = function(distance)
+				return distance * 4
+			end
+		}
+
+		local portNodes = getTagetNodes(network)
+		local portNode = portNodes[0]
+		local port = ports:get("0")
+
+		local distances = network:distances(port, "lines")
+		unitTest:assertEquals(2 * portNode.distance, distances[0])
+
+		local distances2 = network:distances(port, "points")
+		unitTest:assertEquals(2 * portNode.distance, distances2[0])
 	end
 }
 
