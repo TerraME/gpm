@@ -376,11 +376,6 @@ local function joinConnectedLines(self, linesConnected)
 	local hadSomeJunction = false
 
 	forEachElement(linesConnected, function(a, linesA)
-		if self.progress then
-			io.write(progressConnectingMsg(linesConnected), "\r")
-			io.flush()
-		end
-
 		if not linesA then return end
 
 		forEachElement(linesConnected, function(b, linesB)
@@ -388,6 +383,11 @@ local function joinConnectedLines(self, linesConnected)
 				joinLines(linesA, linesB)
 				linesConnected[b] = false
 				hadSomeJunction = true
+
+				if self.progress then
+					io.write(progressConnectingMsg(linesConnected), "\r")
+					io.flush()
+				end
 			end
 		end)
 	end)
@@ -862,7 +862,7 @@ local function isLineUncomputed(line)
 	return not (isTargetLine(line) or computedLines[line.id])
 end
 
-local function findAdjacentLineAndAddItsPoints(self, line, adjacents)
+local function addAdjacentLinesAndItsPoints(self, line, adjacents)
 	for i = 1, #adjacents do
 		local adjacent = self.lines[adjacents[i].id]
 		if isLineUncomputed(adjacent) then
@@ -881,7 +881,7 @@ end
 
 local function addNodesFromAdjacentsToTargetLines(self)
 	for _, targetLine in pairs(targetLines) do
-		findAdjacentLineAndAddItsPoints(self, targetLine, adjacentLines[targetLine.id])
+		addAdjacentLinesAndItsPoints(self, targetLine, adjacentLines[targetLine.id])
 	end
 end
 
@@ -904,10 +904,12 @@ end
 local function addNodesFromNonAdjacentsToTargetLines(self)
 	for _, line in pairs(self.lines) do
 		if isLineAlreadyComputed(line) then
-			findAdjacentLineAndAddItsPoints(self, line, adjacentLines[line.id])
-		elseif self.progress then
-			io.write(progressProcessingMsg(self.lines), "\r")
-			io.flush()
+			addAdjacentLinesAndItsPoints(self, line, adjacentLines[line.id])
+
+			if self.progress then
+				io.write(progressProcessingMsg(self.lines), "\r")
+				io.flush()
+			end
 		end
 	end
 
