@@ -834,20 +834,27 @@ local function isTargetLine(line)
 	return targetLines[line.id] ~= nil
 end
 
-local function addNodesInDirection(self, targetLine, point, line, direction)
+local function isNodeEndpoint(node)
+	return (node.pos == 0) or (node.pos == node.line.npoints - 1)
+end
+
+local function addNodesInDirection(self, line, point, lineToAdd, direction)
 	local nid = point:asText()
 	local node = self.netpoints[nid]
 
 	if not node then
-		customError("Line '"..targetLine.id.."' was added because the value of argument 'error: "..self.error
+		customError("Line '"..line.id.."' was added because the value of argument 'error: "..self.error
 					.."'. Remove the error argument and correct the lines disconnected.")
-	elseif isNodeBelongingToTargetLine(node, targetLine) then
+	elseif not isNodeEndpoint(node) then
+		customError("Line '"..node.line.id.."' crosses lines '"..line.id
+					.."' and '"..lineToAdd.id.."' in their endpoints. Please, split line '"..node.line.id.."'.")
+	elseif isNodeBelongingToTargetLine(node, line) then
 		if direction == Direction.forward then
-			addAllNodesOfLineForward(self.netpoints, line, node, 0)
+			addAllNodesOfLineForward(self.netpoints, lineToAdd, node, 0)
 		else
-			addAllNodesOfLineBackward(self.netpoints, line, node, line.npoints - 1)
+			addAllNodesOfLineBackward(self.netpoints, lineToAdd, node, lineToAdd.npoints - 1)
 		end
-		computedLines[line.id] = line
+		computedLines[lineToAdd.id] = lineToAdd
 	end
 end
 

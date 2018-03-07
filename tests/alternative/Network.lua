@@ -253,6 +253,31 @@ return {
 		end
 
 		unitTest:assertError(errorArgumentError, "Line '47' was added because the value of argument 'error: 400'. Remove the error argument and correct the lines disconnected.")
+
+		local lineCrossesError = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_south8.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/port_antonina_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+		end
+
+		unitTest:assertError(lineCrossesError, "Line '26' crosses lines '20' and '18' in their endpoints. Please, split line '26'.")
 	end,
 	distances = function(unitTest)
 		local roads = CellularSpace{
