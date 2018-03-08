@@ -544,7 +544,7 @@ return {
 				end
 			}
 
-			unitTest:assertEquals(getn(network.netpoints), 45314)
+			unitTest:assertEquals(getn(network.netpoints), 45316)
 			unitTest:assertEquals(network.lines[43].shortestPath, 1531.231486377, 1.0e-9) --< inverted line
 		end
 
@@ -654,7 +654,7 @@ return {
 				end
 			}
 
-			unitTest:assertEquals(getn(network.netpoints), 130046)
+			unitTest:assertEquals(getn(network.netpoints), 130048)
 
 			local netpoint44 = getAnyNodeFromLine(network.netpoints, 44)
 			local netpoint153 = getAnyNodeFromLine(network.netpoints, 153)
@@ -753,7 +753,43 @@ return {
 				end
 			}
 
-			unitTest:assertEquals(getn(network.netpoints), 3947)
+			unitTest:assertEquals(getn(network.netpoints), 3948)
+		end
+
+		local targetNodeIsEqualsToLineEndpoints = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_ne3.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/port_belem_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance
+				end
+			}
+
+			local targetNode = getTagetNodes(network)[0]
+			unitTest:assertEquals(targetNode.line.id, 2)
+
+			local totalDistance = sumPreviousDistances(targetNode.first)
+									+ sumPreviousDistances(targetNode.second)
+									+ targetNode.first.point:distance(targetNode.second.point)
+
+			local sumLinesLength = network.lines[0].geom:getLength()
+									+ network.lines[1].geom:getLength()
+									+ network.lines[2].geom:getLength()
+
+			unitTest:assertEquals(totalDistance, sumLinesLength, 1.0e-9)
 		end
 
 		networkSetWeightAndOutsideEqualDistance()
@@ -767,6 +803,7 @@ return {
 		networkReviewLineWith2Points()
 		problemWhenErrorArgumentIsTooBig()
 		joinConnectedLinesTest()
+		targetNodeIsEqualsToLineEndpoints()
 	end,
 	distances = function(unitTest)
 		local roads = CellularSpace{

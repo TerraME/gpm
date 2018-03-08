@@ -81,13 +81,24 @@ local function createLinesInfo(lines)
 	return linesInfo
 end
 
-local function createClosestPointInLine(point, line)
-	return point:closestPoint(line.geom)
+local function fixTargetPointIfEqualsToEndpoint(closestPoint, targetLine)
+	local closestPointId = closestPoint:asText()
+	if (closestPointId == targetLine.first.id) or (closestPointId == targetLine.last.id) then
+		if targetLine.last.point:getX() > targetLine.first.point:getX() then
+			closestPoint:setX(closestPoint:getX() + 1)
+		else
+			closestPoint:setX(closestPoint:getX() - 1)
+		end
+		return closestPoint:asText()
+	end
+
+	return closestPointId
 end
 
-local function createClosestPoint(targetPoint, targetLine)
-	local closestPoint = createClosestPointInLine(targetPoint, targetLine)
-	return {id = closestPoint:asText(), point = closestPoint}
+local function createClosestPointInLine(targetPoint, targetLine)
+	local closestPoint = targetPoint:closestPoint(targetLine.geom)
+	local closestPointId = fixTargetPointIfEqualsToEndpoint(closestPoint, targetLine)
+	return {id = closestPointId, point = closestPoint}
 end
 
 local function addTargetInfoInLine(targetLine, closestPoint, distance)
@@ -186,7 +197,7 @@ local function findAndAddTargetNodes(self)
 		local targetId = tonumber(target:getId())
 		local closestLine = findClosestLine(self.lines, targetPoint)
 		local targetLine = closestLine.line
-		local closestPoint = createClosestPoint(targetPoint, closestLine.line)
+		local closestPoint = createClosestPointInLine(targetPoint, closestLine.line)
 
 		addTargetInfoInLine(closestLine.line, closestPoint, closestLine.distance)
 
@@ -785,7 +796,7 @@ local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 	if firstNode.pos == 0 then
 		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 	elseif firstNode.pos == line.npoints - 1 then
-		addAllNodesOfLineBackward(graph, line, graph[secNode.id], graph[secNode.id].pos) -- TODO: move it up
+		addAllNodesOfLineBackward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 	elseif secPoint.pos > firstNode.pos then
 		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 		addAllNodesOfLineBackward(graph, line, firstNode, firstNode.pos)
@@ -838,9 +849,8 @@ local function isNodeEndpoint(node)
 	return (node.pos == 0) or (node.pos == node.line.npoints - 1)
 end
 
-local function addNodesInDirection(self, line, point, lineToAdd, direction)
-	local nid = point:asText()
-	local node = self.netpoints[nid]
+local function addNodesInDirection(self, line, lineEndpointId, lineToAdd, direction)
+	local node = self.netpoints[lineEndpointId]
 
 	if not node then
 		customError("Line '"..line.id.."' was added because the value of argument 'error: "..self.error
@@ -867,13 +877,13 @@ local function addAdjacentLinesAndItsPoints(self, line, adjacents)
 		local adjacent = self.lines[adjacents[i].id]
 		if isLineUncomputed(adjacent) then
 			if adjacents[i].adjacency == LineAdjancency.firstTofirst then
-				addNodesInDirection(self, line, line.first.point, adjacent, Direction.forward)
+				addNodesInDirection(self, line, line.first.id, adjacent, Direction.forward)
 			elseif adjacents[i].adjacency == LineAdjancency.firstTolast then
-				addNodesInDirection(self, line, line.first.point, adjacent, Direction.backward)
+				addNodesInDirection(self, line, line.first.id, adjacent, Direction.backward)
 			elseif adjacents[i].adjacency == LineAdjancency.lastTofirst then
-				addNodesInDirection(self, line, line.last.point, adjacent, Direction.forward)
+				addNodesInDirection(self, line, line.last.id, adjacent, Direction.forward)
 			elseif adjacents[i].adjacency == LineAdjancency.lastTolast then
-				addNodesInDirection(self, line, line.last.point, adjacent, Direction.backward)
+				addNodesInDirection(self, line, line.last.id, adjacent, Direction.backward)
 			end
 		end
 	end
