@@ -345,7 +345,7 @@ local function validateLine(self, line, linesValidated, linesConnected)
 
 	if not linesValidated[line.id] then
 		customError("Line '"..line.id.."' does not touch any other line. The minimum distance found was: "..lineMinDistance..". "
-				.."If the distance is small, set the error argument, otherwise, correct the line.")
+				.."If this distance can be ignored, use argument 'error'. Otherwise, fix the line.")
 	end
 end
 
@@ -853,8 +853,8 @@ local function addNodesInDirection(self, line, lineEndpointId, lineToAdd, direct
 	local node = self.netpoints[lineEndpointId]
 
 	if not node then
-		customError("Line '"..line.id.."' was added because the value of argument 'error: "..self.error
-					.."'. Remove the error argument and correct the lines disconnected.")
+		customError("Line '"..line.id.."' was added due to the value of argument 'error' ("..self.error
+					.."). Please, remove the argument 'error' and fix the disconnected lines.")
 	elseif not isNodeEndpoint(node) then
 		customError("Line '"..node.line.id.."' crosses lines '"..line.id
 					.."' and '"..lineToAdd.id.."' in their endpoints. Please, split line '"..node.line.id.."'.")

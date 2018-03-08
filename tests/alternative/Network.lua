@@ -99,7 +99,7 @@ return {
 			}
 		end
 
-		unitTest:assertError(error_func, "Line '7' does not touch any other line. The minimum distance found was: 843.46359196883. If the distance is small, set the error argument, otherwise, correct the line.")
+		unitTest:assertError(error_func, "Line '7' does not touch any other line. The minimum distance found was: 843.46359196883. If this distance can be ignored, use argument 'error'. Otherwise, fix the line.")
 
 		error_func = function()
 			local communities = CellularSpace{
@@ -283,7 +283,7 @@ return {
 			}
 		end
 
-		unitTest:assertError(errorArgumentError, "Line '47' was added because the value of argument 'error: 400'. Remove the error argument and correct the lines disconnected.")
+		unitTest:assertError(errorArgumentError, "Line '47' was added due to the value of argument 'error' (400). Please, remove the argument 'error' and fix the disconnected lines.")
 
 		local lineCrossesError = function()
 			local roads = CellularSpace{
