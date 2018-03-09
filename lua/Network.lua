@@ -107,14 +107,15 @@ local function addTargetInfoInLine(targetLine, closestPoint, distance)
 	targetLines[targetLine.id] = targetLine
 end
 
-local function createTargetNode(point, distance, line, targetId)
+local function createTargetNode(point, distance, line, targetId, targetPoint)
 	return {
 		target = true,
 		id = point:asText(),
 		point = point,
 		distance = distance,
 		line = line, -- lines which the point belongs
-		targetId = targetId
+		targetId = targetId,
+		targetPoint = targetPoint
 	}
 end
 
@@ -202,7 +203,7 @@ local function findAndAddTargetNodes(self)
 		addTargetInfoInLine(closestLine.line, closestPoint, closestLine.distance)
 
 		self.netpoints[closestPoint.id] = createTargetNode(closestPoint.point,
-												targetLine.shortestPath, targetLine, targetId)
+												targetLine.shortestPath, targetLine, targetId, targetPoint)
 	end)
 
 	checkAndRemoveTargetIfLineHasMoreThanOneOfIt(self.netpoints)
@@ -989,6 +990,17 @@ local function findShortestDistanceInLine(self, point, line, minDistances)
 	end
 end
 
+local function calculateDistanceInTargetsAndSetIfLesser(point, targetNode, minDistances)
+	local distance = point:distance(targetNode.targetPoint)
+	if outside then
+		distance = outside(distance)
+	end
+
+	if minDistances[targetNode.targetId] >= distance then
+		minDistances[targetNode.targetId] = distance
+	end
+end
+
 Network_ = {
 	type_ = "Network",
 	--- Returns a table with the minimal distances from a cell to all targets.
@@ -1021,11 +1033,13 @@ Network_ = {
 			minDistances[targetNodes[i].targetId] = math.huge
 		end
 
+
 		if entrance == "lines" then
 			for i = 1, #targetNodes do
-				local currNode = targetNodes[i]
-				calculateDistanceAndSetIfLesser(point, currNode, minDistances)
-				findShortestDistanceInLine(self, point, currNode.line, minDistances)
+				local targetNode = targetNodes[i]
+				calculateDistanceInTargetsAndSetIfLesser(point, targetNode, minDistances)
+				calculateDistanceAndSetIfLesser(point, targetNode, minDistances)
+				findShortestDistanceInLine(self, point, targetNode.line, minDistances)
 			end
 
 			for i = 1, #linesList do
@@ -1049,6 +1063,11 @@ Network_ = {
 				end
 			end
 		elseif entrance == "points" then
+			for i = 1, #targetNodes do
+				local currNode = targetNodes[i]
+				calculateDistanceInTargetsAndSetIfLesser(point, currNode, minDistances)
+			end
+
 			for i = 1, #nodesList do
 				local currNode = nodesList[i]
 				calculateDistanceAndSetIfLesser(point, currNode, minDistances)

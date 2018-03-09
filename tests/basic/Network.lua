@@ -827,15 +827,26 @@ return {
 			end
 		}
 
-		local portNodes = getTagetNodes(network)
-		local portNode = portNodes[0]
 		local port = ports:get("0")
 
 		local distances = network:distances(port, "lines")
-		unitTest:assertEquals(2 * portNode.distance, distances[0])
+		unitTest:assertEquals(distances[0], 0)
 
 		local distances2 = network:distances(port, "points")
-		unitTest:assertEquals(2 * portNode.distance, distances2[0])
+		unitTest:assertEquals(distances2[0], 0)
+
+		local portEstrelaCs = CellularSpace{
+			file = filePath("test/port_estrela_sirgas2000.shp", "gpm"),
+			missing = 0
+		}
+
+		local portEstrelaCell = portEstrelaCs:get("0")
+
+		local distances3 = network:distances(portEstrelaCell, "lines")
+		unitTest:assertEquals(distances3[0], 196084.54586966, 1.0e-8)
+
+		local distances4 = network:distances(portEstrelaCell, "points")
+		unitTest:assertEquals(distances4[0], 196084.54586966, 1.0e-8)
 	end
 }
 
