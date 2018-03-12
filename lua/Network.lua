@@ -387,6 +387,11 @@ end
 local function joinConnectedLines(self, linesConnected)
 	local hadSomeJunction = false
 
+	if self.progress then
+		io.write(progressConnectingMsg(linesConnected), "\r")
+		io.flush()
+	end
+
 	forEachElement(linesConnected, function(a, linesA)
 		if not linesA then return end
 
@@ -395,11 +400,6 @@ local function joinConnectedLines(self, linesConnected)
 				joinLines(linesA, linesB)
 				linesConnected[b] = false
 				hadSomeJunction = true
-
-				if self.progress then
-					io.write(progressConnectingMsg(linesConnected), "\r")
-					io.flush()
-				end
 			end
 		end)
 	end)
