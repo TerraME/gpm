@@ -874,8 +874,9 @@ local function addNodesInDirection(self, line, lineEndpointId, lineToAdd, direct
 		customError("Line '"..line.id.."' was added due to the value of argument 'error' ("..self.error
 					.."). Please, remove the argument 'error' and fix the disconnected lines.")
 	elseif not isNodeEndpoint(node) then
-		customError("Line '"..node.line.id.."' crosses lines '"..line.id
-					.."' and '"..lineToAdd.id.."' in their endpoints. Please, split line '"..node.line.id.."'.")
+		customError("Line '"..node.line.id.."' crosses touching lines '"..line.id
+					.."' and '"..lineToAdd.id.."' in their endpoints. Please, split line '"..node.line.id
+					.."' in two where they cross.")
 	elseif isNodeBelongingToTargetLine(node, line) then
 		if direction == Direction.forward then
 			addAllNodesOfLineForward(self.netpoints, lineToAdd, node, 0)

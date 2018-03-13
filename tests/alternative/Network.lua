@@ -308,7 +308,7 @@ return {
 			}
 		end
 
-		unitTest:assertError(lineCrossesError, "Line '26' crosses lines '20' and '18' in their endpoints. Please, split line '26'.")
+		unitTest:assertError(lineCrossesError, "Line '26' crosses touching lines '20' and '18' in their endpoints. Please, split line '26' in two where they cross.")
 	end,
 	distances = function(unitTest)
 		local roads = CellularSpace{
