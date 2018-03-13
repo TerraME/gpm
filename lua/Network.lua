@@ -591,11 +591,19 @@ local function recalculatePreviousDistances(node, previousNode)
 	recalculatePreviousDistances(previousNode, previousNode.previous)
 end
 
-local function removeOldRoute(routerNode, node) -- TODO: improve this name
-	routerNode.line = node.line
+local function adjustRouterNodeLine(routerNode, newLine)
+	routerNode.line = newLine
 
+	if routerNode.id == newLine.geom:getPointAsTextAt(0) then
+		routerNode.pos = 0
+	else
+		routerNode.pos = newLine.npoints - 1
+	end
+end
+
+local function removeOldRoute(routerNode, lineToRemove) -- TODO: improve this name
 	for i = 1, #routerNode.previous do
-		if routerNode.previous[i].line.id == node.line.id then
+		if routerNode.previous[i].line.id == lineToRemove.id then
 			table.remove(routerNode.previous, i)
 			return
 		end
@@ -609,7 +617,8 @@ local function convertRouterNodeToSimple(routerNode)
 end
 
 reviewRouterNode = function(routerNode, node)
-	removeOldRoute(routerNode, node)
+	adjustRouterNodeLine(routerNode, node.line)
+	removeOldRoute(routerNode, node.line)
 
 	for i = 1, #routerNode.previous do
 		if routerNode.targetId ~= routerNode.previous[i].targetId then

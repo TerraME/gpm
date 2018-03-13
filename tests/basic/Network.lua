@@ -792,6 +792,33 @@ return {
 			unitTest:assertEquals(totalDistance, sumLinesLength, 1.0e-9)
 		end
 
+		local adjustRouterNodePositionTest = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_ne14.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/port_aratu_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				validate = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			unitTest:assertEquals(getn(network.netpoints), 23158)
+			unitTest:assertEquals(network.lines[29].npoints, 54) --< line with adjust router node position
+		end
+
 		networkSetWeightAndOutsideEqualDistance()
 		networkSetWeightAndOutsideMultipliedBy2()
 		networkSetWeightAndOutsideDividedBy2()
@@ -804,6 +831,7 @@ return {
 		problemWhenErrorArgumentIsTooBig()
 		joinConnectedLinesTest()
 		targetNodeIsEqualsToLineEndpoints()
+		adjustRouterNodePositionTest()
 	end,
 	distances = function(unitTest)
 		local roads = CellularSpace{
