@@ -859,6 +859,14 @@ local function isNodeEndpoint(node)
 	return (node.pos == 0) or (node.pos == node.line.npoints - 1)
 end
 
+local function totalComputedLines()
+	return getn(computedLines) + getn(targetLines)
+end
+
+local function progressProcessingMsg(lines)
+	return "Network processing "..totalComputedLines().." of "..getn(lines).." lines."
+end
+
 local function addNodesInDirection(self, line, lineEndpointId, lineToAdd, direction)
 	local node = self.netpoints[lineEndpointId]
 
@@ -875,6 +883,11 @@ local function addNodesInDirection(self, line, lineEndpointId, lineToAdd, direct
 			addAllNodesOfLineBackward(self.netpoints, lineToAdd, node, lineToAdd.npoints - 1)
 		end
 		computedLines[lineToAdd.id] = lineToAdd
+
+		if self.progress then
+			io.write(progressProcessingMsg(self.lines), "\r")
+			io.flush()
+		end
 	end
 end
 
@@ -909,27 +922,14 @@ local function isLineAlreadyComputed(line)
 	return computedLines[line.id] ~= nil
 end
 
-local function totalComputedLines()
-	return getn(computedLines) + getn(targetLines)
-end
-
 local function hasUncomputedLines(self)
 	return totalComputedLines() ~= getn(self.lines)
-end
-
-local function progressProcessingMsg(lines)
-	return "Network processing "..totalComputedLines().." of "..getn(lines).." lines."
 end
 
 local function addNodesFromNonAdjacentsToTargetLines(self)
 	for _, line in pairs(self.lines) do
 		if isLineAlreadyComputed(line) then
 			addAdjacentLinesAndItsPoints(self, line, adjacentLines[line.id])
-
-			if self.progress then
-				io.write(progressProcessingMsg(self.lines), "\r")
-				io.flush()
-			end
 		end
 	end
 
