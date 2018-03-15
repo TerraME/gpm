@@ -24,19 +24,51 @@
 
 -- Support variables
 local targetLines
-local computedLines -- without taget lines
+local computedLines -- without target lines
+local nonAdjacentLinesCache
+local adjacentLines
+local targetNodes
+local nodesList
+local linesList
+local linesNodesList
 
 -- User-defined functions
 local inside
 local outside
 
+local Direction = {
+	forward = 0,
+	backward = 1
+}
+
+local LineAdjancency = {
+	firstTofirst = 1,
+	firstTolast = 2,
+	lastTofirst = 3,
+	lastTolast = 4,
+}
+
+local function addLineEndpointsInfo(line)
+	line.first = {}
+	line.last = {}
+	line.first.point = line.geom:getStartPoint()
+	line.last.point = line.geom:getEndPoint()
+	line.first.id = line.first.point:asText()
+	line.last.id = line.last.point:asText()
+end
+
 local function createLineInfo(line)
-	return {
+	local lineInfo = {
 		id = line.FID,
 		geom = line.geom:getGeometryN(0),
 		npoints = line.geom:getNPoints(),
-		cell = line
+		cell = line,
 	}
+
+	addLineEndpointsInfo(lineInfo)
+	table.insert(linesList, lineInfo)
+
+	return lineInfo
 end
 
 local function createLinesInfo(lines)
@@ -49,21 +81,41 @@ local function createLinesInfo(lines)
 	return linesInfo
 end
 
-local function addTargetInfoInLine(targetLine, targetPoint, distance)
+local function fixTargetPointIfEqualsToEndpoint(closestPoint, targetLine)
+	local closestPointId = closestPoint:asText()
+	if (closestPointId == targetLine.first.id) or (closestPointId == targetLine.last.id) then
+		if targetLine.last.point:getX() > targetLine.first.point:getX() then
+			closestPoint:setX(closestPoint:getX() + 1)
+		else
+			closestPoint:setX(closestPoint:getX() - 1)
+		end
+		return closestPoint:asText()
+	end
+
+	return closestPointId
+end
+
+local function createClosestPointInLine(targetPoint, targetLine)
 	local closestPoint = targetPoint:closestPoint(targetLine.geom)
-	targetLine.closestPoint = {id = closestPoint:asText(), point = closestPoint} -- closest point info
+	local closestPointId = fixTargetPointIfEqualsToEndpoint(closestPoint, targetLine)
+	return {id = closestPointId, point = closestPoint}
+end
+
+local function addTargetInfoInLine(targetLine, closestPoint, distance)
+	targetLine.closestPoint = closestPoint
 	targetLine.shortestPath = distance
 	targetLines[targetLine.id] = targetLine
 end
 
-local function createTargetNode(point, distance, line, targetId)
+local function createTargetNode(point, distance, line, targetId, targetPoint)
 	return {
 		target = true,
 		id = point:asText(),
 		point = point,
 		distance = distance,
 		line = line, -- lines which the point belongs
-		targetId = targetId
+		targetId = targetId,
+		targetPoint = targetPoint
 	}
 end
 
@@ -96,6 +148,47 @@ local function findClosestLine(lines, point)
 	return {line = closestLine, distance = minDistance}
 end
 
+local function checkAndRemoveTargetIfLineHasMoreThanOneOfIt(targets)
+	local targetList = {}
+	for _, node in pairs(targets) do
+		table.insert(targetList, node)
+	end
+
+	local targetsToRemove = {}
+
+	for i = 1, #targetList do
+		local n1 = targetList[i]
+		if not targetsToRemove[n1.id] then
+			for j = i + 1, #targetList do
+				local n2 = targetList[j]
+				if not targetsToRemove[n2.id] then
+					if n1.line.id == n2.line.id then
+						local dist = n1.point:distance(n2.point)
+
+						if inside then
+							dist = inside(dist, n1.line.cell)
+						end
+
+						if (n1.distance > dist) and (n1.distance > n2.distance) then
+							targetsToRemove[n1.id] = true
+						elseif (n2.distance > dist) and (n2.distance > n1.distance) then
+							targetsToRemove[n2.id] = true
+						end
+					end
+				end
+			end
+		end
+	end
+
+	for id, node in pairs(targets) do
+		if targetsToRemove[id] then
+			customWarning("Line '"..node.line.id.."' has more than one target. Target '"..node.targetId
+							.."' is too far with distance '"..node.distance.."' and it was removed.")
+			targets[id] = nil
+		end
+	end
+end
+
 -- TODO(avancinirodrigo): this method can be improved by some tree
 local function findAndAddTargetNodes(self)
 	self.netpoints = {}
@@ -105,13 +198,20 @@ local function findAndAddTargetNodes(self)
 		local targetId = tonumber(target:getId())
 		local closestLine = findClosestLine(self.lines, targetPoint)
 		local targetLine = closestLine.line
+		local closestPoint = createClosestPointInLine(targetPoint, closestLine.line)
 
-		addTargetInfoInLine(closestLine.line, targetPoint, closestLine.distance)
-		local closestPoint = targetLine.closestPoint
+		addTargetInfoInLine(closestLine.line, closestPoint, closestLine.distance)
 
 		self.netpoints[closestPoint.id] = createTargetNode(closestPoint.point,
-												targetLine.shortestPath, targetLine, targetId)
+												targetLine.shortestPath, targetLine, targetId, targetPoint)
 	end)
+
+	checkAndRemoveTargetIfLineHasMoreThanOneOfIt(self.netpoints)
+
+	for _, node in pairs(self.netpoints) do
+		table.insert(targetNodes, node)
+		table.insert(nodesList, node)
+	end
 end
 
 local function checkIfLineCrosses(lineA, lineB)
@@ -120,54 +220,133 @@ end
 
 local function calculateMinDistance(endpointsA, endpointsB)
 	local distances = {}
-	distances[1] = endpointsA.first:distance(endpointsB.first)
-	distances[2] = endpointsA.first:distance(endpointsB.last)
-	distances[3] = endpointsA.last:distance(endpointsB.first)
-	distances[4] = endpointsA.last:distance(endpointsB.last)
+	distances[LineAdjancency.firstTofirst] = endpointsA.first.point:distance(endpointsB.first.point)
+	distances[LineAdjancency.firstTolast] = endpointsA.first.point:distance(endpointsB.last.point)
+	distances[LineAdjancency.lastTofirst] = endpointsA.last.point:distance(endpointsB.first.point)
+	distances[LineAdjancency.lastTolast] = endpointsA.last.point:distance(endpointsB.last.point)
 
 	local minDistance = math.huge
-
+	local lineAdjacency
 	for i = 1, 4 do
 		if minDistance > distances[i] then
 			minDistance = distances[i]
+			lineAdjacency = i
 		end
 	end
 
-	return minDistance
+	return {distance = minDistance, adjacency = lineAdjacency}
 end
 
-local function validateLine(self, line, linesEndpoints, linesValidated, linesConnected)
-	linesEndpoints[line.id] = {first = line.geom:getStartPoint(), last = line.geom:getEndPoint()}
+local function addAdjacentLineInfo(line, oline, minDistanceInfo)
+	table.insert(adjacentLines[line.id], {id = oline.id, distance = minDistanceInfo.distance, adjacency = minDistanceInfo.adjacency})
+end
+
+local function invertAdjacentLineInfo(minDistanceInfo)
+	if minDistanceInfo.adjacency == LineAdjancency.firstTolast then
+		minDistanceInfo.adjacency = LineAdjancency.lastTofirst
+	elseif minDistanceInfo.adjacency == LineAdjancency.lastTofirst then
+		minDistanceInfo.adjacency = LineAdjancency.firstTolast
+	end
+	return minDistanceInfo
+end
+
+local function progressMsg(current, total, action)
+	return "Network "..action.." "..getn(current).." of "..getn(total).." lines."
+end
+
+local function updateProgressMsg(self, current, action)
+	if self.progress then
+		io.write(progressMsg(current, self.lines, action), "\r")
+		io.flush()
+	end
+end
+
+local function finalizeProgressMsg(self, current, action)
+	if self.progress then
+		io.write("                                               ", "\r")
+		io.flush()
+		print(progressMsg(current, self.lines, action))
+	end
+end
+
+local function addTableKeyIfNotExists(tbl, key)
+	if not tbl[key] then
+		tbl[key] = {}
+	end
+end
+
+local function findAndAddAjacentLines(self)
+	for i = 1, #linesList do
+		updateProgressMsg(self, adjacentLines, "reading")
+		addTableKeyIfNotExists(adjacentLines, linesList[i].id)
+		for j = i + 1, #linesList do
+			local minDistanceInfo = calculateMinDistance(linesList[i], linesList[j])
+			if minDistanceInfo.distance <= self.error then
+				addAdjacentLineInfo(linesList[i], linesList[j], minDistanceInfo)
+				addTableKeyIfNotExists(adjacentLines, linesList[j].id)
+				addAdjacentLineInfo(linesList[j], linesList[i], invertAdjacentLineInfo(minDistanceInfo))
+			end
+		end
+	end
+
+	finalizeProgressMsg(self, adjacentLines, "reading")
+end
+
+local function addNonAdjacentLinesCache(lineAId, lineBId)
+	if not nonAdjacentLinesCache[lineAId] then
+		nonAdjacentLinesCache[lineAId] = {}
+	end
+
+	if not nonAdjacentLinesCache[lineBId] then
+		nonAdjacentLinesCache[lineBId] = {}
+	end
+
+	nonAdjacentLinesCache[lineAId][lineBId] = true
+	nonAdjacentLinesCache[lineBId][lineAId] = true
+end
+
+local function isLinesNonAdjacent(lineAId, lineBId)
+	if nonAdjacentLinesCache[lineAId] and nonAdjacentLinesCache[lineAId][lineBId] then
+		return true
+	end
+
+	return false
+end
+
+local function validateLine(self, line, linesValidated, linesConnected)
 	local lineMinDistance = math.huge
+	adjacentLines[line.id] = {}
 
-	forEachElement(self.lines, function(_, oline)
-		if oline.id == line.id then return end
-
-		if checkIfLineCrosses(line, oline) then
-			customError("Lines '"..line.id.."' and '"..oline.id.."' cross each other.")
-		end
-
-		if not linesEndpoints[oline.id] then
-			linesEndpoints[oline.id] = {first = oline.geom:getStartPoint(), last = oline.geom:getEndPoint()}
-		end
-
-		local minDistance = calculateMinDistance(linesEndpoints[line.id], linesEndpoints[oline.id])
-
-		if minDistance <= self.error then
-			linesValidated[line.id] = true
-			if not linesConnected[oline.id] then
-				linesConnected[oline.id] = {}
-				table.insert(linesConnected[oline.id], oline.id)
+	for _, oline in pairs(self.lines) do
+		if oline.id ~= line.id then
+			if checkIfLineCrosses(line, oline) then
+				customError("Lines '"..line.id.."' and '"..oline.id.."' cross each other.")
 			end
 
-			table.insert(linesConnected[oline.id], line.id)
-		elseif lineMinDistance > minDistance then
-			lineMinDistance = minDistance
+			if not isLinesNonAdjacent(line.id, oline.id) then
+				local minDistanceInfo = calculateMinDistance(line, oline)
+
+				if minDistanceInfo.distance <= self.error then
+					linesValidated[line.id] = true
+					if not linesConnected[oline.id] then
+						linesConnected[oline.id] = {}
+						table.insert(linesConnected[oline.id], oline.id)
+					end
+
+					table.insert(linesConnected[oline.id], line.id)
+					addAdjacentLineInfo(line, oline, minDistanceInfo)
+				elseif lineMinDistance > minDistanceInfo.distance then
+					lineMinDistance = minDistanceInfo.distance
+				else
+					addNonAdjacentLinesCache(line.id, oline.id)
+				end
+			end
 		end
-	end)
+	end
 
 	if not linesValidated[line.id] then
-		customError("Line: '"..line.id.."' does not touch any other line. The minimum distance found was: "..lineMinDistance..".")
+		customError("Line '"..line.id.."' does not touch any other line. The minimum distance found was: "..lineMinDistance..". "
+				.."If this distance can be ignored, use argument 'error'. Otherwise, fix the line.")
 	end
 end
 
@@ -201,7 +380,18 @@ local function joinLines(linesA, linesB)
 	end
 end
 
-local function isNetworkConnected(linesConnected)
+local function progressConnectingMsg(linesConnected)
+	return "Network number of networks "..getn(linesConnected).."."
+end
+
+local function joinConnectedLines(self, linesConnected)
+	local hadSomeJunction = false
+
+	if self.progress then
+		io.write(progressConnectingMsg(linesConnected), "\r")
+		io.flush()
+	end
+
 	forEachElement(linesConnected, function(a, linesA)
 		if not linesA then return end
 
@@ -209,62 +399,125 @@ local function isNetworkConnected(linesConnected)
 			if a ~= b and linesB and hasConnection(linesA, linesB) then
 				joinLines(linesA, linesB)
 				linesConnected[b] = false
+				hadSomeJunction = true
 			end
 		end)
 	end)
 
-	forEachElement(linesConnected, function(id)
-		if not linesConnected[id] then
-			linesConnected[id] = nil
-		end
-	end)
+	if hadSomeJunction then
+		forEachElement(linesConnected, function(id)
+			if not linesConnected[id] then
+				linesConnected[id] = nil
+			end
+		end)
+
+		joinConnectedLines(self, linesConnected)
+	end
+end
+
+local function isNetworkConnected(self, linesConnected)
+	joinConnectedLines(self, linesConnected)
+
+	if self.progress then
+		io.write("                                               ", "\r")
+		io.flush()
+		print(progressConnectingMsg(linesConnected))
+	end
 
 	if getn(linesConnected) > 1 then
-		local first
-		local second
-
-		forEachOrderedElement(linesConnected, function(idx)
-			if not first then
-				first = idx
-			elseif not second then
-				second = idx
-			else
-				return false
-			end
-		end)
-
-		return false, first, second
+		return false
 	end
 
 	return true
 end
 
-local function validateLines(self)
-	local linesEndpoints = {}
-	local linesValidated = {}
-	local linesConnected = {}
-
-	forEachElement(self.lines, function(_, line)
-		validateLine(self, line, linesEndpoints, linesValidated, linesConnected)
-	end)
-
-	local result, first, second = isNetworkConnected(linesConnected)
-
-	if not result then
-		customError("The network is disconnected. For example, objects '"..first.."' and '"..second.."' belong to two separated networks.")
+local function addNetIdInfo(netIdName, cs, linesConnected)
+	local netId = 0
+	for _, v in pairs(linesConnected) do
+		forEachCell(cs, function(cell)
+			if not cell[netIdName] then
+				for i = 1, #v do
+					if cell.FID == v[i] then
+						cell[netIdName] = netId
+					end
+				end
+			end
+		end)
+		netId = netId + 1
 	end
 end
 
-local function findFirstPoint(targetNode)
-	local line = targetNode.line
+local function saveErrorInfo(self, linesConnected)
+	local gis = getPackage("gis")
+	local linesCs = self.linesCs
+	local errorLayerName = "neterror"
+	local netIdName = "net_id"
+	local errMsg
+
+	if linesCs.project then
+		addNetIdInfo(netIdName, linesCs, linesConnected)
+		linesCs:save(errorLayerName, netIdName)
+		errMsg = "Layer '"..errorLayerName.."' was automatically created with attribute '"
+				..netIdName.."' containing the separated networks."
+	else
+		local proj = gis.Project{
+			file = "network_report.tview",
+			clean = true,
+			author = "TerraME-Network",
+			title = "Error Report"
+		}
+
+		local linesCsLayer = gis.Layer{
+			project = proj,
+			name = errorLayerName,
+			file = linesCs.file
+		}
+
+		local cs = CellularSpace{
+			project = proj,
+			layer = linesCsLayer.name,
+			missing = linesCs.missing
+		}
+
+		addNetIdInfo(netIdName, cs, linesConnected)
+		cs:save(linesCsLayer.name, netIdName)
+		proj.file:delete()
+		errMsg = "Data '"..errorLayerName.."."..File(linesCsLayer.file):extension()
+				.. "' was automatically created with attribute '"
+				..netIdName.."' containing the separated networks."
+	end
+
+	return errMsg
+end
+
+local function validateLines(self)
+	local linesValidated = {}
+	local linesConnected = {}
+
+	for _, line in pairs(self.lines) do
+		updateProgressMsg(self, linesValidated, "validating")
+		validateLine(self, line, linesValidated, linesConnected)
+	end
+
+	nonAdjacentLinesCache = nil
+
+	finalizeProgressMsg(self, linesValidated, "validating")
+
+	if not isNetworkConnected(self, linesConnected) then
+		local errMsg = saveErrorInfo(self, linesConnected)
+		customError("The network is disconnected. "..errMsg)
+	end
+end
+
+local function findFirstPoint(closetPoint, line)
 	local pointInfo = {}
 	pointInfo.distance = math.huge
 
 	for i = 0, line.npoints - 1 do
 		local point = line.geom:getPointN(i)
-		local distance = targetNode.point:distance(point)
+		local distance = closetPoint:distance(point)
 
-		if pointInfo.distance > distance then
+		if (pointInfo.distance > distance) and (distance > 0) then
 			pointInfo.point = point
 			pointInfo.distance = distance
 			pointInfo.pos = i
@@ -272,7 +525,7 @@ local function findFirstPoint(targetNode)
 	end
 
 	if inside then
-		pointInfo.distance = inside(pointInfo.distance, targetNode.line.cell)
+		pointInfo.distance = inside(pointInfo.distance, line.cell)
 	end
 
 	return pointInfo
@@ -321,8 +574,15 @@ local function relinkToNextNode(node, nextNode, newDistance)
 	end
 end
 
+local reviewRouterNode -- forward function
+
 local function recalculatePreviousDistances(node, previousNode)
 	if not previousNode then
+		return
+	end
+
+	if previousNode.router then
+		reviewRouterNode(previousNode, node)
 		return
 	end
 
@@ -331,11 +591,19 @@ local function recalculatePreviousDistances(node, previousNode)
 	recalculatePreviousDistances(previousNode, previousNode.previous)
 end
 
-local function removeOldRoute(routerNode, node) -- TODO: improve this name
-	routerNode.line = node.line
+local function adjustRouterNodeLine(routerNode, newLine)
+	routerNode.line = newLine
 
+	if routerNode.id == newLine.geom:getPointAsTextAt(0) then
+		routerNode.pos = 0
+	else
+		routerNode.pos = newLine.npoints - 1
+	end
+end
+
+local function removeOldRoute(routerNode, lineToRemove) -- TODO: improve this name
 	for i = 1, #routerNode.previous do
-		if routerNode.previous[i].line.id == node.line.id then
+		if routerNode.previous[i].line.id == lineToRemove.id then
 			table.remove(routerNode.previous, i)
 			return
 		end
@@ -348,8 +616,9 @@ local function convertRouterNodeToSimple(routerNode)
 	routerNode.router = nil
 end
 
-local function reviewRouterNode(routerNode, node)
-	removeOldRoute(routerNode, node)
+reviewRouterNode = function(routerNode, node)
+	adjustRouterNodeLine(routerNode, node.line)
+	removeOldRoute(routerNode, node.line)
 
 	for i = 1, #routerNode.previous do
 		if routerNode.targetId ~= routerNode.previous[i].targetId then
@@ -364,12 +633,12 @@ end
 
 local function reviewNextNodes(node, nextNode)
 	if nextNode.target then
-		if node.id == nextNode.first.id then
+		if nextNode.first and (node.id == nextNode.first.id) then
 			nextNode.first = nil
-		elseif node.id == nextNode.second.id then
+		elseif nextNode.second and (node.id == nextNode.second.id) then
 			nextNode.second = nil
 		else
-			customError("Unforeseen error!") -- SKIP : TODO: it needs a test
+			customError("Unforeseen error. If you have already validated your data, report this error to system developers.")
 		end
 
 		return
@@ -390,13 +659,25 @@ local function reviewNextNodes(node, nextNode)
 	end
 end
 
-local function reviewExistingNode(existingNode, currNode, newPosition)
+local function reviewExistingNode(existingNode, currNode, newPosition, newLine)
 	local newDistance = calculateFullDistance(currNode, existingNode.point, currNode.line)
 
 	if existingNode.distance > newDistance then
 		local existingNodeNext = existingNode.next
 		relinkToNextNode(currNode, existingNode, newDistance)
-		existingNode.line = currNode.line
+
+		if newLine.npoints == 2 then
+			existingNode.line = newLine
+		elseif existingNodeNext.router and (existingNode.line.npoints == 2) and
+				(existingNodeNext.line.id ~= existingNode.line.id) then
+			removeOldRoute(existingNodeNext, existingNode.line)
+			existingNode.line = currNode.line
+			existingNode.pos = newPosition
+			return
+		else
+			existingNode.line = currNode.line
+		end
+
 		existingNode.pos = newPosition
 		reviewNextNodes(existingNode, existingNodeNext)
 	else
@@ -406,7 +687,9 @@ end
 
 local function createNodeByNextPoint(point, position, currNode, line)
 	local totalDistance = calculateFullDistance(currNode, point, line)
-	return createNode(point, totalDistance, line, position, currNode.targetId)
+	local node = createNode(point, totalDistance, line, position, currNode.targetId)
+	table.insert(nodesList, node)
+	return node
 end
 
 local function addAllNodesOfLineBackward(graph, line, node, nodePosition)
@@ -419,7 +702,7 @@ local function addAllNodesOfLineBackward(graph, line, node, nodePosition)
 		local nodeId = point:asText()
 
 		if graph[nodeId] then
-			reviewExistingNode(graph[nodeId], currNode, i)
+			reviewExistingNode(graph[nodeId], currNode, i, line)
 		else
 			local previousNode = createNodeByNextPoint(point, i, currNode, line)
 			graph[nodeId] = previousNode
@@ -440,7 +723,7 @@ local function addAllNodesOfLineForward(graph, line, node, nodePosition)
 		local nodeId = point:asText()
 
 		if nodeExists(graph[nodeId]) then
-			reviewExistingNode(graph[nodeId], currNode, i)
+			reviewExistingNode(graph[nodeId], currNode, i, line)
 		else
 			local nextNode = createNodeByNextPoint(point, i, currNode, line)
 			graph[nodeId] = nextNode
@@ -468,39 +751,40 @@ local function findSecondPointInEnds(firstNode, targetNode)
 	return pointInfo
 end
 
+local function isPointBetween(pTarget, pFirst, pOther)
+	local xt = pTarget:getX()
+	local xf = pFirst:getX()
+	local xo = pOther:getX()
+
+	if ((xo < xt) and (xt < xf)) or ((xo > xt) and (xt > xf)) then
+		return true
+	end
+
+	return false
+end
+
 local function findSecondPointInInterior(firstNode, targetNode)
 	local line = targetNode.line
 	local pointInfo = {}
 	local pAfter = line.geom:getPointN(firstNode.pos + 1)
 	local pBefore = line.geom:getPointN(firstNode.pos - 1)
-	local xb = pBefore:getX()
-	local xa = pAfter:getX()
-	local xf = firstNode.point:getX()
-	local xt = targetNode.point:getX()
 
-	if xf > xb then
-		if (xt > xb) and (xf > xt) then
-			pointInfo.point = pBefore
-			pointInfo.pos = firstNode.pos - 1
-		elseif (xt < xa) and (xf < xt) then
-			pointInfo.point = pAfter
-			pointInfo.pos = firstNode.pos + 1
-		end
-	else -- inverted line
-		customError("Inverted line "..xf..", "..xt..", "..xb..", "..xa) -- TODO: needs test
+	if isPointBetween(targetNode.point, firstNode.point, pAfter) then
+		pointInfo.point = pAfter
+		pointInfo.pos = firstNode.pos + 1
+	else
+		pointInfo.point = pBefore
+		pointInfo.pos = firstNode.pos - 1
 	end
 
 	return pointInfo
 end
 
 local function findSecondPoint(firstNode, targetNode)
-	if firstNode.point:getX() == targetNode.point:getX() then
-		return {point = firstNode.point, pos = firstNode.pos}
-	end
-
 	local pointInfo = findSecondPointInEnds(firstNode, targetNode)
 
-	if #pointInfo == 0 then
+	local hasNotFound = not pointInfo.point
+	if hasNotFound then
 		pointInfo = findSecondPointInInterior(firstNode, targetNode)
 	end
 
@@ -521,13 +805,14 @@ local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 	local secPoint = findSecondPoint(firstNode, targetNode)
 	local secNode = createNode(secPoint.point, secPoint.distance, line, secPoint.pos, targetNode.targetId)
 	graph[secNode.id] = secNode
+	table.insert(nodesList, secNode)
 
 	linkFirstAndSecondNodes(targetNode, firstNode, graph[secNode.id])
 
 	if firstNode.pos == 0 then
 		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 	elseif firstNode.pos == line.npoints - 1 then
-		addAllNodesOfLineBackward(graph, targetNode, firstNode, graph[secNode.id], firstNode.pos)
+		addAllNodesOfLineBackward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 	elseif secPoint.pos > firstNode.pos then
 		addAllNodesOfLineForward(graph, line, graph[secNode.id], graph[secNode.id].pos)
 		addAllNodesOfLineBackward(graph, line, firstNode, firstNode.pos)
@@ -538,7 +823,7 @@ local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 end
 
 local function createFirstNode(targetNode)
-	local firstPoint = findFirstPoint(targetNode)
+	local firstPoint = findFirstPoint(targetNode.point, targetNode.line)
 	local totalDistance = targetNode.distance + firstPoint.distance
 	return createNode(firstPoint.point, totalDistance, targetNode.line, firstPoint.pos, targetNode.targetId)
 end
@@ -546,6 +831,7 @@ end
 local function addFirstNodes(graph, node)
 	local firstNode = createFirstNode(node)
 	graph[firstNode.id] = firstNode
+	table.insert(nodesList, firstNode)
 
 	addAllNodesOfTargetLines(graph, graph[firstNode.id], node)
 end
@@ -575,23 +861,40 @@ local function isTargetLine(line)
 	return targetLines[line.id] ~= nil
 end
 
-local function addNodesForward(self, targetLine, point, line)
-	local nid = point:asText()
-	local node = self.netpoints[nid]
-
-	if isNodeBelongingToTargetLine(node, targetLine) then
-		addAllNodesOfLineForward(self.netpoints, line, node, 0)
-		computedLines[line.id] = line
-	end
+local function isNodeEndpoint(node)
+	return (node.pos == 0) or (node.pos == node.line.npoints - 1)
 end
 
-local function addNodesBackward(self, targetLine, point, line)
-	local nid = point:asText()
-	local node = self.netpoints[nid]
+local function totalComputedLines()
+	return getn(computedLines) + getn(targetLines)
+end
 
-	if isNodeBelongingToTargetLine(node, targetLine) then
-		addAllNodesOfLineBackward(self.netpoints, line, node, line.npoints - 1)
-		computedLines[line.id] = line
+local function progressProcessingMsg(lines)
+	return "Network processing "..totalComputedLines().." of "..getn(lines).." lines."
+end
+
+local function addNodesInDirection(self, line, lineEndpointId, lineToAdd, direction)
+	local node = self.netpoints[lineEndpointId]
+
+	if not node then
+		customError("Line '"..line.id.."' was added due to the value of argument 'error' ("..self.error
+					.."). Please, remove the argument 'error' and fix the disconnected lines.")
+	elseif not isNodeEndpoint(node) then
+		customError("Line '"..node.line.id.."' crosses touching lines '"..line.id
+					.."' and '"..lineToAdd.id.."' in their endpoints. Please, split line '"..node.line.id
+					.."' in two where they cross.")
+	elseif isNodeBelongingToTargetLine(node, line) then
+		if direction == Direction.forward then
+			addAllNodesOfLineForward(self.netpoints, lineToAdd, node, 0)
+		else
+			addAllNodesOfLineBackward(self.netpoints, lineToAdd, node, lineToAdd.npoints - 1)
+		end
+		computedLines[lineToAdd.id] = lineToAdd
+
+		if self.progress then
+			io.write(progressProcessingMsg(self.lines), "\r")
+			io.flush()
+		end
 	end
 end
 
@@ -599,34 +902,27 @@ local function isLineUncomputed(line)
 	return not (isTargetLine(line) or computedLines[line.id])
 end
 
-local function isAdjacentByPointsConsideringError(p1, p2, error)
-	return p1:distance(p2) <= error
-end
-
-local function findAdjacentLineAndAddItsPoints(self, line)
-	local endpointsLine = {first = line.geom:getStartPoint(), last = line.geom:getEndPoint()}
-
-	forEachElement(self.lines, function(_, adjacent)
+local function addAdjacentLinesAndItsPoints(self, line, adjacents)
+	for i = 1, #adjacents do
+		local adjacent = self.lines[adjacents[i].id]
 		if isLineUncomputed(adjacent) then
-			local endpointsAdjacent = {first = adjacent.geom:getStartPoint(), last = adjacent.geom:getEndPoint()}
-
-			if isAdjacentByPointsConsideringError(endpointsLine.first, endpointsAdjacent.first, self.error) then
-				addNodesForward(self, line, endpointsLine.first, adjacent)
-			elseif isAdjacentByPointsConsideringError(endpointsLine.first, endpointsAdjacent.last, self.error) then
-				addNodesBackward(self, line, endpointsLine.first, adjacent)
-			elseif isAdjacentByPointsConsideringError(endpointsLine.last, endpointsAdjacent.first, self.error) then
-				addNodesForward(self, line, endpointsLine.last, adjacent)
-			elseif isAdjacentByPointsConsideringError(endpointsLine.last, endpointsAdjacent.last, self.error) then
-				addNodesBackward(self, line, endpointsLine.last, adjacent)
+			if adjacents[i].adjacency == LineAdjancency.firstTofirst then
+				addNodesInDirection(self, line, line.first.id, adjacent, Direction.forward)
+			elseif adjacents[i].adjacency == LineAdjancency.firstTolast then
+				addNodesInDirection(self, line, line.first.id, adjacent, Direction.backward)
+			elseif adjacents[i].adjacency == LineAdjancency.lastTofirst then
+				addNodesInDirection(self, line, line.last.id, adjacent, Direction.forward)
+			elseif adjacents[i].adjacency == LineAdjancency.lastTolast then
+				addNodesInDirection(self, line, line.last.id, adjacent, Direction.backward)
 			end
 		end
-	end)
+	end
 end
 
 local function addNodesFromAdjacentsToTargetLines(self)
-	forEachElement(targetLines, function(_, targetLine)
-		findAdjacentLineAndAddItsPoints(self, targetLine)
-	end)
+	for _, targetLine in pairs(targetLines) do
+		addAdjacentLinesAndItsPoints(self, targetLine, adjacentLines[targetLine.id])
+	end
 end
 
 local function isLineAlreadyComputed(line)
@@ -634,18 +930,54 @@ local function isLineAlreadyComputed(line)
 end
 
 local function hasUncomputedLines(self)
-	return getn(computedLines) + getn(targetLines) ~= getn(self.lines)
+	return totalComputedLines() ~= getn(self.lines)
+end
+
+local function unexpectedError(self)
+	local uncomputedLinesIds = {}
+	for _, line in pairs(self.lines) do
+		if isLineUncomputed(line) then
+			table.insert(uncomputedLinesIds, line.id)
+		end
+	end
+
+	if self.progress then
+		io.write("                                               ", "\r")
+		io.flush()
+	end
+
+	local errorAppendMsg = "If you have already validated your data, report this error to system developers."
+
+	if #uncomputedLinesIds > 1 then
+		local linesListIds = "{"..uncomputedLinesIds[1]
+		for i = 2, #uncomputedLinesIds do
+			linesListIds = linesListIds..", "..uncomputedLinesIds[i]
+		end
+		linesListIds = linesListIds.."}"
+		customError("Unexpected error with lines "..linesListIds..". "..errorAppendMsg)
+	else
+		customError("Unexpected error with line '"..uncomputedLinesIds[1].."'. "..errorAppendMsg)
+	end
 end
 
 local function addNodesFromNonAdjacentsToTargetLines(self)
-	forEachElement(self.lines, function(_, line)
+	local numOfComputedLines = totalComputedLines()
+
+	for _, line in pairs(self.lines) do
 		if isLineAlreadyComputed(line) then
-			findAdjacentLineAndAddItsPoints(self, line)
+			addAdjacentLinesAndItsPoints(self, line, adjacentLines[line.id])
 		end
-	end)
+	end
 
 	if hasUncomputedLines(self) then
+		if numOfComputedLines == totalComputedLines() then
+			unexpectedError(self)
+		end
 		addNodesFromNonAdjacentsToTargetLines(self)
+	elseif self.progress then
+		io.write("                                               ", "\r")
+		io.flush()
+		print(progressProcessingMsg(self.lines))
 	end
 end
 
@@ -658,14 +990,142 @@ end
 local function createOpenNetwork(self)
 	inside = self.inside
 	outside = self.outside
+	self.linesCs = self.lines
 	self.lines = createLinesInfo(self.lines)
-	validateLines(self)
+	if self.validate then
+		validateLines(self)
+	else
+		findAndAddAjacentLines(self)
+	end
 	findAndAddTargetNodes(self)
 	createConnectivityInfoGraph(self)
+
+	if self.progress then
+		print("Network built with "..getn(self.netpoints).." points.")
+	end
+end
+
+local function calculateDistanceAndSetIfLesser(point, currNode, minDistances)
+	local distanceOut = point:distance(currNode.point)
+	if outside then
+		distanceOut = outside(distanceOut)
+	end
+
+	local distance = distanceOut + currNode.distance
+
+	if minDistances[currNode.targetId] >= distance then
+		minDistances[currNode.targetId] = distance
+		return true
+	end
+
+	return false
+end
+
+local function findShortestDistanceInLine(self, point, line, minDistances)
+	if linesNodesList[line.id] then
+		for i = 1, #linesNodesList[line.id] do
+			local currNode = linesNodesList[line.id][i]
+			calculateDistanceAndSetIfLesser(point, currNode, minDistances)
+		end
+	else
+		linesNodesList[line.id] = {}
+		for i = 0, line.npoints - 1 do
+			local currPointId = line.geom:getPointAsTextAt(i)
+			local currNode = self.netpoints[currPointId]
+			table.insert(linesNodesList[line.id], currNode)
+			calculateDistanceAndSetIfLesser(point, currNode, minDistances)
+		end
+	end
+end
+
+local function calculateDistanceInTargetsAndSetIfLesser(point, targetNode, minDistances)
+	local distance = point:distance(targetNode.targetPoint)
+	if outside then
+		distance = outside(distance)
+	end
+
+	if minDistances[targetNode.targetId] >= distance then
+		minDistances[targetNode.targetId] = distance
+	end
 end
 
 Network_ = {
-	type_ = "Network"
+	type_ = "Network",
+	--- Returns a table with the minimal distances from a cell to all targets.
+	-- The keys are the target ids and the values are the minimal distances to the targets through the Network.
+	-- @arg cell A cell with a geometry.
+	-- @arg entrance A name which indicates if the distances will be calculated using point-to-point
+	-- or by the lines.
+	-- Point-to-point means that the function is going to calculate the distances from the cell centroid to
+	-- all points of the Network to find the minimal ones. Lines find the minimal distances using their lines.
+	-- Although "points" can be more accurate, the performance using "lines" is faster than "points".
+	-- @usage -- DONTRUN
+	-- distances = network:distances(cell, "lines")
+	-- cell.distance = distances[0].distance
+	-- cell.target = distances.targetId
+	distances = function(self, cell, entrance)
+		mandatoryArgument(1, "Cell", cell)
+		if not cell.geom then
+			customError("Argument 'cell' must be associated with a geometry.")
+		end
+		mandatoryArgument(2, "string", entrance)
+
+		local cellGeom = cell.geom:getGeometryN(0)
+		local point = cellGeom
+		if cellGeom:getGeometryType() ~= "Point" then
+			point = cellGeom:getCentroid()
+		end
+
+		local minDistances = {}
+		for i = 1, #targetNodes do
+			minDistances[targetNodes[i].targetId] = math.huge
+		end
+
+
+		if entrance == "lines" then
+			for i = 1, #targetNodes do
+				local targetNode = targetNodes[i]
+				calculateDistanceInTargetsAndSetIfLesser(point, targetNode, minDistances)
+				calculateDistanceAndSetIfLesser(point, targetNode, minDistances)
+				findShortestDistanceInLine(self, point, targetNode.line, minDistances)
+			end
+
+			for i = 1, #linesList do
+				local line = linesList[i]
+				local firtNodeOfLine = self.netpoints[line.first.id]
+				local lastNodeOfLine = self.netpoints[line.last.id]
+				if firtNodeOfLine.targetId ~= lastNodeOfLine.targetId then
+					findShortestDistanceInLine(self, point, line, minDistances)
+				else
+					local closestPointId = point:getClosestPointOfLineAsText(line.geom)
+					local currNode = self.netpoints[closestPointId]
+					if calculateDistanceAndSetIfLesser(point, currNode, minDistances) then
+						findShortestDistanceInLine(self, point, line, minDistances)
+					elseif currNode.next and calculateDistanceAndSetIfLesser(point, currNode.next, minDistances) and
+							(currNode.next.line.id ~= currNode.line.id) then
+						findShortestDistanceInLine(self, point, currNode.next.line, minDistances)
+					elseif currNode.previous and (not currNode.router) and
+							calculateDistanceAndSetIfLesser(point, currNode.previous, minDistances) then
+						findShortestDistanceInLine(self, point, currNode.previous.line, minDistances)
+					end
+				end
+			end
+		elseif entrance == "points" then
+			for i = 1, #targetNodes do
+				local currNode = targetNodes[i]
+				calculateDistanceInTargetsAndSetIfLesser(point, currNode, minDistances)
+			end
+
+			for i = 1, #nodesList do
+				local currNode = nodesList[i]
+				calculateDistanceAndSetIfLesser(point, currNode, minDistances)
+			end
+		else
+			customError("Attribute 'entrance' must be 'lines' or 'points', but received '"..entrance.."'.")
+		end
+
+		return minDistances
+	end
 }
 
 metaTableNetwork_ = {
@@ -679,21 +1139,24 @@ metaTableNetwork_ = {
 -- Distances within and without the network are computed in different ways.
 -- In this sense, the distances inside the network should be proportionally
 -- shorter then the distances outside the network in order to allow the shortest
--- paths to be within the network. Tipically, using the Network
--- changes the representation from space to time, meaning that travelling within
+-- paths to be within the network. Typically, using the Network
+-- changes the representation from space to time, meaning that traveling within
 -- the network is faster than outside.
 -- A Network can then be used to create a GPM, using a set of origins.
 -- @arg data.error As default, two lines are connected in the Network only if they share
 -- exactly the same point. This argument allows two lines to be connected when there is a
 -- maximum error in the distance up to the its value.
--- Therefore, the default value for this argument is zero.
+-- The maximum error must be just a insignificant value, otherwise, the Network might connect
+-- lines that are parallels or so close or another collateral effect.
+-- Therefore, the ideal solution for it is to correct the data.
+-- The default value for this argument is zero.
 -- @arg data.lines A base::CellularSpace with lines to create network. It can be for example a set of roads.
 -- @arg data.outside User-defined function that converts the distance based on an
 -- Euclidean distance to a distance in the geographical space. This function is
 -- applied to enter and to leave the network, as well as to try to see whether
 -- the distance without using the network is shorter than using the network.
 -- If not set a function, will return the distance itself.
--- This function gets one argument with the distance in Eucldean space
+-- This function gets one argument with the distance in Euclidean space
 -- and must return the distance in the geographical space.
 -- @arg data.progress Optional boolean value indicating whether Network will print messages
 -- while processing values. The default value is true.
@@ -709,6 +1172,8 @@ metaTableNetwork_ = {
 -- line, and must return the distance in the geographical space. This means
 -- that it is possible to use properties from the lines such as paved or
 -- non-paved roads.
+-- @arg data.validate A boolean value that check if the lines is valid to build the Network.
+-- It is recommended that the lines be validated once at least. The default value is true.
 -- @usage import("gpm")
 --
 -- roads = CellularSpace{file = filePath("roads.shp", "gpm")}
@@ -731,7 +1196,7 @@ metaTableNetwork_ = {
 -- }
 function Network(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"target", "lines", "inside", "outside", "error", "progress"})
+	verifyUnnecessaryArguments(data, {"target", "lines", "inside", "outside", "error", "progress", "validate"})
 	mandatoryTableArgument(data, "lines", "CellularSpace")
 
 	if data.lines.geometry then
@@ -754,13 +1219,19 @@ function Network(data)
 
 	defaultTableValue(data, "error", 0)
 	defaultTableValue(data, "progress", true)
+	defaultTableValue(data, "validate", true)
 
 	targetLines = {}
 	computedLines = {}
+	nonAdjacentLinesCache = {}
+	adjacentLines = {}
+	targetNodes = {}
+	nodesList = {}
+	linesList = {}
+	linesNodesList = {}
 
 	createOpenNetwork(data)
 
 	setmetatable(data, metaTableNetwork_)
 	return data
 end
-

@@ -22,36 +22,43 @@
 --
 -------------------------------------------------------------------------------------------
 
+local function progressMsg(self, relation, progress)
+	return "GPM processing "..relation.." "..progress.." of "..#self.origin.."."
+end
+
+local function updateProgressMsg(self, relation, progress)
+	if self.progress then
+		io.write(progressMsg(self, relation, progress), "\r") -- SKIP
+		io.flush()
+	end
+end
+
+local function finalizeProgressMsg(self, relation, progress)
+	if self.progress then
+		io.write("                                               ", "\r")
+		io.flush()
+		print(progressMsg(self, relation, progress))
+	end
+end
+
 local function buildOpenGPM(self)
 	local neighbors = {}
 	local progress = 0
 
 	forEachCell(self.origin, function(cell)
 		neighbors[cell:getId()] = {}
-		local cellGeom = cell.geom:getGeometryN(0)
+
 		progress = progress + 1
+		updateProgressMsg(self, "origin", progress)
 
-		if self.progress then
-			print(table.concat{"Processing origin ", progress, "/", #self.origin}) -- SKIP
+		local distances = self.network:distances(cell, self.entrance)
+
+		for targetId, distance in pairs(distances) do
+			neighbors[cell:getId()][tostring(targetId)] = distance
 		end
-
-		local centroid = cellGeom:getCentroid()
-		local network = self.network
-
-		forEachElement(network.netpoints, function(_, netpoint)
-			local distance = self.network.outside(centroid:distance(netpoint.point)) + netpoint.distance
-			local targetId = tostring(netpoint.targetId)
-			local currentDistance = neighbors[cell:getId()][targetId]
-
-			if currentDistance then
-				if distance < currentDistance then
-					neighbors[cell:getId()][targetId] = distance
-				end
-			else
-				neighbors[cell:getId()][targetId] = distance
-			end
-		end)
 	end)
+
+	finalizeProgressMsg(self, "origin", progress)
 
 	self.neighbor = neighbors
 end
@@ -150,15 +157,11 @@ local function buildDistanceRelation(self)
 	local destination = self.destination
 	local maxDistance = self.distance or math.huge
 	local progress = 0
-	local numberGeometry = #self.origin
 	local neighbors = {}
 
 	forEachCell(self.origin, function(originCell)
 		progress = progress + 1
-
-		if self.progress then
-			print(table.concat{"Processing distance ", progress, "/", numberGeometry}) -- SKIP
-		end
+		updateProgressMsg(self, "distance", progress)
 
 		neighbors[originCell:getId()] = {}
 
@@ -174,6 +177,8 @@ local function buildDistanceRelation(self)
 		end)
 	end)
 
+	finalizeProgressMsg(self, "distance", progress)
+
 	self.neighbor = neighbors
 end
 
@@ -181,15 +186,11 @@ local function buildBorderRelation(self)
 	local origin = self.origin
 	local destination = self.destination
 	local progress = 0
-	local numberGeometry = #origin
 	local neighbors = {}
 
 	forEachCell(origin, function(polygon)
 		progress = progress + 1
-
-		if self.progress then
-			print(table.concat{"Processing intersection ", progress, "/", numberGeometry}) -- SKIP
-		end
+		updateProgressMsg(self, "intersection", progress)
 
 		neighbors[polygon:getId()] = {}
 
@@ -211,6 +212,8 @@ local function buildBorderRelation(self)
 		end)
 	end)
 
+	finalizeProgressMsg(self, "intersection", progress)
+
 	self.neighbor = neighbors
 end
 
@@ -218,17 +221,13 @@ local function buildContainsRelation(self)
 	local origin = self.origin
 	local destination = self.destination
 	local progress = 0
-	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
 		local geometryOrigin = polygon.geom:getGeometryN(0)
 
 		progress = progress + 1
-
-		if self.progress then
-			print(table.concat{"Processing contains ", progress, "/", numberGeometry}) -- SKIP
-		end
+		updateProgressMsg(self, "contains", progress)
 
 		neighbor[polygon:getId()] = {}
 
@@ -241,6 +240,8 @@ local function buildContainsRelation(self)
 		end)
 	end)
 
+	finalizeProgressMsg(self, "contains", progress)
+
 	self.neighbor = neighbor
 end
 
@@ -248,17 +249,13 @@ local function buildAreaRelation(self)
 	local origin = self.origin
 	local destination = self.destination
 	local progress = 0
-	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
 		local geometryOrigin = polygon.geom:getGeometryN(0)
 
 		progress = progress + 1
-
-		if self.progress then
-			print(table.concat{"Processing area ", progress, "/", numberGeometry}) -- SKIP
-		end
+		updateProgressMsg(self, "area", progress)
 
 		neighbor[polygon:getId()] = {}
 
@@ -280,6 +277,8 @@ local function buildAreaRelation(self)
 		end)
 	end)
 
+	finalizeProgressMsg(self, "area", progress)
+
 	self.neighbor = neighbor
 end
 
@@ -287,17 +286,13 @@ local function buildLengthRelation(self)
 	local origin = self.origin
 	local destination = self.destination
 	local progress = 0
-	local numberGeometry = #origin
 	local neighbor = {}
 
 	forEachCell(origin, function(polygon)
 		local geometryOrigin = polygon.geom:getGeometryN(0)
 
 		progress = progress + 1
-
-		if self.progress then
-			print(table.concat{"Processing length ", progress, "/", numberGeometry}) -- SKIP
-		end
+		updateProgressMsg(self, "length", progress)
 
 		neighbor[polygon:getId()] = {}
 
@@ -318,6 +313,8 @@ local function buildLengthRelation(self)
 			end
 		end)
 	end)
+
+	finalizeProgressMsg(self, "length", progress)
 
 	self.neighbor = neighbor
 end
@@ -617,12 +614,12 @@ metaTableGPM_ = {
 	__tostring = _Gtme.tostring
 }
 
---- Type to create a Generalised Proximity Matrix (GPM).
+--- Type to create a Generalized Proximity Matrix (GPM).
 -- GPM is a concept used to establish relations between origins and destinations,
 -- represented as geographical objects.
 -- It has several strategies to define how two objects are connected, from basic
 -- geographical relations such as intersection area and border to connectivity networks.
--- The relations created by GPM are not stored in extenal sources nor in attributes of the
+-- The relations created by GPM are not stored in external sources nor in attributes of the
 -- CellularSpaces it connects. It is necessary to use some functions of this type in order
 -- to create attributes or neighborhoods and to save the output.
 -- @arg data.distance Maximum distance allowed to connect an origin to a destination.
@@ -633,6 +630,9 @@ metaTableGPM_ = {
 -- @arg data.progress Optional boolean value indicating whether GPM will print messages
 -- while processing values. The default value is true.
 -- @arg data.strategy An optional string with the strategy to create a GPM.
+-- @arg data.entrance Optional string that can used when the destination is a Network.
+-- Its values can be "points" or "lines" which indicates how the distances will be calculated.
+-- The default is "points".
 -- See the table below.
 -- @tabular strategy
 -- Strategy & Description & Compulsory Arguments & Optional Arguments \
@@ -649,7 +649,7 @@ metaTableGPM_ = {
 -- "distance" & Connects all objects from the origin to the destination according to their
 -- distances. If the argument distance is used, then only the objects that have distance
 -- less than this value are connected. The weight of the relation will be the distance
--- between the two objects. & origin, destination & distance, progress \
+-- between the two objects. & origin, destination & distance, progress, entrance \
 -- "length" & Create relations between polygons that share borders. The weight
 -- of each relation is the length of the intersection border. &
 -- strategy, origin, destination & progress \
@@ -686,7 +686,7 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"origin", "distance", "progress", "destination", "strategy"})
+	verifyUnnecessaryArguments(data, {"origin", "distance", "progress", "destination", "strategy", "entrance"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if data.origin.geometry == false then
@@ -755,6 +755,7 @@ function GPM(data)
 			buildLengthRelation(data)
 		end,
 		distance = function()
+			defaultTableValue(data, "entrance", "points")
 			if type(data.destination) == "Network" then
 				data.network = data.destination
 				data.destination = data.network.target

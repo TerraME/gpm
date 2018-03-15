@@ -94,18 +94,25 @@ strategy     string [border]
 			local cellMinDistSR = {dist = math.huge}
 			local cellMinDistMC = {dist = math.huge}
 			local cellMinDistP = {dist = math.huge}
+			local cellMinDistG = {dist = math.huge}
 
 			forEachCell(farmsCs, function(cell)
 				if cell.FID == 3 then
 					cellFid3 = cell
 				elseif cell.FID == 17 then
 					cellFid17 = cell
-				elseif cellMinDist.dist > cell.dist then
+				end
+
+				if cellMinDist.dist > cell.dist then
 					cellMinDist = cell
-				elseif (cellMinDistSR.dist > cell.dist) and (cell.LOCALIDADE == "Santa Rosa") then
+				end
+
+				if (cellMinDistSR.dist > cell.dist) and (cell.LOCALIDADE == "Santa Rosa") then
 					cellMinDistSR = cell
 				elseif (cellMinDistMC.dist > cell.dist) and (cell.LOCALIDADE == "Mojui dos Campos") then
 					cellMinDistMC = cell
+				elseif (cellMinDistG.dist > cell.dist) and (cell.LOCALIDADE == "Garrafao") then
+					cellMinDistG = cell
 				elseif (cellMinDistP.dist > cell.dist) and (cell.LOCALIDADE == "Palhauzinho") then
 					cellMinDistP = cell
 				end
@@ -113,15 +120,18 @@ strategy     string [border]
 
 			unitTest:assertEquals(cellFid3.LOCALIDADE, cellFid17.LOCALIDADE)
 			unitTest:assert(cellFid3.dist < cellFid17.dist)
-			unitTest:assertEquals(cellMinDist.LOCALIDADE, "Garrafao")
-			unitTest:assertEquals(cellMinDist.FID, 90)
-			unitTest:assertEquals(cellMinDist.dist, 205.77897265317, 1.0e-11)
+			unitTest:assertEquals(cellMinDist.LOCALIDADE, "Mojui dos Campos")
+			unitTest:assertEquals(cellMinDist.FID, 50)
+			unitTest:assertEquals(cellMinDist.dist, cellMinDistMC.dist, 1.0e-11)
+			unitTest:assertEquals(cellMinDist.LOCALIDADE, cellMinDistMC.LOCALIDADE)
+			unitTest:assertEquals(cellMinDist.FID, cellMinDistMC.FID)
+			unitTest:assertEquals(cellMinDist.dist, 191.82304090043, 1.0e-11)
 			unitTest:assertEquals(cellMinDistSR.FID, 108)
-			unitTest:assertEquals(cellMinDistSR.dist, 655.50650648845, 1.0e-11)
-			unitTest:assertEquals(cellMinDistMC.FID, 64)
-			unitTest:assertEquals(cellMinDistMC.dist, 1384.9565333158, 1.0e-11)
-			unitTest:assertEquals(cellMinDistP.FID, 1)
-			unitTest:assertEquals(cellMinDistP.dist, 4823.2472221783, 1.0e-10)
+			unitTest:assertEquals(cellMinDistSR.dist, 640.11878461304, 1.0e-11)
+			unitTest:assertEquals(cellMinDistMC.FID, 50)
+			unitTest:assertEquals(cellMinDistMC.dist, 191.82304090043, 1.0e-11)
+			unitTest:assertEquals(cellMinDistP.FID, 0)
+			unitTest:assertEquals(cellMinDistP.dist, 2486.7000454648, 1.0e-10)
 
 			local map = Map{
 				target = farmsCs,
@@ -149,21 +159,26 @@ strategy     string [border]
 			local cellMaxDistSR = {dist = 0}
 			local cellMaxDistMC = {dist = 0}
 			local cellMaxDistG = {dist = 0}
+			local cellMaxDistP = {dist = 0}
 
 			forEachCell(farmsCs, function(cell)
 				if cell.FID == 3 then
 					cellFid3 = cell
 				elseif cell.FID == 17 then
 					cellFid17 = cell
-				elseif cellMaxDist.dist < cell.dist then
+				end
+
+				if cellMaxDist.dist < cell.dist then
 					cellMaxDist = cell
-				elseif (cellMaxDistSR.dist < cell.dist) and (cell.LOCALIDADE == "Santa Rosa") then
+				end
+
+				if (cellMaxDistSR.dist < cell.dist) and (cell.LOCALIDADE == "Santa Rosa") then
 					cellMaxDistSR = cell
 				elseif (cellMaxDistMC.dist < cell.dist) and (cell.LOCALIDADE == "Mojui dos Campos") then
 					cellMaxDistMC = cell
-				end
-
-				if (cellMaxDistG.dist < cell.dist) and (cell.LOCALIDADE == "Garrafao") then
+				elseif (cellMaxDistP.dist < cell.dist) and (cell.LOCALIDADE == "Palhauzinho") then
+					cellMaxDistP = cell
+				elseif (cellMaxDistG.dist < cell.dist) and (cell.LOCALIDADE == "Garrafao") then
 					cellMaxDistG = cell
 				end
 			end)
@@ -172,13 +187,16 @@ strategy     string [border]
 			unitTest:assert(cellFid3.dist > cellFid17.dist)
 			unitTest:assertEquals(cellMaxDist.LOCALIDADE, "Palhauzinho")
 			unitTest:assertEquals(cellMaxDist.FID, 97)
-			unitTest:assertEquals(cellMaxDist.dist, 14905.886470988, 1.0e-9)
-			unitTest:assertEquals(cellMaxDistSR.FID, 18)
-			unitTest:assertEquals(cellMaxDistSR.dist, 13019.330985665, 1.0e-9)
-			unitTest:assertNil(cellMaxDistMC.FID) --< this target is in the midle, because of this, the max distance will be never it.
+			unitTest:assertEquals(cellMaxDist.dist, 13663.397269801, 1.0e-9)
+			unitTest:assertEquals(cellMaxDist.LOCALIDADE, cellMaxDistP.LOCALIDADE)
+			unitTest:assertEquals(cellMaxDist.FID, cellMaxDistP.FID)
+			unitTest:assertEquals(cellMaxDist.dist, cellMaxDistP.dist, 1.0e-9)
+			unitTest:assertEquals(cellMaxDistSR.FID, 4)
+			unitTest:assertEquals(cellMaxDistSR.dist, 13487.565184975, 1.0e-9)
+			unitTest:assertNil(cellMaxDistMC.FID)
 			unitTest:assertEquals(cellMaxDistMC.dist, 0)
 			unitTest:assertEquals(cellMaxDistG.FID, 3)
-			unitTest:assertEquals(cellMaxDistG.dist, 9229.8075888142, 1.0e-10)
+			unitTest:assertEquals(cellMaxDistG.dist, 9138.0870123179, 1.0e-10)
 			unitTest:assertEquals(cellMaxDistG, cellFid3)
 
 			local map = Map{
@@ -589,6 +607,62 @@ strategy     string [border]
 			unitTest:assertSnapshot(map, "gpm_area.png")
 		end
 
+		local gpmEntranceLines = function()
+			local communities = CellularSpace{
+				file = filePath("communities.shp", "gpm")
+			}
+
+			local roads = CellularSpace{
+				file = filePath("roads.shp", "gpm")
+			}
+
+			local cells = CellularSpace{
+				file = filePath("cells.shp", "gpm")
+			}
+
+			local network = Network{
+				target = communities,
+				lines = roads,
+				progress = false,
+				inside = function(distance, cell)
+					if cell.STATUS == "paved" then
+						return distance / 5
+					else
+						return distance / 2
+					end
+				end,
+				outside = function(distance) return distance * 4 end
+			}
+
+			local gpm = GPM{
+				destination = network,
+				origin = cells,
+				entrance = "lines",
+				progress = false
+			}
+
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "dist",
+				copy = "LOCALIDADE"
+			}
+
+			local gpm2 = GPM{
+				destination = network,
+				origin = cells,
+				progress = false
+			}
+
+			gpm2:fill{
+				strategy = "minimum",
+				attribute = "dist2"
+			}
+
+			forEachCell(cells, function(cell)
+				unitTest:assertEquals(cell.dist, cell.dist2)
+			end)
+		end
+
 		fillMinimumNetwork()
 		fillMaximumNetwork() -- TODO: maximum is not working properly
 		fillCountNetwork() -- TODO: count is not working properly
@@ -601,6 +675,7 @@ strategy     string [border]
 		gpmAll()
 		gpmCountAndMinimum()
 		gpmAreaWithCount()
+		gpmEntranceLines()
 	end,
 	save = function(unitTest)
 		local communities = CellularSpace{

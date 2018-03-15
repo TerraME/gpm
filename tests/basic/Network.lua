@@ -257,6 +257,10 @@ local function getTagetNodes(network)
 			if netpoint.target then
 				targetNodes[0] = netpoint
 			end
+		elseif netpoint.targetId == 39 then
+			if netpoint.target then
+				targetNodes[39] = netpoint
+			end
 		end
 	end)
 
@@ -271,6 +275,14 @@ local function getDifference(targetId, from, to)
 		end
 	end
 	return dif
+end
+
+local function getAnyNodeFromLine(netpoints, lineId)
+	for _, n in pairs(netpoints) do
+		if n.line.id == lineId then
+			return n
+		end
+	end
 end
 
 return {
@@ -514,10 +526,397 @@ return {
 			unitTest:assert(sumDistances(targetNodes[0]) < 24344.126540223)
 		end
 
+		local networkWithInvertedLine = function()
+			local roads = CellularSpace{
+				file = filePath("test/netinverted1.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/ports_antaq_sirgas2000_south1.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance) -- weights is only the distance
+					return distance
+				end,
+				outside = function(distance)
+					return distance
+				end
+			}
+
+			unitTest:assertEquals(getn(network.netpoints), 45316)
+			unitTest:assertEquals(network.lines[43].shortestPath, 1531.231486377, 1.0e-9) --< inverted line
+		end
+
+		local networkWithTwoTargetsInSameLine = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_ne1.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/ports_sirgas2000_ne1.shp", "gpm"),
+				missing = 0
+			}
+
+			local network
+
+			local moreThanOneTargetInSameLine = function()
+				network = Network{
+					lines = roads,
+					target = ports,
+					progress = false,
+					inside = function(distance)
+						return distance
+					end,
+					outside = function(distance)
+						return distance * 4
+					end
+				}
+			end
+
+			unitTest:assertWarning(moreThanOneTargetInSameLine,
+								"Line '6' has more than one target. Target '1' is too far with distance '63302.072308726' and it was removed.")
+			unitTest:assertEquals(getn(network.netpoints), 6570)
+
+			local targetNodes = getTagetNodes(network)
+			unitTest:assertEquals(getn(targetNodes), 1)
+
+			local network1 = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance)
+					return distance * 10
+				end,
+				outside = function(distance)
+					return distance
+				end
+			}
+
+			local targetNodes1 = getTagetNodes(network1)
+			unitTest:assertEquals(getn(targetNodes1), 2)
+		end
+
+		local networkValidateFalse = function()
+			local roads = CellularSpace{
+				file = filePath("roads.shp", "gpm")
+			}
+
+			local communities = CellularSpace{
+				file = filePath("communities.shp", "gpm")
+			}
+
+			local network = Network{
+				lines = roads,
+				target = communities,
+				progress = false,
+				inside = function(distance)
+					return distance * 2
+				end,
+				outside = function(distance)
+					return distance * 2
+				end,
+				validate = false
+			}
+
+			unitTest:assertEquals(network.lines[10].shortestPath, 599.05719061263 * 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[8].shortestPath, 59.688264448298 * 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[18].shortestPath, 83.520707733564 * 2, 1.0e-10)
+			unitTest:assertEquals(network.lines[28].shortestPath, 1041.9740663377 * 2, 1.0e-10)
+
+			local targetNodes = getTagetNodes(network)
+			unitTest:assertEquals(sumDistances(targetNodes[2]), 2 * 47958.718817508, 1.0e-9)
+			unitTest:assertEquals(sumDistances(targetNodes[1]), 2 * 10181.40682336, 1.0e-9)
+			unitTest:assertEquals(sumDistances(targetNodes[3]), 2 * 19061.171190073, 1.0e-9)
+			unitTest:assertEquals(sumDistances(targetNodes[0]), 2 * 24344.126540223, 1.0e-9)
+		end
+
+		local networkReviewMoreThanOneRouterNode = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_ne2.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/ports_sirgas2000_ne2.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				validate = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			unitTest:assertEquals(getn(network.netpoints), 130048)
+
+			local netpoint44 = getAnyNodeFromLine(network.netpoints, 44)
+			local netpoint153 = getAnyNodeFromLine(network.netpoints, 153)
+
+			unitTest:assertEquals(netpoint44.targetId, netpoint153.targetId) --< more than one router
+			unitTest:assertEquals(netpoint44.targetId, 1)
+		end
+
+		local networkReviewLineWith2Points = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_south2.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			unitTest:assertEquals(getn(network.netpoints), 6956)
+			unitTest:assertEquals(network.lines[25].npoints, 2)
+		end
+
+		local problemWhenErrorArgumentIsTooBig = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_south3.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			local netWithAcceptableError = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				error = 5,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			forEachElement(network.netpoints, function(id)
+				local d1 = network.netpoints[id].distance
+				local d2 = netWithAcceptableError.netpoints[id].distance
+				unitTest:assertEquals(d1, d2)
+			end)
+		end
+
+		local joinConnectedLinesTest = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_south6.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/port_estrela_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			unitTest:assertEquals(getn(network.netpoints), 3948)
+		end
+
+		local targetNodeIsEqualsToLineEndpoints = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_ne3.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/port_belem_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance
+				end
+			}
+
+			local targetNode = getTagetNodes(network)[0]
+			unitTest:assertEquals(targetNode.line.id, 2)
+
+			local totalDistance = sumPreviousDistances(targetNode.first)
+									+ sumPreviousDistances(targetNode.second)
+									+ targetNode.first.point:distance(targetNode.second.point)
+
+			local sumLinesLength = network.lines[0].geom:getLength()
+									+ network.lines[1].geom:getLength()
+									+ network.lines[2].geom:getLength()
+
+			unitTest:assertEquals(totalDistance, sumLinesLength, 1.0e-9)
+		end
+
+		local adjustRouterNodePositionTest = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_ne14.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/port_aratu_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				validate = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			unitTest:assertEquals(getn(network.netpoints), 23158)
+			unitTest:assertEquals(network.lines[29].npoints, 54) --< line with adjust router node position
+		end
+
+		local reviewNextNodeWhenItIsTargetNode = function()
+			local roads = CellularSpace{
+				file = filePath("test/pa_roads_simpl_1m.shp", "gpm")
+			}
+
+			local sedes = CellularSpace{
+				file = filePath("test/ParaSedes.shp", "gpm"),
+				missing = 0
+			}
+
+			local customWarningBkp = customWarning
+
+			customWarning = function()
+				return
+			end
+
+			local network = Network{
+				lines = roads,
+				target = sedes,
+				progress = false,
+				validate = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			customWarning = customWarningBkp
+
+			local targetNode39 = getTagetNodes(network)[39]
+			unitTest:assertEquals(targetNode39.line.id, 569)
+			unitTest:assertNil(targetNode39.first)
+			unitTest:assertNil(targetNode39.second)
+		end
+
 		networkSetWeightAndOutsideEqualDistance()
 		networkSetWeightAndOutsideMultipliedBy2()
 		networkSetWeightAndOutsideDividedBy2()
 		networkSetWeightDividedBy10()
+		networkWithInvertedLine()
+		networkWithTwoTargetsInSameLine()
+		networkValidateFalse()
+		networkReviewMoreThanOneRouterNode()
+		networkReviewLineWith2Points()
+		problemWhenErrorArgumentIsTooBig()
+		joinConnectedLinesTest()
+		targetNodeIsEqualsToLineEndpoints()
+		adjustRouterNodePositionTest()
+		reviewNextNodeWhenItIsTargetNode()
+	end,
+	distances = function(unitTest)
+		local roads = CellularSpace{
+			file = filePath("test/roads_sirgas2000_south3.shp", "gpm")
+		}
+
+		local ports = CellularSpace{
+			file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
+			missing = 0
+		}
+
+		local network = Network{
+			lines = roads,
+			target = ports,
+			progress = false,
+			inside = function(distance)
+				return distance
+			end,
+			outside = function(distance)
+				return distance * 4
+			end
+		}
+
+		local port = ports:get("0")
+
+		local distances = network:distances(port, "lines")
+		unitTest:assertEquals(distances[0], 0)
+
+		local distances2 = network:distances(port, "points")
+		unitTest:assertEquals(distances2[0], 0)
+
+		local portEstrelaCs = CellularSpace{
+			file = filePath("test/port_estrela_sirgas2000.shp", "gpm"),
+			missing = 0
+		}
+
+		local portEstrelaCell = portEstrelaCs:get("0")
+
+		local distances3 = network:distances(portEstrelaCell, "lines")
+		unitTest:assertEquals(distances3[0], 196084.54586966, 1.0e-8)
+
+		local distances4 = network:distances(portEstrelaCell, "points")
+		unitTest:assertEquals(distances4[0], 196084.54586966, 1.0e-8)
 	end
 }
 
