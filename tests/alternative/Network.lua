@@ -309,6 +309,54 @@ return {
 		end
 
 		unitTest:assertError(lineCrossesError, "Line '26' crosses touching lines '20' and '18' in their endpoints. Please, split line '26' in two where they cross.")
+
+		local unexpecteError = function()
+			local roads = CellularSpace{
+				file = filePath("error/roads-invalid.shp", "gpm"),
+				missing = 0
+			}
+
+			local communities = CellularSpace{
+				file = filePath("communities.shp", "gpm")
+			}
+
+			Network{
+				lines = roads,
+				target = communities,
+				validate = false,
+				progress = false,
+				inside = function(distance) return distance end,
+				outside = function(distance) return distance * 2 end
+			}
+		end
+
+		unitTest:assertError(unexpecteError, "Unexpected error with lines {2, 3, 7, 13}. If you have already validated your data, report this error to system developers.")
+
+		local unexpecteError2 = function()
+			local roadsSouth = CellularSpace{
+				file = filePath("test/roads_invalid_sirgas2000_south1.shp", "gpm")
+			}
+
+			local ports = CellularSpace{
+				file = filePath("test/port_antonina_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			Network{
+				lines = roadsSouth,
+				target = ports,
+				progress = false,
+				validate = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+		end
+
+		unitTest:assertError(unexpecteError2, "Unexpected error with line '1'. If you have already validated your data, report this error to system developers.")
 	end,
 	distances = function(unitTest)
 		local roads = CellularSpace{

@@ -668,6 +668,12 @@ local function reviewExistingNode(existingNode, currNode, newPosition, newLine)
 
 		if newLine.npoints == 2 then
 			existingNode.line = newLine
+		elseif existingNodeNext.router and (existingNode.line.npoints == 2) and
+				(existingNodeNext.line.id ~= existingNode.line.id) then
+			removeOldRoute(existingNodeNext, existingNode.line)
+			existingNode.line = currNode.line
+			existingNode.pos = newPosition
+			return
 		else
 			existingNode.line = currNode.line
 		end
@@ -927,7 +933,36 @@ local function hasUncomputedLines(self)
 	return totalComputedLines() ~= getn(self.lines)
 end
 
+local function unexpectedError(self)
+	local uncomputedLinesIds = {}
+	for _, line in pairs(self.lines) do
+		if isLineUncomputed(line) then
+			table.insert(uncomputedLinesIds, line.id)
+		end
+	end
+
+	if self.progress then
+		io.write("                                               ", "\r")
+		io.flush()
+	end
+
+	local errorAppendMsg = "If you have already validated your data, report this error to system developers."
+
+	if #uncomputedLinesIds > 1 then
+		local linesListIds = "{"..uncomputedLinesIds[1]
+		for i = 2, #uncomputedLinesIds do
+			linesListIds = linesListIds..", "..uncomputedLinesIds[i]
+		end
+		linesListIds = linesListIds.."}"
+		customError("Unexpected error with lines "..linesListIds..". "..errorAppendMsg)
+	else
+		customError("Unexpected error with line '"..uncomputedLinesIds[1].."'. "..errorAppendMsg)
+	end
+end
+
 local function addNodesFromNonAdjacentsToTargetLines(self)
+	local numOfComputedLines = totalComputedLines()
+
 	for _, line in pairs(self.lines) do
 		if isLineAlreadyComputed(line) then
 			addAdjacentLinesAndItsPoints(self, line, adjacentLines[line.id])
@@ -935,6 +970,9 @@ local function addNodesFromNonAdjacentsToTargetLines(self)
 	end
 
 	if hasUncomputedLines(self) then
+		if numOfComputedLines == totalComputedLines() then
+			unexpectedError(self)
+		end
 		addNodesFromNonAdjacentsToTargetLines(self)
 	elseif self.progress then
 		io.write("                                               ", "\r")
