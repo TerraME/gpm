@@ -257,6 +257,10 @@ local function getTagetNodes(network)
 			if netpoint.target then
 				targetNodes[0] = netpoint
 			end
+		elseif netpoint.targetId == 39 then
+			if netpoint.target then
+				targetNodes[39] = netpoint
+			end
 		end
 	end)
 
@@ -819,6 +823,43 @@ return {
 			unitTest:assertEquals(network.lines[29].npoints, 54) --< line with adjust router node position
 		end
 
+		local reviewNextNodeWhenItIsTargetNode = function()
+			local roads = CellularSpace{
+				file = filePath("test/pa_roads_simpl_1m.shp", "gpm")
+			}
+
+			local sedes = CellularSpace{
+				file = filePath("test/ParaSedes.shp", "gpm"),
+				missing = 0
+			}
+
+			local customWarningBkp = customWarning
+
+			customWarning = function()
+				return
+			end
+
+			local network = Network{
+				lines = roads,
+				target = sedes,
+				progress = false,
+				validate = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			customWarning = customWarningBkp
+
+			local targetNode39 = getTagetNodes(network)[39]
+			unitTest:assertEquals(targetNode39.line.id, 569)
+			unitTest:assertNil(targetNode39.first)
+			unitTest:assertNil(targetNode39.second)
+		end
+
 		networkSetWeightAndOutsideEqualDistance()
 		networkSetWeightAndOutsideMultipliedBy2()
 		networkSetWeightAndOutsideDividedBy2()
@@ -832,6 +873,7 @@ return {
 		joinConnectedLinesTest()
 		targetNodeIsEqualsToLineEndpoints()
 		adjustRouterNodePositionTest()
+		reviewNextNodeWhenItIsTargetNode()
 	end,
 	distances = function(unitTest)
 		local roads = CellularSpace{

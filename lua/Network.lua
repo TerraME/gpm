@@ -633,12 +633,12 @@ end
 
 local function reviewNextNodes(node, nextNode)
 	if nextNode.target then
-		if node.id == nextNode.first.id then
+		if nextNode.first and (node.id == nextNode.first.id) then
 			nextNode.first = nil
-		elseif node.id == nextNode.second.id then
+		elseif nextNode.second and (node.id == nextNode.second.id) then
 			nextNode.second = nil
 		else
-			customError("Unforeseen error!") -- SKIP : TODO: it needs a test
+			customError("Unforeseen error. If you have already validated your data, report this error to system developers.")
 		end
 
 		return
