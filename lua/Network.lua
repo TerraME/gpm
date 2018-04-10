@@ -469,7 +469,7 @@ local function saveErrorInfo(self, linesConnected)
 
 		local linesCsLayer = gis.Layer{
 			project = proj,
-			name = errorLayerName,
+			name = "LinesCs",
 			file = linesCs.file
 		}
 
@@ -480,7 +480,7 @@ local function saveErrorInfo(self, linesConnected)
 		}
 
 		addNetIdInfo(netIdName, cs, linesConnected)
-		cs:save(linesCsLayer.name, netIdName)
+		cs:save(errorLayerName, netIdName)
 		proj.file:delete()
 		errMsg = "Data '"..errorLayerName.."."..File(linesCsLayer.file):extension()
 				.. "' was automatically created with attribute '"
