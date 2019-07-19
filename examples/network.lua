@@ -33,7 +33,9 @@ network = Network{
 
 gpm = GPM{
 	destination = network,
-	origin = cells
+	origin = cells,
+	entrance = "lightest",
+	by = "points",
 }
 
 gpm:fill{

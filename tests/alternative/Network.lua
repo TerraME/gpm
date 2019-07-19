@@ -259,32 +259,6 @@ return {
 
 		disconnectedNetworkTest()
 
-		local errorArgumentError = function()
-			local roadsSouth = CellularSpace{
-				file = filePath("test/roads_sirgas2000_south3.shp", "gpm")
-			}
-
-			local ports = CellularSpace{
-				file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
-				missing = 0
-			}
-
-			Network{
-				lines = roadsSouth,
-				target = ports,
-				progress = false,
-				error = 400,
-				inside = function(distance)
-					return distance
-				end,
-				outside = function(distance)
-					return distance * 4
-				end
-			}
-		end
-
-		unitTest:assertError(errorArgumentError, "Line '47' was added due to the value of argument 'error' (400). Please, remove the argument 'error' and fix the disconnected lines.")
-
 		local lineCrossesError = function()
 			local roads = CellularSpace{
 				file = filePath("test/roads_sirgas2000_south8.shp", "gpm")
@@ -395,6 +369,6 @@ return {
 		local invalidEntranceError = function()
 			network:distances(port, "rtree")
 		end
-		unitTest:assertError(invalidEntranceError, "Attribute 'entrance' must be 'lines' or 'points', but received 'rtree'.")
+		unitTest:assertError(invalidEntranceError, "Attribute 'entrance' must be 'closest' or 'lightest', but received 'rtree'.")
 	end
 }

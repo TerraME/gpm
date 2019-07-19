@@ -29,14 +29,14 @@ end
 local function updateProgressMsg(self, relation, progress)
 	if self.progress then
 		io.write(progressMsg(self, relation, progress), "\r") -- SKIP
-		io.flush()
+		io.flush() -- SKIP
 	end
 end
 
 local function finalizeProgressMsg(self, relation, progress)
 	if self.progress then
-		io.write("                                               ", "\r")
-		io.flush()
+		io.write("                                               ", "\r") -- SKIP
+		io.flush() -- SKIP
 		print(progressMsg(self, relation, progress))
 	end
 end
@@ -51,7 +51,7 @@ local function buildOpenGPM(self)
 		progress = progress + 1
 		updateProgressMsg(self, "origin", progress)
 
-		local distances = self.network:distances(cell, self.entrance)
+		local distances = self.network:distances(cell, self.entrance, self.by)
 
 		for targetId, distance in pairs(distances) do
 			neighbors[cell:getId()][tostring(targetId)] = distance
@@ -630,9 +630,11 @@ metaTableGPM_ = {
 -- @arg data.progress Optional boolean value indicating whether GPM will print messages
 -- while processing values. The default value is true.
 -- @arg data.strategy An optional string with the strategy to create a GPM.
--- @arg data.entrance Optional string that can used when the destination is a Network.
+-- @arg data.entrance Optional string wich indicates if the cell will enter in the Network by
+-- closest point or line, or by the point with the lightest weight. The default is "closest".
+-- @arg data.by Optional string that can used when the destination is a Network.
 -- Its values can be "points" or "lines" which indicates how the distances will be calculated.
--- The default is "points".
+-- The default is "lines".
 -- See the table below.
 -- @tabular strategy
 -- Strategy & Description & Compulsory Arguments & Optional Arguments \
@@ -649,7 +651,7 @@ metaTableGPM_ = {
 -- "distance" & Connects all objects from the origin to the destination according to their
 -- distances. If the argument distance is used, then only the objects that have distance
 -- less than this value are connected. The weight of the relation will be the distance
--- between the two objects. & origin, destination & distance, progress, entrance \
+-- between the two objects. & origin, destination & distance, progress, entrance, by \
 -- "length" & Create relations between polygons that share borders. The weight
 -- of each relation is the length of the intersection border. &
 -- strategy, origin, destination & progress \
@@ -686,7 +688,8 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"origin", "distance", "progress", "destination", "strategy", "entrance"})
+	verifyUnnecessaryArguments(data, {"origin", "distance", "progress", "destination",
+									"strategy", "entrance", "by"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if data.origin.geometry == false then
@@ -755,7 +758,8 @@ function GPM(data)
 			buildLengthRelation(data)
 		end,
 		distance = function()
-			defaultTableValue(data, "entrance", "points")
+			defaultTableValue(data, "entrance", "closest")
+			defaultTableValue(data, "by", "lines")
 			if type(data.destination) == "Network" then
 				data.network = data.destination
 				data.destination = data.network.target
