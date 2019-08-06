@@ -622,19 +622,28 @@ strategy     string [border]
 				file = filePath("cells.shp", "gpm")
 			}
 
-			local network = Network{
-				target = communities,
-				lines = roads,
-				progress = false,
-				inside = function(distance, cell)
-					if cell.STATUS == "paved" then
-						return distance / 5
-					else
-						return distance / 2
-					end
-				end,
-				outside = function(distance) return distance * 4 end
-			}
+			local network
+			local warn = function()
+				network = Network{
+					target = communities,
+					lines = roads,
+					progress = false,
+					inside = function(distance, cell)
+						if cell.STATUS == "paved" then
+							return distance / 5
+						else
+							return distance / 2
+						end
+					end,
+					outside = function(distance) return distance * 4 end
+				}
+			end
+
+			unitTest:assertWarning(warn, "Target '1' of line '10' was removed by target '2'.")
+
+			for _, node in pairs(network.netpoints) do
+				unitTest:assert(node.targetId ~= 1)
+			end
 
 			local gpm = GPM{
 				destination = network,
@@ -691,7 +700,7 @@ strategy     string [border]
 						return distance / 2
 					end
 				end,
-				outside = function(distance) return distance * 4 end
+				outside = function(distance) return distance * 2 end
 			}
 
 			local gpm = GPM{
@@ -836,7 +845,7 @@ strategy     string [border]
 
 			local l3 = gis.Layer{
 				project = proj,
-				name = "Brazil50x50Km",
+				name = "Brazil25x25Km",
 				file = "br_cs_5880_25x25km.shp"
 			}
 
@@ -886,7 +895,7 @@ strategy     string [border]
 						"lightBlue", "darkGreen"}
 			}
 
-			unitTest:assertSnapshot(map2, "gpm_brazil_posts.png")
+			unitTest:assertSnapshot(map2, "gpm_brazil_ports.png")
 
 			proj.file:delete()
 			File("br_cs_5880_25x25km.shp"):delete()

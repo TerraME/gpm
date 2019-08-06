@@ -294,6 +294,9 @@ return {
 				file = filePath("communities.shp", "gpm")
 			}
 
+			local customWarningBkp = customWarning
+			customWarning = function() end
+
 			Network{
 				lines = roads,
 				target = communities,
@@ -302,6 +305,8 @@ return {
 				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
+
+			customWarning = customWarningBkp
 		end
 
 		unitTest:assertError(unexpecteError, "Unexpected error with lines {2, 3, 7, 13}. If you have already validated your data, report this error to system developers.")

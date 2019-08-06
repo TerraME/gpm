@@ -28,7 +28,7 @@ network = Network{
 			return distance / 2
 		end
 	end,
-	outside = function(distance) return distance * 4 end
+	outside = function(distance) return distance * 2 end
 }
 
 gpm = GPM{

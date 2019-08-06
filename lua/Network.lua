@@ -24,11 +24,12 @@
 
 -- Support variables
 local targetLines
+local targetLinesOut
 local computedLines -- without target lines
 local nonAdjacentLinesCache
 local adjacentLines
 local targetNodes
-local nodesList
+local targetNodesOut
 local linesList
 local linesNodesList
 local linesRTree
@@ -90,13 +91,12 @@ local function createLinesInfo(lines)
 	return linesInfo
 end
 
-local function fixTargetPointIfEqualsToEndpoint(closestPoint, targetLine)
-	local closestPointId = closestPoint:asText()
+local function fixTargetPointIfEqualsToEndpoint(closestPoint, closestPointId, targetLine)
 	if (closestPointId == targetLine.first.id) or (closestPointId == targetLine.last.id) then
 		if targetLine.last.point:getX() > targetLine.first.point:getX() then
-			closestPoint:setX(closestPoint:getX() + 1)
+			closestPoint:setX(closestPoint:getX() + 0.01)
 		else
-			closestPoint:setX(closestPoint:getX() - 1)
+			closestPoint:setX(closestPoint:getX() - 0.01)
 		end
 		return closestPoint:asText()
 	end
@@ -104,10 +104,50 @@ local function fixTargetPointIfEqualsToEndpoint(closestPoint, targetLine)
 	return closestPointId
 end
 
+local function fixTargetPointIfEqualsSomePoint(closestPoint, targetLine)
+	local closestPointId = closestPoint:asText()
+	local closestPointEndsId = fixTargetPointIfEqualsToEndpoint(closestPoint, closestPointId, targetLine)
+	if closestPointEndsId ~= closestPointId then
+		return closestPointEndsId
+	else
+		for i = 1, targetLine.npoints - 2 do
+			local currPoint = targetLine.geom:getPointN(i)
+			if closestPointId == currPoint:asText() then
+				local p1 = targetLine.geom:getPointN(i-1)
+				local p2 = targetLine.geom:getPointN(i+1)
+				local dist1 = closestPoint:distance(p1)
+				local dist2 = closestPoint:distance(p2)
+				if dist1 < dist2 then
+					if p1:getX() > closestPoint:getX() then
+						closestPoint:setX(closestPoint:getX() + 0.01)
+					else
+						closestPoint:setX(closestPoint:getX() - 0.01)
+					end
+				else
+					if p2:getX() > closestPoint:getX() then
+						closestPoint:setX(closestPoint:getX() + 0.01)
+					else
+						closestPoint:setX(closestPoint:getX() - 0.01)
+					end
+				end
+				return closestPoint:asText()
+			end
+		end
+	end
+
+	return closestPointId
+end
+
 local function createClosestPointInLine(targetPoint, targetLine)
 	local closestPoint = targetPoint:closestPoint(targetLine.geom)
-	local closestPointId = fixTargetPointIfEqualsToEndpoint(closestPoint, targetLine)
+	local closestPointId = fixTargetPointIfEqualsSomePoint(closestPoint, targetLine)
 	return {id = closestPointId, point = closestPoint}
+end
+
+local function removeTargetInfoInLine(targetLine)
+	targetLines[targetLine.id] = nil
+	targetLine.shortestPath = nil
+	targetLine.closestPoint = nil
 end
 
 local function addTargetInfoInLine(targetLine, closestPoint, distance)
@@ -160,6 +200,12 @@ local function findClosestLine(point)
 	return {line = closestLine, distance = minDistance}
 end
 
+local function moreThanOneTargetInSameLineWarning(nodeOut, nodeStays)
+	customWarning("Line '"..nodeOut.line.id.."' has more than one target. Target '"..nodeOut.targetId
+				.."' was removed by '"..nodeStays.targetId.."', distances ("
+				..nodeOut.distance..", "..nodeStays.distance..").")
+end
+
 local function checkAndRemoveTargetIfLineHasMoreThanOneOfIt(targets)
 	local targetList = {}
 	for _, node in pairs(targets) do
@@ -176,15 +222,14 @@ local function checkAndRemoveTargetIfLineHasMoreThanOneOfIt(targets)
 				if not targetsToRemove[n2.id] then
 					if n1.line.id == n2.line.id then
 						local dist = n1.point:distance(n2.point)
-
-						if inside then
-							dist = inside(dist, n1.line.cell)
-						end
-
-						if (n1.distance > dist) and (n1.distance > n2.distance) then
-							targetsToRemove[n1.id] = true
-						elseif (n2.distance > dist) and (n2.distance > n1.distance) then
-							targetsToRemove[n2.id] = true
+						-- TODO(#109)
+						-- if inside then
+							-- dist = inside(dist, n1.line.cell)
+						-- end
+						if n1.distance > n2.distance then -- and (n1.distance > dist) then
+							targetsToRemove[n1.id] = n2
+						else --if n2.distance > n1.distance -- and (n2.distance > dist) then
+							targetsToRemove[n2.id] = n1
 						end
 					end
 				end
@@ -194,11 +239,15 @@ local function checkAndRemoveTargetIfLineHasMoreThanOneOfIt(targets)
 
 	for id, node in pairs(targets) do
 		if targetsToRemove[id] then
-			customWarning("Line '"..node.line.id.."' has more than one target. Target '"..node.targetId
-							.."' is too far with distance '"..node.distance.."' and it was removed.")
+			moreThanOneTargetInSameLineWarning(node, targetsToRemove[id])
+			table.insert(targetNodesOut, node)
 			targets[id] = nil
 		end
 	end
+end
+
+local function nodeExists(node)
+	return node ~= nil
 end
 
 local function findAndAddTargetNodes(self)
@@ -211,17 +260,30 @@ local function findAndAddTargetNodes(self)
 		local targetLine = closestLine.line
 		local closestPoint = createClosestPointInLine(targetPoint, closestLine.line)
 
-		addTargetInfoInLine(closestLine.line, closestPoint, closestLine.distance)
-
-		self.netpoints[closestPoint.id] = createTargetNode(closestPoint.point,
+		if nodeExists(self.netpoints[closestPoint.id]) then
+			local newNode = createTargetNode(closestPoint.point,
+									closestLine.distance, targetLine, targetId, targetPoint)
+			local existingNode = self.netpoints[closestPoint.id]
+			if existingNode.distance > newNode.distance then
+				addTargetInfoInLine(closestLine.line, closestPoint, closestLine.distance)
+				self.netpoints[closestPoint.id] = newNode
+				moreThanOneTargetInSameLineWarning(existingNode, newNode)
+				table.insert(targetNodesOut, existingNode)
+			else
+				moreThanOneTargetInSameLineWarning(newNode, existingNode)
+				table.insert(targetNodesOut, newNode)
+			end
+		else
+			addTargetInfoInLine(closestLine.line, closestPoint, closestLine.distance)
+			self.netpoints[closestPoint.id] = createTargetNode(closestPoint.point,
 												targetLine.shortestPath, targetLine, targetId, targetPoint)
+		end
 	end)
 
 	checkAndRemoveTargetIfLineHasMoreThanOneOfIt(self.netpoints)
 
 	for _, node in pairs(self.netpoints) do
 		table.insert(targetNodes, node)
-		table.insert(nodesList, node)
 	end
 end
 
@@ -539,28 +601,6 @@ local function validateLines(self)
 	end
 end
 
-local function findFirstPoint(closetPoint, line)
-	local pointInfo = {}
-	pointInfo.distance = math.huge
-
-	for i = 0, line.npoints - 1 do
-		local point = line.geom:getPointN(i)
-		local distance = closetPoint:distance(point)
-
-		if (pointInfo.distance > distance) and (distance > 0) then
-			pointInfo.point = point
-			pointInfo.distance = distance
-			pointInfo.pos = i
-		end
-	end
-
-	if inside then
-		pointInfo.distance = inside(pointInfo.distance, line.cell)
-	end
-
-	return pointInfo
-end
-
 local function calculateFullDistance(node, point, line)
 	local distance = node.point:distance(point) -- TODO: this can be improved using delta distance
 
@@ -568,7 +608,7 @@ local function calculateFullDistance(node, point, line)
 		distance = inside(distance, line.cell)
 	end
 
-	return node.distance + distance --tonumber(string.format("%.3f", node.distance + distance))
+	return node.distance + distance
 end
 
 local function addPreviousNode(node, prev)
@@ -588,10 +628,6 @@ local function addPreviousNode(node, prev)
 	else
 		node.previous = prev
 	end
-end
-
-local function nodeExists(node)
-	return node ~= nil
 end
 
 local function previousNodeExists(router, previous)
@@ -625,20 +661,9 @@ local function removeNodeFromRouter(router, nodeToRemove)
 	end
 end
 
-local function reviewTargetNode(targetNode, firstOrSecondNode)
-	if targetNode.first and (firstOrSecondNode.id == targetNode.first.id) then
-		targetNode.first = nil
-	elseif targetNode.second and (firstOrSecondNode.id == targetNode.second.id) then
-		targetNode.second = nil
-	else
-		customError("Unforeseen error. If you have already validated your data, report this error to system developers.")
-	end
-end
-
 local function createNodeByNextPoint(point, position, currNode, line)
 	local totalDistance = calculateFullDistance(currNode, point, line)
 	local node = createNode(point, totalDistance, line, position, currNode.targetId)
-	table.insert(nodesList, node)
 	return node
 end
 
@@ -676,9 +701,42 @@ local function validateCircularPrevious(node, prev)
 	end
 end
 
+local function removeTargetNode(targetNode)
+	for i = 1, #targetNodes do
+		if targetNodes[i].id == targetNode.id then
+			table.insert(targetNodesOut, targetNode)
+			table.remove(targetNodes, i)
+			return
+		end
+	end
+end
+
 local reviewPreviousNodes -- forward function
 
-local function reviewCircularPrevious(node, prev)
+local function targetRemovedWarning(node, targetNode)
+	customWarning("Target '"..targetNode.targetId.."' of line '"
+					..targetNode.line.id.."' was removed by target '"
+					..node.targetId.."'.")
+end
+
+local function adjustTargetPreviousNode(node, targetNode, graph)
+	targetRemovedWarning(node, targetNode)
+	removeTargetNode(targetNode)
+	removeTargetInfoInLine(targetNode.line)
+	targetLinesOut[targetNode.line.id] = targetNode.line
+	graph[targetNode.id] = nil
+	if node.id == targetNode.first.id then
+		node.previous = targetNode.second
+	elseif node.id == targetNode.second.id then
+		node.previous = targetNode.first
+	end
+	local distance = calculateFullDistance(node, node.previous.point, node.previous.line)
+	node.previous.distance = distance
+	node.previous.targetId = node.targetId
+	node.previous.next = node
+end
+
+local function reviewCircularPrevious(node, prev, graph)
 	local link, _, j = validateCircularPrevious(node, prev)
 	if link then
 		if (link == "ROUTER_ROUTER") or (link == "SIMPLE_ROUTER") then
@@ -708,12 +766,12 @@ local function reviewCircularPrevious(node, prev)
 					if previous.previous[k].distance > distance then
 						node.previous[k].distance = distance
 						node.previous[k].targetId = node.targetId
-						reviewPreviousNodes(node.previous[k])
+						reviewPreviousNodes(node.previous[k], graph)
 					end
 				end
 
 				insertPreviousNode(previous, prevNext)
-				reviewCircularPrevious(previous, prevNext)
+				reviewCircularPrevious(previous, prevNext, graph)
 			end
 		else --if (link == "ROUTER_SIMPLE") or (link == "SIMPLE_SIMPLE") then
 			local previous = prev
@@ -736,14 +794,24 @@ local function reviewCircularPrevious(node, prev)
 					previous.line = node.line
 				end
 
-				previous.previous = prevNext
-				reviewCircularPrevious(previous, prevNext)
+				if prevNext.target then
+					distance = calculateFullDistance(previous, prevNext.point, prevNext.line)
+					if prevNext.distance > distance then
+						adjustTargetPreviousNode(previous, prevNext, graph)
+						reviewPreviousNodes(previous.previous, graph)
+					else
+						previous.previous = prevNext
+					end
+				else
+					previous.previous = prevNext
+					reviewCircularPrevious(previous, prevNext, graph)
+				end
 			end
 		end
 	end
 end
 
-reviewPreviousNodes = function(node)
+reviewPreviousNodes = function(node, graph)
 	if node.router then
 		for i = 1, #node.previous do
 			local distance = calculateFullDistance(node, node.previous[i].point, node.previous[i].line)
@@ -751,21 +819,24 @@ reviewPreviousNodes = function(node)
 				if node.previous[i].next.id == node.id then
 					node.previous[i].distance = distance
 					node.previous[i].targetId = node.targetId
-					reviewPreviousNodes(node.previous[i])
+					reviewPreviousNodes(node.previous[i], graph)
 				else
-					reviewCircularPrevious(node, node.previous[i])
+					reviewCircularPrevious(node, node.previous[i], graph)
 				end
 			end
 		end
 	elseif node.previous then
 		local distance = calculateFullDistance(node, node.previous.point, node.previous.line)
 		if node.previous.distance > distance then
-			if node.previous.next.id == node.id then
+			if node.previous.target then
+				adjustTargetPreviousNode(node, node.previous, graph)
+				reviewPreviousNodes(node.previous, graph)
+			elseif node.previous.next.id == node.id then
 				node.previous.distance = distance
 				node.previous.targetId = node.targetId
-				reviewPreviousNodes(node.previous)
+				reviewPreviousNodes(node.previous, graph)
 			else
-				reviewCircularPrevious(node, node.previous)
+				reviewCircularPrevious(node, node.previous, graph)
 			end
 		end
 	end
@@ -781,14 +852,15 @@ local function insertPreviousNode(node, prev)
 	end
 end
 
-local function reviewNextNodes(node, nextNode, readingLine)
-	if nextNode.target then
-		reviewTargetNode(nextNode, node)
-		return
-	end
-
+local function reviewNextNodes(node, nextNode, readingLine, graph)
 	local distance = calculateFullDistance(node, nextNode.point, readingLine)
 	if nextNode.distance > distance then
+		if nextNode.target then
+			adjustTargetPreviousNode(node, nextNode, graph)
+			reviewPreviousNodes(node.previous, graph)
+			return
+		end
+
 		local nextNodeNext = nextNode.next
 		local oldNextNodeLine = nextNode.line
 		nextNode.distance = distance
@@ -812,7 +884,7 @@ local function reviewNextNodes(node, nextNode, readingLine)
 				nextNode.previous = nil
 			end
 			if nextNode.previous then
-				reviewPreviousNodes(nextNode)
+				reviewPreviousNodes(nextNode, graph)
 			end
 
 			readingLine = oldNextNodeLine
@@ -822,18 +894,14 @@ local function reviewNextNodes(node, nextNode, readingLine)
 			nextNode.previous = nil
 		end
 
-		reviewNextNodes(nextNode, nextNodeNext, readingLine)
+		reviewNextNodes(nextNode, nextNodeNext, readingLine, graph)
 	end
 
 	insertPreviousNode(node, nextNode)
 end
 
-local function reviewExistingNode(existingNode, currNode, newPos, readingLine)
+local function reviewExistingNode(existingNode, currNode, newPos, readingLine, graph)
 	local distance = calculateFullDistance(currNode, existingNode.point, readingLine)
-		-- if readingLine.id == 417 then
-			-- _Gtme.print(">", existingNode.distance, distance, currNode.distance,
-						-- existingNode.pos, currNode.pos)
-		-- end
 	if existingNode.distance > distance then
 		local existingNodeNext = existingNode.next
 		local oldExistingNodeLine = existingNode.line
@@ -843,10 +911,6 @@ local function reviewExistingNode(existingNode, currNode, newPos, readingLine)
 			-- customError("CCC")
 		-- end
 
-		-- if readingLine.id == 417 then
-			-- _Gtme.print("dist >")
-		-- end
-
 		existingNode.distance = distance
 		existingNode.next = currNode
 		existingNode.targetId = currNode.targetId
@@ -854,37 +918,22 @@ local function reviewExistingNode(existingNode, currNode, newPos, readingLine)
 		existingNode.pos = newPos
 
 		if existingNode.previous then
-			reviewPreviousNodes(existingNode)
+			reviewPreviousNodes(existingNode, graph)
 		end
 
 		addPreviousNode(currNode, existingNode)
-		reviewNextNodes(existingNode, existingNodeNext, oldExistingNodeLine)
+		reviewNextNodes(existingNode, existingNodeNext, oldExistingNodeLine, graph)
 	else
 		distance = calculateFullDistance(existingNode, currNode.point, readingLine)
-		-- if readingLine.id == 417 then
-			-- _Gtme.print("<", existingNode.distance, distance, currNode.distance,
-						-- existingNode.pos, currNode.pos)
-		-- end
+
 		if currNode.distance > distance then
 			local currNodeNext = currNode.next
 			local oldCurrNodeLine = currNode.line
-
-			if readingLine.id == 417 then
-				_Gtme.print("dist <")
-			end
 
 			currNode.distance = distance
 			currNode.targetId = existingNode.targetId
 			currNode.line = readingLine
 			currNode.next = existingNode
-
-			-- if readingLine.npoints == 2 then
-				-- if currNode.id == readingLine.geom:getPointAsTextAt(0) then
-					-- currNode.pos = 0
-				-- else
-					-- currNode.pos = 1
-				-- end
-			-- end
 
 			-- if not ((existingNode.id == readingLine.geom:getPointAsTextAt(0)) -- uncomment for developement
 					-- or (existingNode.id == readingLine.geom:getPointAsTextAt(readingLine.npoints - 1))) then
@@ -892,12 +941,8 @@ local function reviewExistingNode(existingNode, currNode, newPos, readingLine)
 			-- end
 
 			addPreviousNode(existingNode, currNode)
-			reviewNextNodes(currNode, currNodeNext, oldCurrNodeLine)
+			reviewNextNodes(currNode, currNodeNext, oldCurrNodeLine, graph)
 		else
-			-- if readingLine.id == 417 then
-				-- _Gtme.print("!!!", existingNode.distance, distance, currNode.distance,
-							-- existingNode.pos, currNode.pos)
-			-- end
 			insertPreviousNode(existingNode, currNode)
 			insertPreviousNode(currNode, existingNode)
 		end
@@ -942,7 +987,7 @@ end
 local function addNodeByLinePointIdx(graph, line, idx, currNode)
 	local nodeId = line.geom:getPointAsTextAt(idx)
 	if nodeExists(graph[nodeId]) then
-		reviewExistingNode(graph[nodeId], currNode, idx, line)
+		reviewExistingNode(graph[nodeId], currNode, idx, line, graph)
 	else
 		return createNodeByLinePointIdx(graph, line, idx, nodeId, currNode)
 	end
@@ -1052,6 +1097,84 @@ local function linkFirstAndSecondNodes(targetNode, firstNode, secNode)
 	secNode.next = targetNode
 end
 
+local function reviewExistingFirstOrSecondNode(graph, firstOrSecondNode)
+	local existingNode = graph[firstOrSecondNode.id]
+	local oldNextNode = existingNode.next
+
+	if existingNode.previous then
+		existingNode.distance = firstOrSecondNode.distance
+		existingNode.targetId = firstOrSecondNode.targetId
+		reviewPreviousNodes(existingNode, graph)
+	end
+
+	graph[firstOrSecondNode.id] = firstOrSecondNode
+	local currNode = graph[firstOrSecondNode.id]
+	while not oldNextNode.target do
+		local oldNextNodeNext = oldNextNode.next
+		local distance = calculateFullDistance(currNode, oldNextNode.point, oldNextNode.line)
+		if oldNextNode.distance > distance then
+			oldNextNode.distance = distance
+			oldNextNode.targetId = currNode.targetId
+			oldNextNode.next = currNode
+			currNode.previous = oldNextNode
+			currNode = oldNextNode
+			oldNextNode = oldNextNodeNext
+		else
+			-- if currNode.router then -- uncomment for developement
+				-- customError("ROUTER 2")
+			-- end
+			currNode.previous = oldNextNode
+			return
+		end
+	end
+
+	local distance = calculateFullDistance(currNode, oldNextNode.point, oldNextNode.line)
+	if oldNextNode.distance > distance then
+		targetRemovedWarning(currNode, oldNextNode)
+		graph[oldNextNode.id] = nil
+		removeTargetNode(oldNextNode)
+		removeTargetInfoInLine(oldNextNode.line)
+		targetLinesOut[oldNextNode.line.id] = oldNextNode.line
+		local previousNode
+		if currNode.id == oldNextNode.first.id then
+			previousNode = oldNextNode.second
+		elseif currNode.id == oldNextNode.second.id then
+			previousNode = oldNextNode.first
+		-- else -- uncomment for developement
+			-- customError("SECOND EXISTS AAA!")
+		end
+
+		while previousNode do
+			local oldPreviousNode = previousNode.previous
+			distance = calculateFullDistance(currNode, previousNode.point, previousNode.line)
+			previousNode.distance = distance
+			previousNode.targetId = currNode.targetId
+			previousNode.next = currNode
+			currNode.previous = previousNode
+			currNode = previousNode
+			previousNode = oldPreviousNode
+		end
+	else
+		-- if currNode.router then -- uncomment for developement
+			-- customError("ROUTER 1")
+		-- end
+		currNode.previous = oldNextNode
+	end
+end
+
+local function targetNodeCannotEnter(graph, targetNodeToOut, firstOrSecondNode)
+	customWarning("Target '"..targetNodeToOut.targetId.."' of line '"
+					..targetNodeToOut.line.id
+					.."' cannot enter in the network due to target '"
+					..firstOrSecondNode.targetId.."'.")
+
+	removeTargetNode(targetNodeToOut)
+	if targetNodeToOut.line.id ~= firstOrSecondNode.line.id then
+		removeTargetInfoInLine(targetNodeToOut.line)
+	end
+	graph[targetNodeToOut.id] = nil
+end
+
 local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 	local line = targetNode.line
 
@@ -1067,12 +1190,20 @@ local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 		elseif firstNode.pos == 1 then
 			addNodeByLinePointIdx(graph, line, 0, mn)
 		end
-
 	else
 		local secPoint = findSecondPoint(firstNode, targetNode)
 		local secNode = createNode(secPoint.point, secPoint.distance, line, secPoint.pos, targetNode.targetId)
-		graph[secNode.id] = secNode
-		table.insert(nodesList, secNode)
+		if nodeExists(graph[secNode.id]) then
+			if graph[secNode.id].distance > secNode.distance then
+				reviewExistingFirstOrSecondNode(graph, secNode)
+			else
+				targetNodeCannotEnter(graph, targetNode, graph[secNode.id])
+				graph[firstNode.id] = nil
+				return
+			end
+		else
+			graph[secNode.id] = secNode
+		end
 
 		linkFirstAndSecondNodes(targetNode, firstNode, graph[secNode.id])
 
@@ -1090,6 +1221,28 @@ local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 	end
 end
 
+local function findFirstPoint(closetPoint, line)
+	local pointInfo = {}
+	pointInfo.distance = math.huge
+
+	for i = 0, line.npoints - 1 do
+		local point = line.geom:getPointN(i)
+		local distance = closetPoint:distance(point)
+
+		if (pointInfo.distance > distance) and (distance > 0) then
+			pointInfo.point = point
+			pointInfo.distance = distance
+			pointInfo.pos = i
+		end
+	end
+
+	if inside then
+		pointInfo.distance = inside(pointInfo.distance, line.cell)
+	end
+
+	return pointInfo
+end
+
 local function createFirstNode(targetNode)
 	local firstPoint = findFirstPoint(targetNode.point, targetNode.line)
 	local totalDistance = targetNode.distance + firstPoint.distance
@@ -1098,16 +1251,31 @@ end
 
 local function addFirstNodes(graph, node)
 	local firstNode = createFirstNode(node)
-	graph[firstNode.id] = firstNode
-	table.insert(nodesList, firstNode)
+	if nodeExists(graph[firstNode.id]) then
+		if firstNode.distance > graph[firstNode.id].distance then
+			targetNodeCannotEnter(graph, node, graph[firstNode.id])
+		else
+			reviewExistingFirstOrSecondNode(graph, firstNode)
+			addAllNodesOfTargetLines(graph, graph[firstNode.id], node)
+		end
+	else
+		graph[firstNode.id] = firstNode
+		addAllNodesOfTargetLines(graph, graph[firstNode.id], node)
+	end
+end
 
-	addAllNodesOfTargetLines(graph, graph[firstNode.id], node)
+local function removeRemovedTargetNodes(netpoints, graph)
+	for id, _ in pairs(netpoints) do
+		netpoints[id] = graph[id]
+	end
 end
 
 local function copyGraphToNetpoints(netpoints, graph)
-	forEachElement(graph, function(id, node)
-		netpoints[id] = node
-	end)
+	for id, _ in pairs(graph) do
+		netpoints[id] = graph[id]
+	end
+
+	removeRemovedTargetNodes(netpoints, graph)
 end
 
 local function addNodesFromTargetLines(self)
@@ -1129,12 +1297,16 @@ local function isTargetLine(line)
 	return targetLines[line.id] ~= nil
 end
 
+local function isRemovedTargetLine(line)
+	return targetLinesOut[line.id] ~= nil
+end
+
 local function isNodeEndpoint(node)
 	return (node.pos == 0) or (node.pos == node.line.npoints - 1)
 end
 
 local function totalComputedLines()
-	return getn(computedLines) + getn(targetLines)
+	return getn(computedLines) + getn(targetLines) + getn(targetLinesOut)
 end
 
 local function progressProcessingMsg(lines)
@@ -1164,7 +1336,7 @@ local function addNodesInDirection(self, line, lineEndpointId, lineToAdd, direct
 end
 
 local function isLineUncomputed(line)
-	return not (isTargetLine(line) or computedLines[line.id])
+	return not (isTargetLine(line) or computedLines[line.id] or isRemovedTargetLine(line))
 end
 
 local function addAdjacentLinesAndItsPoints(self, line, adjacents)
@@ -1191,7 +1363,7 @@ local function addNodesFromAdjacentsToTargetLines(self)
 end
 
 local function isLineAlreadyComputed(line)
-	return computedLines[line.id] ~= nil
+	return (computedLines[line.id] ~= nil) or (targetLinesOut[line.id] ~= nil)
 end
 
 local function hasUncomputedLines(self)
@@ -1227,7 +1399,6 @@ end
 
 local function addNodesFromNonAdjacentsToTargetLines(self)
 	local numOfComputedLines = totalComputedLines()
-
 	for _, line in pairs(self.lines) do
 		if isLineAlreadyComputed(line) then
 			addAdjacentLinesAndItsPoints(self, line, adjacentLines[line.id])
@@ -1387,14 +1558,13 @@ local function findClosestLinesToEachTarget(netpoints, point, minDistances)
 	end
 end
 
-local function findClosestPointsToEachTarget(point, minDistances)
+local function findClosestPointsToEachTarget(self, point, minDistances)
 	local closestNodes = {}
-	for i = 1, #nodesList do
-		local currNode = nodesList[i]
-		local distance = point:distance(currNode.point)
-		if minDistances[currNode.targetId] > distance then
-			minDistances[currNode.targetId] = distance
-			closestNodes[currNode.targetId] = currNode
+	for _, node in pairs(self.netpoints) do
+		local distance = point:distance(node.point)
+		if minDistances[node.targetId] > distance then
+			minDistances[node.targetId] = distance
+			closestNodes[node.targetId] = node
 		end
 	end
 
@@ -1454,9 +1624,18 @@ Network_ = {
 		end
 
 		if entrance == "lightest" then
+			for i = 1, #targetNodesOut do
+				minDistances[targetNodesOut[i].targetId] = math.huge
+			end
 			if by == "lines" then
 				for i = 1, #targetNodes do
 					local targetNode = targetNodes[i]
+					calculateDistanceInTargetsAndSetIfLesser(cellPoint, targetNode, minDistances)
+					findShortestDistanceInLine(self, cellPoint, targetNode.line, minDistances)
+				end
+
+				for i = 1, #targetNodesOut do
+					local targetNode = targetNodesOut[i]
 					calculateDistanceInTargetsAndSetIfLesser(cellPoint, targetNode, minDistances)
 					findShortestDistanceInLine(self, cellPoint, targetNode.line, minDistances)
 				end
@@ -1470,9 +1649,13 @@ Network_ = {
 					calculateDistanceInTargetsAndSetIfLesser(cellPoint, currNode, minDistances)
 				end
 
-				for i = 1, #nodesList do
-					local currNode = nodesList[i]
-					calculateDistanceAndSetIfLesser(cellPoint, currNode, minDistances)
+				for i = 1, #targetNodesOut do
+					local currNode = targetNodesOut[i]
+					calculateDistanceInTargetsAndSetIfLesser(cellPoint, currNode, minDistances)
+				end
+
+				for _, node in pairs(self.netpoints) do
+					calculateDistanceAndSetIfLesser(cellPoint, node, minDistances)
 				end
 			else
 				customError("Attribute 'by' must be 'lines' or 'points', but received '"..by.."'.")
@@ -1481,7 +1664,7 @@ Network_ = {
 			if by == "lines" then
 				findClosestLinesToEachTarget(self.netpoints, cellPoint, minDistances)
 			elseif by == "points" then
-				findClosestPointsToEachTarget(cellPoint, minDistances)
+				findClosestPointsToEachTarget(self, cellPoint, minDistances)
 			else
 				customError("Attribute 'by' must be 'lines' or 'points', but received '"..by.."'.")
 			end
@@ -1657,11 +1840,12 @@ function Network(data)
 	defaultTableValue(data, "validate", true)
 
 	targetLines = {}
+	targetLinesOut = {}
 	computedLines = {}
 	nonAdjacentLinesCache = {}
 	adjacentLines = {}
 	targetNodes = {}
-	nodesList = {}
+	targetNodesOut = {}
 	linesList = {}
 	linesNodesList = {}
 	setUpLinesRTree()
