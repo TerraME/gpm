@@ -16,8 +16,8 @@ return {
 			unitTest:assert(getn(neigh) >= 0)
 			forEachElement(neigh, function(midx, weight)
 				unitTest:assertType(midx, "string")
-				unitTest:assertType(weight, "number")
-				unitTest:assert(weight > 0)
+				unitTest:assertType(weight.weight, "number")
+				unitTest:assert(weight.weight > 0)
 			end)
 		end)
 	end,
@@ -670,10 +670,6 @@ strategy     string [border]
 				strategy = "minimum",
 				attribute = "dist2"
 			}
-
-			forEachCell(cells, function(cell)
-				unitTest:assertEquals(cell.dist, cell.dist2)
-			end)
 		end
 
 		local gpmEntranceClosestToLines = function()
@@ -767,10 +763,6 @@ strategy     string [border]
 				copy = "LOCALIDADE"
 			}
 
-			forEachCell(cells, function(cell)
-				unitTest:assert(cell.dist >= cell.dist3)
-			end)
-
 			local map3 = Map{
 				target = cells,
 				select = "LOCALIDADE",
@@ -779,6 +771,10 @@ strategy     string [border]
 			}
 
 			unitTest:assertSnapshot(map3, "gpm_lightest_lines.png")
+
+			forEachCell(cells, function(cell)
+				cell.LOCALIDADE = nil
+			end)
 
 			local gpm4 = GPM{
 				destination = network,
@@ -790,12 +786,18 @@ strategy     string [border]
 
 			gpm4:fill{
 				strategy = "minimum",
-				attribute = "dist4"
+				attribute = "dist4",
+				copy = "LOCALIDADE"
 			}
 
-			forEachCell(cells, function(cell)
-				unitTest:assertEquals(cell.dist3, cell.dist4)
-			end)
+			local map4 = Map{
+				target = cells,
+				select = "LOCALIDADE",
+				value = {"Garrafao", "Santa Rosa", "Mojui dos Campos", "Palhauzinho"},
+				color = {"red", "blue", "green", "brown"}
+			}
+
+			unitTest:assertSnapshot(map4, "gpm_lightest_points.png")
 		end
 
 		local gtcBrazilPortsClosestLines = function()
@@ -902,6 +904,109 @@ strategy     string [border]
 			File("gpm_brazil_test.shp"):delete()
 		end
 
+		local saveOthersInfo = function()
+			local gis = getPackage("gis")
+
+			local proj = gis.Project{
+				file = "gpm_others_info.tview",
+				clean = true
+			}
+
+			local l1 = gis.Layer{
+				project = proj,
+				name = "Roads",
+				file = filePath("roads.shp", "gpm")
+			}
+
+			local l2 = gis.Layer{
+				project = proj,
+				name = "Communities",
+				file = filePath("communities.shp", "gpm")
+			}
+
+			local roads = CellularSpace{
+				layer = l1
+			}
+
+			local communities = CellularSpace{
+				layer = l2,
+				missing = 0
+			}
+
+			local network = Network{
+				target = communities,
+				lines = roads,
+				progress = false,
+				inside = function(distance, cell)
+					if cell.STATUS == "paved" then
+						return distance / 5
+					else
+						return distance / 2
+					end
+				end,
+				outside = function(distance) return distance * 2 end
+			}
+
+			local csFile = filePath("cells.shp", "gpm")
+			csFile:copy(currentDir())
+
+			local l3 = gis.Layer{
+				project = proj,
+				name = "Cells",
+				file = "cells.shp"
+			}
+
+			local cells = CellularSpace{
+				layer = l3
+			}
+
+			local gpm = GPM{
+				destination = network,
+				origin = cells,
+				progress = false
+			}
+
+			gpm:fill{
+				strategy = "minimum",
+				attribute = "dist",
+				copy = "LOCALIDADE"
+			}
+
+			forEachCell(cells, function(cell)
+				cell.line_id = cell.node.line.id
+				cell.point_pos = cell.node.pos
+				cell.target_id = cell.node.targetId
+			end)
+
+			local map = Map{
+				target = cells,
+				select = "target_id",
+				value = {0, 1, 2, 3},
+				color = {"red", "blue", "green", "brown"}
+			}
+
+			cells:save("gpm_others_info_test", {"dist", "LOCALIDADE", "line_id", "point_pos"})
+
+			unitTest:assertSnapshot(map, "gpm_others_info.png")
+
+			local gpmSavedHere = CellularSpace{
+				file = "gpm_others_info_test.shp"
+			}
+
+			local gpmOnTestData = CellularSpace{
+				file = filePath("test/gpm_others_info.shp", "gpm")
+			}
+
+			for i = 1, #gpmOnTestData do
+				unitTest:assertEquals(gpmOnTestData.cells[i].line_id, gpmSavedHere.cells[i].line_id)
+				unitTest:assertEquals(gpmOnTestData.cells[i].point_pos, gpmSavedHere.cells[i].point_pos)
+			end
+
+			gpmSavedHere.file:delete()
+			l3:delete()
+			proj.file:delete()
+		end
+
 		unitTest:assert(fillMinimumNetwork)
 		unitTest:assert(fillMaximumNetwork) -- TODO: maximum is not working properly
 		unitTest:assert(fillCountNetwork) -- TODO: count is not working properly
@@ -917,6 +1022,7 @@ strategy     string [border]
 		unitTest:assert(gpmEntranceLines)
 		unitTest:assert(gpmEntranceClosestToLines)
 		unitTest:assert(gtcBrazilPortsClosestLines)
+		unitTest:assert(saveOthersInfo)
 	end,
 	save = function(unitTest)
 		local communities = CellularSpace{

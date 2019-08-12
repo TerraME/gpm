@@ -352,11 +352,11 @@ return {
 				unitTest:assertEquals(node.targetId, firstNode.targetId) -- SKIP
 			end
 			if node.target then
-				unitTest:assertEquals(node.targetId, node.first.targetId)
-				unitTest:assertEquals(node.targetId, node.second.targetId)
-				unitTest:assertNil(node.next)
+				unitTest:assertEquals(node.targetId, node.first.targetId) -- SKIP
+				unitTest:assertEquals(node.targetId, node.second.targetId) -- SKIP
+				unitTest:assertNil(node.next) -- SKIP
 			else
-				unitTest:assertEquals(node.targetId, node.next.targetId)
+				unitTest:assertEquals(node.targetId, node.next.targetId) -- SKIP
 			end
 		end
 
@@ -410,10 +410,10 @@ return {
 					if node.router then
 						checkRouterNodeProperties(node)
 					elseif node.target then
-						unitTest:assertNil(node.next)
-						unitTest:assertEquals(node.pos, 0.1)
+						unitTest:assertNil(node.next) -- SKIP
+						unitTest:assertEquals(node.pos, 0.1) -- SKIP
 					elseif (i ~= 0) and (i ~= line.npoints - 1) then
-						unitTest:assertEquals(node.pos, i)
+						unitTest:assertEquals(node.pos, i) -- SKIP
 					end
 					checkPreviousCircularProperties(node)
 					checkTargetIdProperties(node, firstNode, lastNode, numOfTargets)
@@ -647,7 +647,7 @@ return {
 			local difFrom4To1 = getDifference(2, linesTargets4, linesTargets1)
 			unitTest:assert(belong(16, difFrom4To1))
 			unitTest:assert(belong(32, difFrom4To1))
-			-- unitTest:assert(belong(33, difFrom4To1)) -- TODO: REVIEW
+			-- unitTest:assert(belong(33, difFrom4To1)) -- SKIP -- TODO: REVIEW
 
 			local difFrom1To4 = getDifference(2, linesTargets1, linesTargets4)
 			unitTest:assert(belong(34, difFrom1To4))
@@ -1499,31 +1499,31 @@ return {
 
 		local lightestEntrance = function()
 			local distances = network:distances(port, "lightest")
-			unitTest:assertEquals(distances[0], 0)
+			unitTest:assertEquals(distances[0].weight, 8118.1838889808, 1.0e-10)
 
 
 			local distances2 = network:distances(port, "lightest", "points")
-			unitTest:assertEquals(distances2[0], 0)
+			unitTest:assertEquals(distances2[0].weight, 0)
 
 			local distances3 = network:distances(portEstrelaCell, "lightest")
-			unitTest:assertEquals(distances3[0], 196084.56388036, 1.0e-8)
+			unitTest:assertEquals(distances3[0].weight, 196084.56388036, 1.0e-8)
 
 			local distances4 = network:distances(portEstrelaCell, "lightest", "points")
-			unitTest:assertEquals(distances4[0], 196084.56388036, 1.0e-8)
+			unitTest:assertEquals(distances4[0].weight, 196084.56388036, 1.0e-8)
 		end
 
 		local closestEntrance = function()
 			local distances = network:distances(port, "closest")
-			unitTest:assertEquals(distances[0], 8118.1838889808, 1.0e-10)
+			unitTest:assertEquals(distances[0].weight, 8118.1838889808, 1.0e-10)
 
 			local distances2 = network:distances(port, "closest", "points")
-			unitTest:assertEquals(distances2[0], 8118.1838889808, 1.0e-10)
+			unitTest:assertEquals(distances2[0].weight, 0)
 
 			local distances3 = network:distances(portEstrelaCell, "closest")
-			unitTest:assertEquals(distances3[0], 196084.56388036, 1.0e-8)
+			unitTest:assertEquals(distances3[0].weight, 196084.56388036, 1.0e-8)
 
 			local distances4 = network:distances(portEstrelaCell, "closest", "points")
-			unitTest:assertEquals(distances4[0], 196084.56388036, 1.0e-8)
+			unitTest:assertEquals(distances4[0].weight, 196084.56388036, 1.0e-8)
 		end
 
 		unitTest:assert(lightestEntrance)

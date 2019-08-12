@@ -23,7 +23,7 @@
 -------------------------------------------------------------------------------------------
 
 local function progressMsg(self, relation, progress)
-	return "GPM processing "..relation.." "..progress.." of "..#self.origin.."."
+	return "GPM processing "..relation.." "..progress.." of "..#self.origin
 end
 
 local function updateProgressMsg(self, relation, progress)
@@ -118,7 +118,7 @@ local function saveGPM(self, file)
 
 		forEachOrderedElement(neighbor, function(midx, weight)
 			table.insert(outputText, midx)
-			table.insert(outputText, weight)
+			table.insert(outputText, weight.weight)
 		end)
 
 		file:writeLine(table.concat(outputText, " "))
@@ -145,7 +145,7 @@ local function saveGWT(self, file)
 
 			table.insert(outputText, idx)
 			table.insert(outputText, midx)
-			table.insert(outputText, weight)
+			table.insert(outputText, weight.weight)
 			file:writeLine(table.concat(outputText, " "))
 		end)
 	end)
@@ -169,9 +169,9 @@ local function buildDistanceRelation(self)
 
 		forEachCell(destination, function(polygon)
 			local targetPolygon = polygon.geom:getGeometryN(0)
-			local distance = targetPolygon:distance(geometry:getCentroid())
+			local distance = {weight = targetPolygon:distance(geometry:getCentroid())}
 
-			if --[[targetPolygon:contains(geometry) or]] distance < maxDistance then
+			if --[[targetPolygon:contains(geometry) or]] distance.weight < maxDistance then
 				neighbors[originCell:getId()][polygon:getId()] = distance
 			end
 		end)
@@ -206,8 +206,7 @@ local function buildBorderRelation(self)
 
 			if geometryBorder:getLength() then
 				local lengthBorder = geometryBorder:getLength()
-
-				neighbors[polygon:getId()][neighbor:getId()] = lengthBorder / geometryPerimeter
+				neighbors[polygon:getId()][neighbor:getId()] = {weight = lengthBorder / geometryPerimeter}
 			end
 		end)
 	end)
@@ -235,7 +234,7 @@ local function buildContainsRelation(self)
 			local geometryDestination = dest.geom:getGeometryN(0)
 
 			if geometryOrigin:contains(geometryDestination) then
-				neighbor[polygon:getId()][dest:getId()] = 1
+				neighbor[polygon:getId()][dest:getId()] = {weight = 1}
 			end
 		end)
 	end)
@@ -272,7 +271,7 @@ local function buildAreaRelation(self)
 					return
 				end
 
-				neighbor[polygon:getId()][geometric:getId()] = areaIntersection
+				neighbor[polygon:getId()][geometric:getId()] = {weight = areaIntersection}
 			end
 		end)
 	end)
@@ -309,7 +308,7 @@ local function buildLengthRelation(self)
 					return
 				end
 
-				neighbor[polygon:getId()][geometric:getId()] = lengthIntersection
+				neighbor[polygon:getId()][geometric:getId()] = {weight = lengthIntersection}
 			end
 		end)
 	end)
@@ -425,7 +424,7 @@ GPM_ = {
 							tattr[id] = attribute.."_"..id
 						end
 
-						cell[tattr[id]] = dist
+						cell[tattr[id]] = dist.weight
 					end)
 				end)
 
@@ -459,18 +458,18 @@ GPM_ = {
 				verifyUnnecessaryArguments(data, {"attribute", "missing", "copy", "strategy"})
 
 				forEachCell(self.origin, function(cell)
-					local value = math.huge
+					local value = {weight = math.huge}
 					local mid
 
 					forEachElement(self.neighbor[cell:getId()], function(id, dist)
-						if dist < value then
+						if dist.weight < value.weight then
 							value = dist
 							mid = id
 						end
 					end)
 
-					if value == math.huge then
-						value = data.missing
+					if value.weight == math.huge then
+						value.weight = data.missing
 					end
 
 					if mid ~= nil and data.copy then
@@ -485,7 +484,10 @@ GPM_ = {
 						end)
 					end
 
-					cell[attribute] = value
+					cell[attribute] = value.weight
+					if value.node then
+						cell.node = value.node
+					end
 				end)
 			end,
 			maximum = function()
@@ -494,18 +496,18 @@ GPM_ = {
 				verifyUnnecessaryArguments(data, {"attribute", "missing", "copy", "strategy"})
 
 				forEachCell(self.origin, function(cell)
-					local value = -math.huge
+					local value = {weight = -math.huge}
 					local mid
 
 					forEachElement(self.neighbor[cell:getId()], function(id, dist)
-						if dist > value then
+						if dist.weight > value.weight then
 							value = dist
 							mid = id
 						end
 					end)
 
-					if value == -math.huge then
-						value = data.missing -- SKIP
+					if value.weight == -math.huge then
+						value.weight = data.missing -- SKIP
 					end
 
 					if mid ~= nil and data.copy then
@@ -520,7 +522,7 @@ GPM_ = {
 						end)
 					end
 
-					cell[attribute] = value
+					cell[attribute] = value.weight
 				end)
 			end,
 			sum = function()
@@ -530,7 +532,7 @@ GPM_ = {
 					local sum = 0
 
 					forEachElement(self.neighbor[cell:getId()], function(_, dist)
-						sum = sum + dist
+						sum = sum + dist.weight
 					end)
 
 					cell[attribute] = sum
@@ -544,7 +546,7 @@ GPM_ = {
 					local neighbor = self.neighbor[cell:getId()]
 
 					forEachElement(neighbor, function(_, dist)
-						sum = sum + dist
+						sum = sum + dist.weight
 					end)
 
 					cell[attribute] = sum / getn(neighbor)

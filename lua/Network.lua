@@ -221,8 +221,8 @@ local function checkAndRemoveTargetIfLineHasMoreThanOneOfIt(targets)
 				local n2 = targetList[j]
 				if not targetsToRemove[n2.id] then
 					if n1.line.id == n2.line.id then
-						local dist = n1.point:distance(n2.point)
 						-- TODO(#109)
+						-- local dist = n1.point:distance(n2.point)
 						-- if inside then
 							-- dist = inside(dist, n1.line.cell)
 						-- end
@@ -326,7 +326,7 @@ local function invertAdjacentLineInfo(minDistanceInfo)
 end
 
 local function progressMsg(current, total, action)
-	return "Network "..action.." "..getn(current).." of "..getn(total).." lines."
+	return "Network "..action.." "..getn(current).." of "..getn(total).." lines"
 end
 
 local function updateProgressMsg(self, current, action)
@@ -473,7 +473,7 @@ local function joinLines(linesA, linesB)
 end
 
 local function progressConnectingMsg(linesConnected)
-	return "Network number of networks "..getn(linesConnected).."."
+	return "Network number of networks "..getn(linesConnected)
 end
 
 local function joinConnectedLines(self, linesConnected)
@@ -1221,13 +1221,13 @@ local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 	end
 end
 
-local function findFirstPoint(closetPoint, line)
+local function findFirstPoint(closestPoint, line)
 	local pointInfo = {}
 	pointInfo.distance = math.huge
 
 	for i = 0, line.npoints - 1 do
 		local point = line.geom:getPointN(i)
-		local distance = closetPoint:distance(point)
+		local distance = closestPoint:distance(point)
 
 		if (pointInfo.distance > distance) and (distance > 0) then
 			pointInfo.point = point
@@ -1310,7 +1310,7 @@ local function totalComputedLines()
 end
 
 local function progressProcessingMsg(lines)
-	return "Network processing "..totalComputedLines().." of "..getn(lines).." lines."
+	return "Network processing "..totalComputedLines().." of "..getn(lines).." lines"
 end
 
 local function addNodesInDirection(self, line, lineEndpointId, lineToAdd, direction)
@@ -1443,8 +1443,15 @@ local function createOpenNetwork(self)
 	createConnectivityInfoGraph(self)
 
 	if self.progress then
-		print("Network built with "..getn(self.netpoints).." points.")
+		print("Network built with "..getn(self.netpoints).." points")
 	end
+end
+
+local function createWeightInfo(weight, node)
+	if node then
+		return {weight = weight, node = node}
+	end
+	return {weight = weight}
 end
 
 local function calculateDistanceAndSetIfLesser(point, currNode, minDistances)
@@ -1455,12 +1462,9 @@ local function calculateDistanceAndSetIfLesser(point, currNode, minDistances)
 
 	local distance = distanceOut + currNode.distance
 
-	if minDistances[currNode.targetId] >= distance then
-		minDistances[currNode.targetId] = distance
-		return true
+	if minDistances[currNode.targetId].weight >= distance then
+		minDistances[currNode.targetId] = createWeightInfo(distance, currNode)
 	end
-
-	return false
 end
 
 local function calculateDistanceAndSetIfLesserByNode(node, point, line, minDistances)
@@ -1493,31 +1497,64 @@ local function findShortestDistanceInLine(self, point, line, minDistances)
 	end
 end
 
+local function getClosestNodeWithWeight(netpoints, point, line)
+	local closestPoint = point:closestPoint(line.geom)
+	local closestNodeId = point:getClosestPointOfLineAsText(line.geom)
+	local closestNode = netpoints[closestNodeId]
+	local insideDistance = closestPoint:distance(closestNode.point)
+
+	local closestNodeNext = closestNode.next
+	local closestNodeNextInsideDistance = closestPoint:distance(closestNodeNext.point)
+
+	if insideDistance > closestNodeNextInsideDistance then
+		insideDistance = closestNodeNextInsideDistance
+		closestNode = closestNodeNext
+	end
+
+	local outsideDistance = point:distance(closestPoint)
+
+	local weight
+
+	if inside then
+		weight = inside(insideDistance, closestNode.line.cell)
+	else
+		weight = insideDistance
+	end
+
+	if outside then
+		weight = weight + outside(outsideDistance) + closestNode.distance
+	else
+		weight = weight + outsideDistance + closestNode.distance
+	end
+
+	return closestNode, weight
+end
+
+local function findLightestWeightInLine(self, point, line, minDistances)
+	local closestNode, weight = getClosestNodeWithWeight(self.netpoints, point, line)
+	if minDistances[closestNode.targetId].weight > weight then
+		minDistances[closestNode.targetId] = createWeightInfo(weight, closestNode)
+	end
+end
+
 local function calculateDistanceInTargetsAndSetIfLesser(point, targetNode, minDistances)
 	local distance = point:distance(targetNode.targetPoint)
 	if outside then
 		distance = outside(distance)
 	end
 
-	if minDistances[targetNode.targetId] >= distance then
-		minDistances[targetNode.targetId] = distance
+	if minDistances[targetNode.targetId].weight > distance then
+		minDistances[targetNode.targetId] = createWeightInfo(distance, targetNode)
 	end
 end
 
-local function checkLineAndSetDistanceIfCloser(line, point, netpoints, closestNodes, minDistances)
-	local closestPointId = point:getClosestPointOfLineAsText(line.geom)
-	local closestNode = netpoints[closestPointId]
-	local distance = point:distance(closestNode.point)
-	if minDistances[closestNode.targetId] > distance then
-		minDistances[closestNode.targetId] = distance
-		closestNodes[closestNode.targetId] = closestNode
-	end
-end
-
-local function searchInRTree(netpoints, point, closestNodes, minDistances)
+local function searchInRTree(netpoints, point)
 	local intersects = linesRTree:intersects(point)
 	local nearest = linesRTree:nearest(point, nearestFactor)
 	local results = {}
+	local minDistanceLine = math.huge
+	local closestLine
+
 	for i = 0, getn(intersects) - 1 do
 		results[intersects[i]] = intersects[i]
 	end
@@ -1528,55 +1565,75 @@ local function searchInRTree(netpoints, point, closestNodes, minDistances)
 	--end
 	if getn(results) > 0 then
 		for i, _ in pairs(results) do
-			checkLineAndSetDistanceIfCloser(linesList[i], point, netpoints, closestNodes, minDistances)
+			local distance = point:distance(linesList[i].geom)
+			if distance < minDistanceLine then
+				minDistanceLine = distance
+				closestLine = linesList[i]
+			end
 		end
 	else
 		for i = 1, #linesList do
-			checkLineAndSetDistanceIfCloser(linesList[i], point, netpoints, closestNodes, minDistances)
+			local distance = point:distance(linesList[i].geom)
+			if distance < minDistanceLine then
+				minDistanceLine = distance
+				closestLine = linesList[i]
+			end
 		end
 	end
 
-	for targetId, distance in pairs(minDistances) do
-		if distance == math.huge then
-			minDistances[targetId] = nil
-		end
-	end
+	return getClosestNodeWithWeight(netpoints, point, closestLine)
 end
 
-local function findClosestLinesToEachTarget(netpoints, point, minDistances)
-	local closestNodes = {}
-	searchInRTree(netpoints, point, closestNodes, minDistances)
-
-	if outside then
-		for targetId, distance in pairs(minDistances) do
-			minDistances[targetId] = outside(distance) + closestNodes[targetId].distance
-		end
-	else
-		for targetId, distance in pairs(minDistances) do
-			minDistances[targetId] = distance + closestNodes[targetId].distance
-		end
-	end
+local function findClosestLinesUsingRTree(netpoints, point, minDistances)
+	local closestNode, weight = searchInRTree(netpoints, point)
+	minDistances[closestNode.targetId] = createWeightInfo(weight, closestNode)
 end
 
-local function findClosestPointsToEachTarget(self, point, minDistances)
-	local closestNodes = {}
+local function findClosestPoints(self, point, minDistances)
+	local minDistance = math.huge
+	local closestNode
+
+	for i = 1, #targetNodes do
+		local distance = point:distance(targetNodes[i].targetPoint)
+		if distance < minDistance then
+			minDistance = distance
+			closestNode = {
+				distance = 0,
+				targetId = targetNodes[i].targetId,
+				line = targetNodes[i].line,
+				pos = 0.2,
+			}
+		end
+	end
+
+	for i = 1, #targetNodesOut do
+		local distance = point:distance(targetNodesOut[i].targetPoint)
+		if distance < minDistance then
+			minDistance = distance
+			closestNode = {
+				distance = 0,
+				targetId = targetNodesOut[i].targetId,
+				line = targetNodesOut[i].line,
+				pos = 0.3,
+			}
+		end
+	end
+
 	for _, node in pairs(self.netpoints) do
 		local distance = point:distance(node.point)
-		if minDistances[node.targetId] > distance then
-			minDistances[node.targetId] = distance
-			closestNodes[node.targetId] = node
+		if distance < minDistance then
+			minDistance = distance
+			closestNode = node
 		end
 	end
 
 	if outside then
-		for targetId, distance in pairs(minDistances) do
-			minDistances[targetId] = outside(distance) + closestNodes[targetId].distance
-		end
+		minDistance = outside(minDistance) + closestNode.distance
 	else
-		for targetId, distance in pairs(minDistances) do
-			minDistances[targetId] = distance + closestNodes[targetId].distance
-		end
+		minDistance = minDistance + closestNode.distance
 	end
+
+	minDistances[closestNode.targetId] = createWeightInfo(minDistance, closestNode)
 end
 
 Network_ = {
@@ -1619,29 +1676,18 @@ Network_ = {
 		end
 
 		local minDistances = {}
-		for i = 1, #targetNodes do
-			minDistances[targetNodes[i].targetId] = math.huge
-		end
 
 		if entrance == "lightest" then
-			for i = 1, #targetNodesOut do
-				minDistances[targetNodesOut[i].targetId] = math.huge
+			for i = 1, #targetNodes do
+				minDistances[targetNodes[i].targetId] = createWeightInfo(math.huge)
 			end
+			for i = 1, #targetNodesOut do
+				minDistances[targetNodesOut[i].targetId] = createWeightInfo(math.huge)
+			end
+
 			if by == "lines" then
-				for i = 1, #targetNodes do
-					local targetNode = targetNodes[i]
-					calculateDistanceInTargetsAndSetIfLesser(cellPoint, targetNode, minDistances)
-					findShortestDistanceInLine(self, cellPoint, targetNode.line, minDistances)
-				end
-
-				for i = 1, #targetNodesOut do
-					local targetNode = targetNodesOut[i]
-					calculateDistanceInTargetsAndSetIfLesser(cellPoint, targetNode, minDistances)
-					findShortestDistanceInLine(self, cellPoint, targetNode.line, minDistances)
-				end
-
 				for i = 1, #linesList do
-					findShortestDistanceInLine(self, cellPoint, linesList[i], minDistances)
+					findLightestWeightInLine(self, cellPoint, linesList[i], minDistances)
 				end
 			elseif by == "points" then
 				for i = 1, #targetNodes do
@@ -1662,9 +1708,9 @@ Network_ = {
 			end
 		elseif entrance == "closest" then
 			if by == "lines" then
-				findClosestLinesToEachTarget(self.netpoints, cellPoint, minDistances)
+				findClosestLinesUsingRTree(self.netpoints, cellPoint, minDistances)
 			elseif by == "points" then
-				findClosestPointsToEachTarget(self, cellPoint, minDistances)
+				findClosestPoints(self, cellPoint, minDistances)
 			else
 				customError("Attribute 'by' must be 'lines' or 'points', but received '"..by.."'.")
 			end
