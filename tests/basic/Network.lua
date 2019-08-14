@@ -1156,7 +1156,7 @@ return {
 			unitTest:assertEquals(network.netpoints[line4.last.id].targetId, 1)
 		end
 
-		local checkBrazilPortsClosestLinesProperties = function()
+		local checkBrazilPortsProperties = function()
 			local roads = CellularSpace{
 				file = filePath("test/br_roads_5880.shp", "gpm"),
 				missing = 0
@@ -1443,6 +1443,40 @@ return {
 			checkNetworkProperties(network, #ports)
 		end
 
+		local checkBrazilPlantsProperties = function()
+			local roads = CellularSpace{
+				file = filePath("test/br_roads_5880.shp", "gpm"),
+				missing = 0
+			}
+
+			local plants = CellularSpace{
+				file = filePath("test/br_plants_5880.shp", "gpm"),
+				missing = 0
+			}
+
+			local customWarningBkp = customWarning
+			local warnMsgs = {}
+			customWarning = function() end
+
+			local network = Network{
+				lines = roads,
+				target = plants,
+				progress = false,
+				validate = false,
+				inside = function(distance, line)
+					return distance * line.custo_ajus * 1e-3
+				end,
+				outside = function(distance)
+					return distance * 0.002388 --< (1e-3 * 2 * 1.194)
+				end
+			}
+
+			customWarning = customWarningBkp
+
+			-- checkNetworkProperties(network, #plants)
+			unitTest:assert(true)
+		end
+
 		unitTest:assert(networkSetWeightAndOutsideEqualDistance)
 		unitTest:assert(networkSetWeightAndOutsideMultipliedBy2)
 		unitTest:assert(networkSetWeightAndOutsideDividedBy2)
@@ -1459,74 +1493,162 @@ return {
 		unitTest:assert(reviewNextNodeWhenItIsTargetNode)
 		unitTest:assert(lineHasTwoTargets)
 		unitTest:assert(lineHasTwoTargetsAnother)
-		unitTest:assert(checkBrazilPortsClosestLinesProperties)
+		unitTest:assert(checkBrazilPortsProperties)
 		unitTest:assert(hasTargetNodeAtReviewPreviousNodes)
 		unitTest:assert(hasTargetNodeAtSamePlace)
 		unitTest:assert(targetSecondNodeExists)
 		unitTest:assert(reviewingFirstOfSecondNode)
 		unitTest:assert(removeTargetNodeCircular)
+		unitTest:assert(checkBrazilPlantsProperties)
 	end,
 	distances = function(unitTest)
-		local roads = CellularSpace{
-			file = filePath("test/roads_sirgas2000_south3.shp", "gpm")
-		}
+		local weightOptions = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_sirgas2000_south3.shp", "gpm")
+			}
 
-		local ports = CellularSpace{
-			file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
-			missing = 0
-		}
+			local ports = CellularSpace{
+				file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
 
-		local network = Network{
-			lines = roads,
-			target = ports,
-			progress = false,
-			inside = function(distance)
-				return distance
-			end,
-			outside = function(distance)
-				return distance * 4
+			local network = Network{
+				lines = roads,
+				target = ports,
+				progress = false,
+				inside = function(distance)
+					return distance
+				end,
+				outside = function(distance)
+					return distance * 4
+				end
+			}
+
+			local port = ports:get("0")
+
+			local portEstrelaCs = CellularSpace{
+				file = filePath("test/port_estrela_sirgas2000.shp", "gpm"),
+				missing = 0
+			}
+
+			local portEstrelaCell = portEstrelaCs:get("0")
+
+			local lightestEntrance = function()
+				local distances = network:distances(port, "lightest")
+				unitTest:assertEquals(distances[0].weight, 8118.1838889808, 1.0e-10)
+
+
+				local distances2 = network:distances(port, "lightest", "points")
+				unitTest:assertEquals(distances2[0].weight, 0)
+
+				local distances3 = network:distances(portEstrelaCell, "lightest")
+				unitTest:assertEquals(distances3[0].weight, 196084.56388036, 1.0e-8)
+
+				local distances4 = network:distances(portEstrelaCell, "lightest", "points")
+				unitTest:assertEquals(distances4[0].weight, 196084.56388036, 1.0e-8)
 			end
-		}
 
-		local port = ports:get("0")
+			local closestEntrance = function()
+				local distances = network:distances(port, "closest")
+				unitTest:assertEquals(distances[0].weight, 8118.1838889808, 1.0e-10)
 
-		local portEstrelaCs = CellularSpace{
-			file = filePath("test/port_estrela_sirgas2000.shp", "gpm"),
-			missing = 0
-		}
+				local distances2 = network:distances(port, "closest", "points")
+				unitTest:assertEquals(distances2[0].weight, 0)
 
-		local portEstrelaCell = portEstrelaCs:get("0")
+				local distances3 = network:distances(portEstrelaCell, "closest")
+				unitTest:assertEquals(distances3[0].weight, 196084.56388036, 1.0e-8)
 
-		local lightestEntrance = function()
-			local distances = network:distances(port, "lightest")
-			unitTest:assertEquals(distances[0].weight, 8118.1838889808, 1.0e-10)
+				local distances4 = network:distances(portEstrelaCell, "closest", "points")
+				unitTest:assertEquals(distances4[0].weight, 196084.56388036, 1.0e-8)
+			end
 
-
-			local distances2 = network:distances(port, "lightest", "points")
-			unitTest:assertEquals(distances2[0].weight, 0)
-
-			local distances3 = network:distances(portEstrelaCell, "lightest")
-			unitTest:assertEquals(distances3[0].weight, 196084.56388036, 1.0e-8)
-
-			local distances4 = network:distances(portEstrelaCell, "lightest", "points")
-			unitTest:assertEquals(distances4[0].weight, 196084.56388036, 1.0e-8)
+			unitTest:assert(lightestEntrance)
+			unitTest:assert(closestEntrance)
 		end
 
-		local closestEntrance = function()
-			local distances = network:distances(port, "closest")
-			unitTest:assertEquals(distances[0].weight, 8118.1838889808, 1.0e-10)
+		local removeTargetButCellEnterInIt = function()
+			local communities = CellularSpace{
+				file = filePath("communities.shp", "gpm")
+			}
 
-			local distances2 = network:distances(port, "closest", "points")
-			unitTest:assertEquals(distances2[0].weight, 0)
+			local roads = CellularSpace{
+				file = filePath("roads.shp", "gpm")
+			}
 
-			local distances3 = network:distances(portEstrelaCell, "closest")
-			unitTest:assertEquals(distances3[0].weight, 196084.56388036, 1.0e-8)
+			local cells = CellularSpace{
+				file = filePath("cells.shp", "gpm")
+			}
 
-			local distances4 = network:distances(portEstrelaCell, "closest", "points")
-			unitTest:assertEquals(distances4[0].weight, 196084.56388036, 1.0e-8)
+			local network
+			local warn = function()
+				network = Network{
+					target = communities,
+					lines = roads,
+					progress = false,
+					inside = function(distance, cell)
+						if cell.STATUS == "paved" then
+							return distance / 5
+						else
+							return distance / 2
+						end
+					end,
+					outside = function(distance) return distance * 4 end
+				}
+			end
+
+			unitTest:assertWarning(warn, "Target '1' of line '10' was removed by target '2'.")
+
+			local count1 = 0
+			forEachCell(cells, function(cell)
+				local weights = network:distances(cell, "closest", "points")
+				for targetId, _ in pairs(weights) do
+					if targetId == 1 then
+						count1 = count1 + 1
+					end
+				end
+			end)
+
+			unitTest:assertEquals(count1, 55)
+
+			local count2 = 0
+			forEachCell(cells, function(cell)
+				local weights = network:distances(cell, "lightest", "points")
+				for targetId, _ in pairs(weights) do
+					if targetId == 1 then
+						count2 = count2 + 1
+					end
+				end
+			end)
+
+			unitTest:assertEquals(count2, 2254)
+			unitTest:assertEquals(#cells, count2)
+
+			local count3 = 0
+			forEachCell(cells, function(cell)
+				local weights = network:distances(cell, "closest", "lines")
+				for targetId, _ in pairs(weights) do
+					if targetId == 1 then
+						count3 = count3 + 1
+					end
+				end
+			end)
+
+			unitTest:assertEquals(count3, 0)
+
+			local count4 = 0
+			forEachCell(cells, function(cell)
+				local weights = network:distances(cell, "lightest", "lines")
+				for targetId, _ in pairs(weights) do
+					if targetId == 1 then
+						count4 = count4 + 1
+					end
+				end
+			end)
+
+			unitTest:assertEquals(count4, #cells)
 		end
 
-		unitTest:assert(lightestEntrance)
-		unitTest:assert(closestEntrance)
+		unitTest:assert(weightOptions)
+		unitTest:assert(removeTargetButCellEnterInIt)
 	end
 }

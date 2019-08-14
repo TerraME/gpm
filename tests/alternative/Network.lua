@@ -375,5 +375,22 @@ return {
 			network:distances(port, "rtree")
 		end
 		unitTest:assertError(invalidEntranceError, "Attribute 'entrance' must be 'closest' or 'lightest', but received 'rtree'.")
+
+		local invalidClosestByError = function()
+			network:distances(port, "closest", "square")
+		end
+		unitTest:assertError(invalidClosestByError, "Attribute 'by' must be 'lines' or 'points', but received 'square'.")
+
+		local invalidLightestByError = function()
+			network:distances(port, "lightest", "circle")
+		end
+		unitTest:assertError(invalidLightestByError, "Attribute 'by' must be 'lines' or 'points', but received 'circle'.")
+
+		local portNoGeom = ports:get("0")
+		portNoGeom.geom = nil
+		local cellHasNoGeometry = function()
+			network:distances(portNoGeom)
+		end
+		unitTest:assertError(cellHasNoGeometry, "Argument 'cell' must be associated with a geometry.")
 	end
 }

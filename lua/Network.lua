@@ -193,9 +193,7 @@ local function findClosestLine(point)
 		end
 	end
 
-	if outside then
-		minDistance = outside(minDistance)
-	end
+	minDistance = outside(minDistance)
 
 	return {line = closestLine, distance = minDistance}
 end
@@ -331,16 +329,16 @@ end
 
 local function updateProgressMsg(self, current, action)
 	if self.progress then
-		io.write(progressMsg(current, self.lines, action), "\r")
-		io.flush()
+		io.write(progressMsg(current, self.lines, action), "\r") -- SKIP
+		io.flush() -- SKIP
 	end
 end
 
 local function finalizeProgressMsg(self, current, action)
 	if self.progress then
-		io.write("                                               ", "\r")
-		io.flush()
-		print(progressMsg(current, self.lines, action))
+		io.write("                                               ", "\r") -- SKIP
+		io.flush() -- SKIP
+		print(progressMsg(current, self.lines, action)) -- SKIP
 	end
 end
 
@@ -480,8 +478,8 @@ local function joinConnectedLines(self, linesConnected)
 	local hadSomeJunction = false
 
 	if self.progress then
-		io.write(progressConnectingMsg(linesConnected), "\r")
-		io.flush()
+		io.write(progressConnectingMsg(linesConnected), "\r") -- SKIP
+		io.flush() -- SKIP
 	end
 
 	forEachElement(linesConnected, function(a, linesA)
@@ -511,9 +509,9 @@ local function isNetworkConnected(self, linesConnected)
 	joinConnectedLines(self, linesConnected)
 
 	if self.progress then
-		io.write("                                               ", "\r")
-		io.flush()
-		print(progressConnectingMsg(linesConnected))
+		io.write("                                               ", "\r") -- SKIP
+		io.flush() -- SKIP
+		print(progressConnectingMsg(linesConnected)) -- SKIP
 	end
 
 	if getn(linesConnected) > 1 then
@@ -575,8 +573,8 @@ local function saveErrorInfo(self, linesConnected)
 		cs:save(errorLayerName, netIdName)
 		proj.file:delete()
 		errMsg = "Data '"..errorLayerName.."."..File(linesCsLayer.file):extension()
-				.. "' was automatically created with attribute '"
-				..netIdName.."' containing the separated networks."
+				.. "' was automatically created with attribute '" -- SKIP
+				..netIdName.."' containing the separated networks." -- SKIP
 	end
 
 	return errMsg
@@ -603,10 +601,7 @@ end
 
 local function calculateFullDistance(node, point, line)
 	local distance = node.point:distance(point) -- TODO: this can be improved using delta distance
-
-	if inside then
-		distance = inside(distance, line.cell)
-	end
+	distance = inside(distance, line.cell)
 
 	return node.distance + distance
 end
@@ -675,11 +670,12 @@ end
 
 local function validateCircularPrevious(node, prev)
 	if node.router then
+		-- TODO(avancinirodrigo): ROUTER_ROUTER no longer exists, because a middle point (review)
 		if prev.router then
-			for i = 1, #node.previous do
-				for j = 1, #prev.previous do
-					if isPreviousCircular(node.previous[i], prev.previous[j]) then
-						return "ROUTER_ROUTER", i, j
+			for i = 1, #node.previous do -- SKIP
+				for j = 1, #prev.previous do -- SKIP
+					if isPreviousCircular(node.previous[i], prev.previous[j]) then  -- SKIP
+						return "ROUTER_ROUTER", i, j -- SKIP
 					end
 				end
 			end
@@ -740,38 +736,39 @@ local function reviewCircularPrevious(node, prev, graph)
 	local link, _, j = validateCircularPrevious(node, prev)
 	if link then
 		if (link == "ROUTER_ROUTER") or (link == "SIMPLE_ROUTER") then
-			local previous = prev.previous[j]
-			local distance = calculateFullDistance(node, previous.point, previous.line)
-			if previous.distance > distance then
-				local prevNext = previous.next
-				previous.distance = distance
-				previous.next = node
-				previous.targetId = node.targetId
-				removeNodeFromRouter(previous, node)
+			-- TODO(avancinirodrigo): no test data for this
+			local previous = prev.previous[j] -- SKIP
+			local distance = calculateFullDistance(node, previous.point, previous.line) -- SKIP
+			if previous.distance > distance then -- SKIP
+				local prevNext = previous.next -- SKIP
+				previous.distance = distance -- SKIP
+				previous.next = node -- SKIP
+				previous.targetId = node.targetId -- SKIP
+				removeNodeFromRouter(previous, node) -- SKIP
 
-				if previous.id == node.line.geom:getPointAsTextAt(0) then
-					previous.pos = 0
-				elseif previous.id == node.line.geom:getPointAsTextAt(node.line.npoints - 1) then
-					previous.pos = node.line.npoints - 1
+				if previous.id == node.line.geom:getPointAsTextAt(0) then -- SKIP
+					previous.pos = 0 -- SKIP
+				elseif previous.id == node.line.geom:getPointAsTextAt(node.line.npoints - 1) then -- SKIP
+					previous.pos = node.line.npoints - 1 -- SKIP
 				-- else -- uncomment for developement
 					-- --print("&", node.line.id, node.line.npoints, oldNextNodeLine.id,
 								-- oldNextNodeLine.npoints, nextNode.pos, nextNode.line.id)
 					-- customError("ERROR B")
 				end
 
-				previous.line = node.line
+				previous.line = node.line -- SKIP
 
-				for k = 1, #previous.previous do
-					distance = calculateFullDistance(previous, previous.previous[k].point, previous.previous[k].line)
-					if previous.previous[k].distance > distance then
-						node.previous[k].distance = distance
-						node.previous[k].targetId = node.targetId
-						reviewPreviousNodes(node.previous[k], graph)
+				for k = 1, #previous.previous do -- SKIP
+					distance = calculateFullDistance(previous, previous.previous[k].point, previous.previous[k].line) -- SKIP
+					if previous.previous[k].distance > distance then -- SKIP
+						node.previous[k].distance = distance -- SKIP
+						node.previous[k].targetId = node.targetId -- SKIP
+						reviewPreviousNodes(node.previous[k], graph) -- SKIP
 					end
 				end
 
-				insertPreviousNode(previous, prevNext)
-				reviewCircularPrevious(previous, prevNext, graph)
+				insertPreviousNode(previous, prevNext) -- SKIP
+				reviewCircularPrevious(previous, prevNext, graph) -- SKIP
 			end
 		else --if (link == "ROUTER_SIMPLE") or (link == "SIMPLE_SIMPLE") then
 			local previous = prev
@@ -828,9 +825,9 @@ reviewPreviousNodes = function(node, graph)
 	elseif node.previous then
 		local distance = calculateFullDistance(node, node.previous.point, node.previous.line)
 		if node.previous.distance > distance then
-			if node.previous.target then
-				adjustTargetPreviousNode(node, node.previous, graph)
-				reviewPreviousNodes(node.previous, graph)
+			if node.previous.target then -- TODO(avancinirodrigo): no test data for this
+				adjustTargetPreviousNode(node, node.previous, graph) -- SKIP
+				reviewPreviousNodes(node.previous, graph) -- SKIP
 			elseif node.previous.next.id == node.id then
 				node.previous.distance = distance
 				node.previous.targetId = node.targetId
@@ -1102,9 +1099,9 @@ local function reviewExistingFirstOrSecondNode(graph, firstOrSecondNode)
 	local oldNextNode = existingNode.next
 
 	if existingNode.previous then
-		existingNode.distance = firstOrSecondNode.distance
-		existingNode.targetId = firstOrSecondNode.targetId
-		reviewPreviousNodes(existingNode, graph)
+		existingNode.distance = firstOrSecondNode.distance -- SKIP
+		existingNode.targetId = firstOrSecondNode.targetId -- SKIP
+		reviewPreviousNodes(existingNode, graph) -- SKIP
 	end
 
 	graph[firstOrSecondNode.id] = firstOrSecondNode
@@ -1158,7 +1155,7 @@ local function reviewExistingFirstOrSecondNode(graph, firstOrSecondNode)
 		-- if currNode.router then -- uncomment for developement
 			-- customError("ROUTER 1")
 		-- end
-		currNode.previous = oldNextNode
+		currNode.previous = oldNextNode -- SKIP
 	end
 end
 
@@ -1197,8 +1194,8 @@ local function addAllNodesOfTargetLines(graph, firstNode, targetNode)
 			if graph[secNode.id].distance > secNode.distance then
 				reviewExistingFirstOrSecondNode(graph, secNode)
 			else
-				targetNodeCannotEnter(graph, targetNode, graph[secNode.id])
-				graph[firstNode.id] = nil
+				targetNodeCannotEnter(graph, targetNode, graph[secNode.id]) -- SKIP
+				graph[firstNode.id] = nil -- SKIP
 				return
 			end
 		else
@@ -1236,9 +1233,7 @@ local function findFirstPoint(closestPoint, line)
 		end
 	end
 
-	if inside then
-		pointInfo.distance = inside(pointInfo.distance, line.cell)
-	end
+	pointInfo.distance = inside(pointInfo.distance, line.cell)
 
 	return pointInfo
 end
@@ -1329,8 +1324,8 @@ local function addNodesInDirection(self, line, lineEndpointId, lineToAdd, direct
 		computedLines[lineToAdd.id] = lineToAdd
 
 		if self.progress then
-			io.write(progressProcessingMsg(self.lines), "\r")
-			io.flush()
+			io.write(progressProcessingMsg(self.lines), "\r") -- SKIP
+			io.flush() -- SKIP
 		end
 	end
 end
@@ -1379,8 +1374,8 @@ local function unexpectedError(self)
 	end
 
 	if self.progress then
-		io.write("                                               ", "\r")
-		io.flush()
+		io.write("                                               ", "\r") -- SKIP
+		io.flush() -- SKIP
 	end
 
 	local errorAppendMsg = "If you have already validated your data, report this error to system developers."
@@ -1411,9 +1406,9 @@ local function addNodesFromNonAdjacentsToTargetLines(self)
 		end
 		addNodesFromNonAdjacentsToTargetLines(self)
 	elseif self.progress then
-		io.write("                                               ", "\r")
-		io.flush()
-		print(progressProcessingMsg(self.lines))
+		io.write("                                               ", "\r") -- SKIP
+		io.flush() -- SKIP
+		print(progressProcessingMsg(self.lines)) -- SKIP
 	end
 end
 
@@ -1456,44 +1451,12 @@ end
 
 local function calculateDistanceAndSetIfLesser(point, currNode, minDistances)
 	local distanceOut = point:distance(currNode.point)
-	if outside then
-		distanceOut = outside(distanceOut)
-	end
+	distanceOut = outside(distanceOut)
 
 	local distance = distanceOut + currNode.distance
 
 	if minDistances[currNode.targetId].weight >= distance then
 		minDistances[currNode.targetId] = createWeightInfo(distance, currNode)
-	end
-end
-
-local function calculateDistanceAndSetIfLesserByNode(node, point, line, minDistances)
-	table.insert(linesNodesList[line.id], node)
-	calculateDistanceAndSetIfLesser(point, node, minDistances)
-end
-
-local function findShortestDistanceInLine(self, point, line, minDistances)
-	if linesNodesList[line.id] then
-		for i = 1, #linesNodesList[line.id] do
-			local currNode = linesNodesList[line.id][i]
-			calculateDistanceAndSetIfLesser(point, currNode, minDistances)
-		end
-	else
-		linesNodesList[line.id] = {}
-		if line.npoints == 2 then
-			local node = self.netpoints[line.first.id]
-			calculateDistanceAndSetIfLesserByNode(node, point, line, minDistances)
-			calculateDistanceAndSetIfLesserByNode(node.next, point, line, minDistances)
-			node = self.netpoints[line.last.id]
-			calculateDistanceAndSetIfLesserByNode(node, point, line, minDistances)
-			calculateDistanceAndSetIfLesserByNode(node.next, point, line, minDistances)
-		else
-			for i = 0, line.npoints - 1 do
-				local currPointId = line.geom:getPointAsTextAt(i)
-				local currNode = self.netpoints[currPointId]
-				calculateDistanceAndSetIfLesserByNode(currNode, point, line, minDistances)
-			end
-		end
 	end
 end
 
@@ -1512,20 +1475,8 @@ local function getClosestNodeWithWeight(netpoints, point, line)
 	end
 
 	local outsideDistance = point:distance(closestPoint)
-
-	local weight
-
-	if inside then
-		weight = inside(insideDistance, closestNode.line.cell)
-	else
-		weight = insideDistance
-	end
-
-	if outside then
-		weight = weight + outside(outsideDistance) + closestNode.distance
-	else
-		weight = weight + outsideDistance + closestNode.distance
-	end
+	local weight = inside(insideDistance, closestNode.line.cell)
+	weight = weight + outside(outsideDistance) + closestNode.distance
 
 	return closestNode, weight
 end
@@ -1539,9 +1490,7 @@ end
 
 local function calculateDistanceInTargetsAndSetIfLesser(point, targetNode, minDistances)
 	local distance = point:distance(targetNode.targetPoint)
-	if outside then
-		distance = outside(distance)
-	end
+	distance = outside(distance)
 
 	if minDistances[targetNode.targetId].weight > distance then
 		minDistances[targetNode.targetId] = createWeightInfo(distance, targetNode)
@@ -1572,11 +1521,11 @@ local function searchInRTree(netpoints, point)
 			end
 		end
 	else
-		for i = 1, #linesList do
-			local distance = point:distance(linesList[i].geom)
-			if distance < minDistanceLine then
-				minDistanceLine = distance
-				closestLine = linesList[i]
+		for i = 1, #linesList do -- SKIP
+			local distance = point:distance(linesList[i].geom) -- SKIP
+			if distance < minDistanceLine then -- SKIP
+				minDistanceLine = distance -- SKIP
+				closestLine = linesList[i] -- SKIP
 			end
 		end
 	end
@@ -1627,11 +1576,7 @@ local function findClosestPoints(self, point, minDistances)
 		end
 	end
 
-	if outside then
-		minDistance = outside(minDistance) + closestNode.distance
-	else
-		minDistance = minDistance + closestNode.distance
-	end
+	minDistance = outside(minDistance) + closestNode.distance
 
 	minDistances[closestNode.targetId] = createWeightInfo(minDistance, closestNode)
 end
