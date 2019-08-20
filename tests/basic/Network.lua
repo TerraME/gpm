@@ -315,16 +315,25 @@ return {
 			unitTest:assertEquals(router.line.id, router.next.line.id)
 			for i = 1, #router.previous do
 				unitTest:assert(router.id ~= router.previous[i].id)
-				if router.id == router.previous[i].next.id then
-					unitTest:assert(router.distance < router.previous[i].distance)
-					unitTest:assertEquals(router.targetId, router.previous[i].targetId)
+				if router.previous[i].target then
+					unitTest:assert((router.id == router.previous[i].first.id)
+									or (router.id == router.previous[i].second.id))
+					unitTest:assert(router.targetId ~= router.previous[i].targetId)
+				else
+					if router.id == router.previous[i].next.id then
+						unitTest:assert(router.distance < router.previous[i].distance)
+						unitTest:assertEquals(router.targetId, router.previous[i].targetId)
+					end
+					unitTest:assert(router.distance > router.next.distance)
+					unitTest:assert(router.line.id ~= router.previous[i].line.id)
 				end
-				unitTest:assert(router.distance > router.next.distance)
-				unitTest:assert(router.line.id ~= router.previous[i].line.id)
 			end
 		end
 
 		local isPreviousCircular = function(node, previousNode)
+			if previousNode.target then
+				return node.next.id ~= previousNode.id
+			end
 			return previousNode.next.id ~= node.id
 		end
 
@@ -333,23 +342,37 @@ return {
 				if node.router then
 					for i = 1, #node.previous do
 						if isPreviousCircular(node, node.previous[i]) then
-							unitTest:assert(node.previous[i].previous.id == node.id)
+							if node.previous[i].target then
+								unitTest:assert((node.id == node.previous[i].first.id)
+												or (node.id == node.previous[i].second.id))
+							else
+								unitTest:assert(node.previous[i].previous.id == node.id)
+							end
 						end
 					end
 				elseif not node.previous.router then
 					if isPreviousCircular(node, node.previous) then
-						unitTest:assert(node.previous.previous.id == node.id)
+						if node.previous.target then
+							unitTest:assert((node.id == node.previous.first.id)
+											or (node.id == node.previous.second.id))
+						else
+							unitTest:assert(node.previous.previous.id == node.id)
+						end
 					end
 				end
 			end
 		end
 
-		local checkTargetIdProperties = function(node, firstNode, lastNode, numOfTargets)
+		local checkTargetIdProperties = function(node, firstNode, lastNode, line, numOfTargets)
 			unitTest:assert((node.targetId >= 0) and (node.targetId <= numOfTargets - 1))
-			unitTest:assert((node.targetId == firstNode.targetId)
-							or (node.targetId == lastNode.targetId))
+			if not ((node.targetId == firstNode.targetId)
+					or (node.targetId == lastNode.targetId)) then
+				unitTest:assert((firstNode.line.targetNode ~= nil) or (node.line.targetNode ~= nil))
+			end
 			if firstNode.targetId == lastNode.targetId then
-				unitTest:assertEquals(node.targetId, firstNode.targetId) -- SKIP
+				if node.targetId ~= firstNode.targetId then
+					unitTest:assertNotNil(line.targetNode)
+				end
 			end
 			if node.target then
 				unitTest:assertEquals(node.targetId, node.first.targetId) -- SKIP
@@ -361,18 +384,37 @@ return {
 		end
 
 		local checkNetworkProperties = function(network, numOfTargets)
+			local checkTargetMiddlePoint = function(targetNode)
+				if targetNode.line.npoints == 2 then
+					return (targetNode.first.pos == 0.5)
+							or (targetNode.second.pos == 0.5)
+				end
+				return true
+			end
+			local checkRouterMiddlePoint = function(router)
+				if router.next.pos == 0.5 then return true end
+				if router.next.pos == 0.1 then
+					local targetNode = router.next
+					if targetNode.line.npoints == 2 then
+						return (targetNode.first.pos == 0.5)
+								or (targetNode.second.pos == 0.5)
+					end
+				end
+				for i = 1, #router.previous do
+					if router.previous[i].pos == 0.5 then
+						return true
+					elseif router.previous[i].pos == 0.1 then
+						local targetNode = router.previous[i]
+						if targetNode.line.npoints == 2 then
+							return (targetNode.first.pos == 0.5)
+									or (targetNode.second.pos == 0.5)
+						end
+					end
+				end
+				return false
+			end
 			for _, line in pairs(network.lines) do
 				if line.npoints == 2 then
-					local checkRouterMiddlePoint = function(router)
-						if router.next.pos == 0.5 then return true end
-						for i = 1, #router.previous do
-							if router.previous[i].pos == 0.5 then
-								return true
-							end
-						end
-						return false
-					end
-
 					local firstNode = network.netpoints[line.first.id]
 					local lastNode = network.netpoints[line.last.id]
 
@@ -381,12 +423,28 @@ return {
 						if lastNode.router then
 							unitTest:assert(checkRouterMiddlePoint(lastNode))
 						elseif lastNode.previous then
-							unitTest:assert((lastNode.next.pos == 0.5) or (lastNode.previous.pos == 0.5))
+							unitTest:assert((lastNode.next.pos == 0.5) or (lastNode.previous.pos == 0.5)
+											or (lastNode.next.pos == 0.1) or (lastNode.previous.pos == 0.1))
+							if lastNode.next.pos == 0.1 then
+								unitTest:assert(checkTargetMiddlePoint(lastNode.next))
+							elseif lastNode.previous.pos == 0.1 then
+								unitTest:assert(checkTargetMiddlePoint(lastNode.previous)) -- SKIP
+							else
+								unitTest:assert((lastNode.next.pos == 0.5) or (lastNode.previous.pos == 0.5))
+							end
 						end
 					elseif lastNode.router then
 						unitTest:assert(checkRouterMiddlePoint(lastNode))
 						if firstNode.previous then
-							unitTest:assert((firstNode.next.pos == 0.5) or (firstNode.previous.pos == 0.5))
+							unitTest:assert((firstNode.next.pos == 0.5) or (firstNode.previous.pos == 0.5)
+											or (firstNode.next.pos == 0.1) or (firstNode.previous.pos == 0.1))
+							if firstNode.next.pos == 0.1 then
+								unitTest:assert(checkTargetMiddlePoint(firstNode.next))
+							elseif firstNode.previous.pos == 0.1 then
+								unitTest:assert(checkTargetMiddlePoint(firstNode.previous)) -- SKIP
+							else
+								unitTest:assert((firstNode.next.pos == 0.5) or (firstNode.previous.pos == 0.5))
+							end
 						end
 					elseif firstNode.previous then
 						unitTest:assert((firstNode.next.pos == 0.5) or (firstNode.previous.pos == 0.5))
@@ -416,7 +474,7 @@ return {
 						unitTest:assertEquals(node.pos, i) -- SKIP
 					end
 					checkPreviousCircularProperties(node)
-					checkTargetIdProperties(node, firstNode, lastNode, numOfTargets)
+					checkTargetIdProperties(node, firstNode, lastNode, line, numOfTargets)
 				end
 			end
 		end
@@ -1455,7 +1513,6 @@ return {
 			}
 
 			local customWarningBkp = customWarning
-			local warnMsgs = {}
 			customWarning = function() end
 
 			local network = Network{
@@ -1473,8 +1530,71 @@ return {
 
 			customWarning = customWarningBkp
 
-			-- checkNetworkProperties(network, #plants)
-			unitTest:assert(true)
+			checkNetworkProperties(network, #plants)
+		end
+
+		local problemWithRouterInAdjustTargetPreviousNode = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_node_next_problem.shp", "gpm"),
+				missing = 0
+			}
+
+			local plants = CellularSpace{
+				file = filePath("test/plants_node_next_problem.shp", "gpm"),
+				missing = 0
+			}
+
+			local customWarningBkp = customWarning
+			customWarning = function() end
+
+			local network = Network{
+				lines = roads,
+				target = plants,
+				progress = false,
+				validate = false,
+				inside = function(distance, line)
+					return distance * line.custo_ajus * 1e-3
+				end,
+				outside = function(distance)
+					return distance * 0.002388 --< (1e-3 * 2 * 1.194)
+				end
+			}
+
+			customWarning = customWarningBkp
+
+			checkNetworkProperties(network, #plants)
+		end
+
+		local problemWithNextNodeOfRemovedTarget = function()
+			local roads = CellularSpace{
+				file = filePath("test/roads_node_next_problem2.shp", "gpm"),
+				missing = 0
+			}
+
+			local plants = CellularSpace{
+				file = filePath("test/plants_node_next_problem2.shp", "gpm"),
+				missing = 0
+			}
+
+			local customWarningBkp = customWarning
+			customWarning = function() end
+
+			local network = Network{
+				lines = roads,
+				target = plants,
+				progress = false,
+				validate = false,
+				inside = function(distance, line)
+					return distance * line.custo_ajus * 1e-3
+				end,
+				outside = function(distance)
+					return distance * 0.002388 --< (1e-3 * 2 * 1.194)
+				end
+			}
+
+			customWarning = customWarningBkp
+
+			checkNetworkProperties(network, #plants)
 		end
 
 		unitTest:assert(networkSetWeightAndOutsideEqualDistance)
@@ -1500,6 +1620,8 @@ return {
 		unitTest:assert(reviewingFirstOfSecondNode)
 		unitTest:assert(removeTargetNodeCircular)
 		unitTest:assert(checkBrazilPlantsProperties)
+		unitTest:assert(problemWithRouterInAdjustTargetPreviousNode)
+		unitTest:assert(problemWithNextNodeOfRemovedTarget)
 	end,
 	distances = function(unitTest)
 		local weightOptions = function()

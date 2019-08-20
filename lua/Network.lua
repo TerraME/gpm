@@ -31,7 +31,6 @@ local adjacentLines
 local targetNodes
 local targetNodesOut
 local linesList
-local linesNodesList
 local linesRTree
 local nearestFactor
 
@@ -148,6 +147,7 @@ local function removeTargetInfoInLine(targetLine)
 	targetLines[targetLine.id] = nil
 	targetLine.shortestPath = nil
 	targetLine.closestPoint = nil
+	targetLine.targetNode = nil
 end
 
 local function addTargetInfoInLine(targetLine, closestPoint, distance)
@@ -265,6 +265,7 @@ local function findAndAddTargetNodes(self)
 			if existingNode.distance > newNode.distance then
 				addTargetInfoInLine(closestLine.line, closestPoint, closestLine.distance)
 				self.netpoints[closestPoint.id] = newNode
+				targetLine.targetNode = self.netpoints[closestPoint.id]
 				moreThanOneTargetInSameLineWarning(existingNode, newNode)
 				table.insert(targetNodesOut, existingNode)
 			else
@@ -275,6 +276,7 @@ local function findAndAddTargetNodes(self)
 			addTargetInfoInLine(closestLine.line, closestPoint, closestLine.distance)
 			self.netpoints[closestPoint.id] = createTargetNode(closestPoint.point,
 												targetLine.shortestPath, targetLine, targetId, targetPoint)
+			targetLine.targetNode = self.netpoints[closestPoint.id]
 		end
 	end)
 
@@ -709,6 +711,16 @@ end
 
 local reviewPreviousNodes -- forward function
 
+local function insertPreviousNode(node, prev)
+	if node.router then
+		insertPreviousNodeOnRouter(node, prev)
+	elseif node.previous then
+		addPreviousNode(node, prev)
+	else
+		node.previous = prev
+	end
+end
+
 local function targetRemovedWarning(node, targetNode)
 	customWarning("Target '"..targetNode.targetId.."' of line '"
 					..targetNode.line.id.."' was removed by target '"
@@ -721,15 +733,28 @@ local function adjustTargetPreviousNode(node, targetNode, graph)
 	removeTargetInfoInLine(targetNode.line)
 	targetLinesOut[targetNode.line.id] = targetNode.line
 	graph[targetNode.id] = nil
+
 	if node.id == targetNode.first.id then
-		node.previous = targetNode.second
+		insertPreviousNode(node, targetNode.second)
 	elseif node.id == targetNode.second.id then
-		node.previous = targetNode.first
+		insertPreviousNode(node, targetNode.first)
 	end
-	local distance = calculateFullDistance(node, node.previous.point, node.previous.line)
-	node.previous.distance = distance
-	node.previous.targetId = node.targetId
-	node.previous.next = node
+
+	if node.router then
+		for i = 1, #node.previous do
+			local distance = calculateFullDistance(node, node.previous[i].point, node.previous[i].line)
+			node.previous[i].distance = distance
+			node.previous[i].targetId = node.targetId
+			node.previous[i].next = node
+			reviewPreviousNodes(node.previous[i], graph)
+		end
+	else
+		local distance = calculateFullDistance(node, node.previous.point, node.previous.line)
+		node.previous.distance = distance
+		node.previous.targetId = node.targetId
+		node.previous.next = node
+		reviewPreviousNodes(node.previous, graph)
+	end
 end
 
 local function reviewCircularPrevious(node, prev, graph)
@@ -772,7 +797,16 @@ local function reviewCircularPrevious(node, prev, graph)
 			end
 		else --if (link == "ROUTER_SIMPLE") or (link == "SIMPLE_SIMPLE") then
 			local previous = prev
-			local distance = calculateFullDistance(node, previous.point, previous.line)
+			local prevFixedEndpoint = {pos = previous.pos, line = previous.line}
+			if previous.id == node.line.geom:getPointAsTextAt(0) then
+				prevFixedEndpoint.pos = 0
+				prevFixedEndpoint.line = node.line
+			elseif previous.id == node.line.geom:getPointAsTextAt(node.line.npoints - 1) then
+				prevFixedEndpoint.pos = node.line.npoints - 1
+				prevFixedEndpoint.line = node.line
+			end
+
+			local distance = calculateFullDistance(node, previous.point, prevFixedEndpoint.line)
 			if previous.distance > distance then
 				local prevNext = previous.next
 				previous.distance = distance
@@ -783,21 +817,15 @@ local function reviewCircularPrevious(node, prev, graph)
 					-- customError("ERROR F")
 				-- end
 
-				if previous.id == node.line.geom:getPointAsTextAt(0) then
-					previous.pos = 0
-					previous.line = node.line
-				elseif previous.id == node.line.geom:getPointAsTextAt(node.line.npoints - 1) then
-					previous.pos = node.line.npoints - 1
-					previous.line = node.line
-				end
+				previous.pos = prevFixedEndpoint.pos
+				previous.line = prevFixedEndpoint.line
 
 				if prevNext.target then
 					distance = calculateFullDistance(previous, prevNext.point, prevNext.line)
 					if prevNext.distance > distance then
 						adjustTargetPreviousNode(previous, prevNext, graph)
-						reviewPreviousNodes(previous.previous, graph)
 					else
-						previous.previous = prevNext
+						insertPreviousNode(previous, prevNext)
 					end
 				else
 					previous.previous = prevNext
@@ -827,7 +855,6 @@ reviewPreviousNodes = function(node, graph)
 		if node.previous.distance > distance then
 			if node.previous.target then -- TODO(avancinirodrigo): no test data for this
 				adjustTargetPreviousNode(node, node.previous, graph) -- SKIP
-				reviewPreviousNodes(node.previous, graph) -- SKIP
 			elseif node.previous.next.id == node.id then
 				node.previous.distance = distance
 				node.previous.targetId = node.targetId
@@ -839,22 +866,11 @@ reviewPreviousNodes = function(node, graph)
 	end
 end
 
-local function insertPreviousNode(node, prev)
-	if node.router then
-		insertPreviousNodeOnRouter(node, prev)
-	elseif node.previous then
-		addPreviousNode(node, prev)
-	else
-		node.previous = prev
-	end
-end
-
 local function reviewNextNodes(node, nextNode, readingLine, graph)
 	local distance = calculateFullDistance(node, nextNode.point, readingLine)
 	if nextNode.distance > distance then
 		if nextNode.target then
 			adjustTargetPreviousNode(node, nextNode, graph)
-			reviewPreviousNodes(node.previous, graph)
 			return
 		end
 
@@ -1714,19 +1730,29 @@ Network_ = {
 				-- if currNode.router then
 					-- local routerLine = currNode.line
 					-- for r = 1, #currNode.previous do
-						-- _Gtme.print("prev,"..i.. ":"..currNode.previous[r].line.cell[attribute],
-								-- "prev-next:"..currNode.previous[r].next.line.cell[attribute],
-								-- "prev-pos:"..currNode.previous[r].pos,
-								-- "prev-dist:"..currNode.previous[r].distance,
-								-- "prev-next-pos:"..currNode.previous[r].next.pos,
-								-- "router-pos:"..currNode.pos,
-								-- "prev-targetId:"..currNode.previous[r].targetId)
-						-- if currNode.previous[r].next.id == currNode.id then
-							-- if currNode.previous[r].line.id == routerLine.id then
-								-- customError("ROUTER ERROR 1!")
-								-- --print("ROUTER ERROR 1!")
-							-- elseif currNode.previous[r].distance < currNode.distance then
-								-- customError("ROUTER ERROR 2!")
+						-- if currNode.previous[r].target then
+							-- _Gtme.print("prev,"..i.. ":"..currNode.previous[r].line.cell[attribute],
+									-- --"prev-next:"..currNode.previous[r].next.line.cell[attribute],
+									-- "prev-pos:"..currNode.previous[r].pos,
+									-- "prev-dist:"..currNode.previous[r].distance,
+									-- --"prev-next-pos:"..currNode.previous[r].next.pos,
+									-- "router-pos:"..currNode.pos,
+									-- "prev-targetId:"..currNode.previous[r].targetId)
+						-- else
+							-- _Gtme.print("prev,"..i.. ":"..currNode.previous[r].line.cell[attribute],
+									-- "prev-next:"..currNode.previous[r].next.line.cell[attribute],
+									-- "prev-pos:"..currNode.previous[r].pos,
+									-- "prev-dist:"..currNode.previous[r].distance,
+									-- "prev-next-pos:"..currNode.previous[r].next.pos,
+									-- "router-pos:"..currNode.pos,
+									-- "prev-targetId:"..currNode.previous[r].targetId)
+							-- if currNode.previous[r].next.id == currNode.id then
+								-- if currNode.previous[r].line.id == routerLine.id then
+									-- customError("ROUTER ERROR 1!")
+									-- --print("ROUTER ERROR 1!")
+								-- elseif currNode.previous[r].distance < currNode.distance then
+									-- customError("ROUTER ERROR 2!")
+								-- end
 							-- end
 						-- end
 					-- end
@@ -1838,7 +1864,6 @@ function Network(data)
 	targetNodes = {}
 	targetNodesOut = {}
 	linesList = {}
-	linesNodesList = {}
 	setUpLinesRTree()
 
 	createOpenNetwork(data)
