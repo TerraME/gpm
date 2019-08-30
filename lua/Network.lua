@@ -1497,7 +1497,7 @@ local function getClosestNodeWithWeight(netpoints, point, line)
 	return closestNode, weight
 end
 
-local function findLightestWeightInLine(self, point, line, minDistances)
+local function findLowestWeightInLine(self, point, line, minDistances)
 	local closestNode, weight = getClosestNodeWithWeight(self.netpoints, point, line)
 	if minDistances[closestNode.targetId].weight > weight then
 		minDistances[closestNode.targetId] = createWeightInfo(weight, closestNode)
@@ -1603,10 +1603,10 @@ Network_ = {
 	-- The keys are the target ids and the values are the minimal distances to the targets through the Network.
 	-- @arg cell A cell with a geometry.
 	-- @arg entrance A string which indicates if the cell will enter in the Network by
-	-- closest point or line, or by the point with the lightest weight.
+	-- closest point or line, or by the point with the lowest weight.
 	-- The argument "closest" (default) means that the cell will enter in the closest node of the Network by
 	-- the shortest Euclidean distance, which can be calculated by points or by lines.
-	-- Using "lightest" means that the cell will enter in the node with the lightest weight among all nodes.
+	-- Using "lowest" means that the cell will enter in the node with the lowest weight among all nodes.
 	-- @arg by A string which indicates if the weight will be calculated using point-to-point
 	-- or by the lines.
 	-- Point-to-point "points" means that the function is going to calculate the weight from the cell centroid to
@@ -1638,7 +1638,7 @@ Network_ = {
 
 		local minDistances = {}
 
-		if entrance == "lightest" then
+		if entrance == "lowest" then
 			for i = 1, #targetNodes do
 				minDistances[targetNodes[i].targetId] = createWeightInfo(math.huge)
 			end
@@ -1648,7 +1648,7 @@ Network_ = {
 
 			if by == "lines" then
 				for i = 1, #linesList do
-					findLightestWeightInLine(self, cellPoint, linesList[i], minDistances)
+					findLowestWeightInLine(self, cellPoint, linesList[i], minDistances)
 				end
 			elseif by == "points" then
 				for i = 1, #targetNodes do
@@ -1676,7 +1676,7 @@ Network_ = {
 				customError("Attribute 'by' must be 'lines' or 'points', but received '"..by.."'.")
 			end
 		else
-			customError("Attribute 'entrance' must be 'closest' or 'lightest', but received '"..entrance.."'.")
+			customError("Attribute 'entrance' must be 'closest' or 'lowest', but received '"..entrance.."'.")
 		end
 
 		return minDistances

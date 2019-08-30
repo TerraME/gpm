@@ -34,7 +34,7 @@ network = Network{
 gpm = GPM{
 	destination = network,
 	origin = cells,
-	entrance = "lightest",
+	entrance = "lowest",
 	by = "points",
 }
 

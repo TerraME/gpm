@@ -633,7 +633,7 @@ metaTableGPM_ = {
 -- while processing values. The default value is true.
 -- @arg data.strategy An optional string with the strategy to create a GPM.
 -- @arg data.entrance Optional string wich indicates if the cell will enter in the Network by
--- closest point or line, or by the point with the lightest weight. The default is "closest".
+-- closest point or line, or by the point with the lowest weight. The default is "closest".
 -- @arg data.by Optional string that can used when the destination is a Network.
 -- Its values can be "points" or "lines" which indicates how the distances will be calculated.
 -- The default is "lines".

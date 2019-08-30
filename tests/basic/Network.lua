@@ -1655,18 +1655,18 @@ return {
 
 			local portEstrelaCell = portEstrelaCs:get("0")
 
-			local lightestEntrance = function()
-				local distances = network:distances(port, "lightest")
+			local lowestEntrance = function()
+				local distances = network:distances(port, "lowest")
 				unitTest:assertEquals(distances[0].weight, 8118.1838889808, 1.0e-10)
 
 
-				local distances2 = network:distances(port, "lightest", "points")
+				local distances2 = network:distances(port, "lowest", "points")
 				unitTest:assertEquals(distances2[0].weight, 0)
 
-				local distances3 = network:distances(portEstrelaCell, "lightest")
+				local distances3 = network:distances(portEstrelaCell, "lowest")
 				unitTest:assertEquals(distances3[0].weight, 196084.56388036, 1.0e-8)
 
-				local distances4 = network:distances(portEstrelaCell, "lightest", "points")
+				local distances4 = network:distances(portEstrelaCell, "lowest", "points")
 				unitTest:assertEquals(distances4[0].weight, 196084.56388036, 1.0e-8)
 			end
 
@@ -1684,7 +1684,7 @@ return {
 				unitTest:assertEquals(distances4[0].weight, 196084.56388036, 1.0e-8)
 			end
 
-			unitTest:assert(lightestEntrance)
+			unitTest:assert(lowestEntrance)
 			unitTest:assert(closestEntrance)
 		end
 
@@ -1734,7 +1734,7 @@ return {
 
 			local count2 = 0
 			forEachCell(cells, function(cell)
-				local weights = network:distances(cell, "lightest", "points")
+				local weights = network:distances(cell, "lowest", "points")
 				for targetId, _ in pairs(weights) do
 					if targetId == 1 then
 						count2 = count2 + 1
@@ -1759,7 +1759,7 @@ return {
 
 			local count4 = 0
 			forEachCell(cells, function(cell)
-				local weights = network:distances(cell, "lightest", "lines")
+				local weights = network:distances(cell, "lowest", "lines")
 				for targetId, _ in pairs(weights) do
 					if targetId == 1 then
 						count4 = count4 + 1

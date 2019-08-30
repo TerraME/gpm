@@ -72,7 +72,7 @@ strategy     string [border]
 			local gpm = GPM{
 				origin = farmsCs,
 				destination = network,
-				entrance = "lightest",
+				entrance = "lowest",
 				by = "points",
 				progress = false
 			}
@@ -648,7 +648,7 @@ strategy     string [border]
 			local gpm = GPM{
 				destination = network,
 				origin = cells,
-				entrance = "lightest",
+				entrance = "lowest",
 				progress = false
 			}
 
@@ -661,7 +661,7 @@ strategy     string [border]
 			local gpm2 = GPM{
 				destination = network,
 				origin = cells,
-				entrance = "lightest",
+				entrance = "lowest",
 				by = "points",
 				progress = false
 			}
@@ -753,7 +753,7 @@ strategy     string [border]
 			local gpm3 = GPM{
 				destination = network,
 				origin = cells,
-				entrance = "lightest",
+				entrance = "lowest",
 				progress = false
 			}
 
@@ -770,7 +770,7 @@ strategy     string [border]
 				color = {"red", "blue", "green", "brown"}
 			}
 
-			unitTest:assertSnapshot(map3, "gpm_lightest_lines.png")
+			unitTest:assertSnapshot(map3, "gpm_lowest_lines.png")
 
 			forEachCell(cells, function(cell)
 				cell.LOCALIDADE = nil
@@ -779,7 +779,7 @@ strategy     string [border]
 			local gpm4 = GPM{
 				destination = network,
 				origin = cells,
-				entrance = "lightest",
+				entrance = "lowest",
 				by = "points",
 				progress = false
 			}
@@ -797,7 +797,7 @@ strategy     string [border]
 				color = {"red", "blue", "green", "brown"}
 			}
 
-			unitTest:assertSnapshot(map4, "gpm_lightest_points.png")
+			unitTest:assertSnapshot(map4, "gpm_lowest_points.png")
 		end
 
 		local gtcBrazilPortsClosestLines = function()
@@ -1054,7 +1054,7 @@ strategy     string [border]
 		local gpm = GPM{
 			destination = network,
 			origin = farms,
-			entrance = "lightest",
+			entrance = "lowest",
 			by = "points",
 			progress = false
 		}

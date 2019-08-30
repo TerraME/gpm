@@ -374,17 +374,17 @@ return {
 		local invalidEntranceError = function()
 			network:distances(port, "rtree")
 		end
-		unitTest:assertError(invalidEntranceError, "Attribute 'entrance' must be 'closest' or 'lightest', but received 'rtree'.")
+		unitTest:assertError(invalidEntranceError, "Attribute 'entrance' must be 'closest' or 'lowest', but received 'rtree'.")
 
 		local invalidClosestByError = function()
 			network:distances(port, "closest", "square")
 		end
 		unitTest:assertError(invalidClosestByError, "Attribute 'by' must be 'lines' or 'points', but received 'square'.")
 
-		local invalidLightestByError = function()
-			network:distances(port, "lightest", "circle")
+		local invalidLowestByError = function()
+			network:distances(port, "lowest", "circle")
 		end
-		unitTest:assertError(invalidLightestByError, "Attribute 'by' must be 'lines' or 'points', but received 'circle'.")
+		unitTest:assertError(invalidLowestByError, "Attribute 'by' must be 'lines' or 'points', but received 'circle'.")
 
 		local portNoGeom = ports:get("0")
 		portNoGeom.geom = nil
