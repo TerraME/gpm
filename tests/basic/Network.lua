@@ -1216,12 +1216,12 @@ return {
 
 		local checkBrazilPortsProperties = function()
 			local roads = CellularSpace{
-				file = filePath("test/br_roads_5880.shp", "gpm"),
+				file = filePath("br_roads_5880.shp", "gpm"),
 				missing = 0
 			}
 
 			local ports = CellularSpace{
-				file = filePath("test/br_ports_5880.shp", "gpm")
+				file = filePath("br_ports_5880.shp", "gpm")
 			}
 
 			local network = Network{
@@ -1503,7 +1503,7 @@ return {
 
 		local checkBrazilPlantsProperties = function()
 			local roads = CellularSpace{
-				file = filePath("test/br_roads_5880.shp", "gpm"),
+				file = filePath("br_roads_5880.shp", "gpm"),
 				missing = 0
 			}
 

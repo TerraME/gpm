@@ -811,13 +811,13 @@ strategy     string [border]
 			local l1 = gis.Layer{
 				project = proj,
 				name = "Roads",
-				file = filePath("test/br_roads_5880.shp", "gpm")
+				file = filePath("br_roads_5880.shp", "gpm")
 			}
 
 			local l2 = gis.Layer{
 				project = proj,
 				name = "Ports",
-				file = filePath("test/br_ports_5880.shp", "gpm")
+				file = filePath("br_ports_5880.shp", "gpm")
 			}
 
 			local roads = CellularSpace{
@@ -842,7 +842,7 @@ strategy     string [border]
 				end
 			}
 
-			local csFile = filePath("test/br_cs_5880_25x25km.shp", "gpm")
+			local csFile = filePath("br_cs_5880_25x25km.shp", "gpm")
 			csFile:copy(currentDir())
 
 			local l3 = gis.Layer{
