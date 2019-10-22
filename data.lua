@@ -69,3 +69,20 @@ data{
 	source = "TerraME team"
 }
 
+data{
+	file = "br_cs_5880_25x25km.shp",
+	summary = "A cellular space created from Brazil territory.",
+	source = "TerraME team"
+}
+
+data{
+	file = "br_ports_5880.shp",
+	summary = "A shapefile with some main sea ports of Brazil.",
+	source = "TerraME team"
+}
+
+data{
+	file = "br_roads_5880.shp",
+	summary = "A shapefile with Brazil main roads describing the transportation cost peer road stretch.",
+	source = "TerraME team"
+}

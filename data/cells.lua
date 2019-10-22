@@ -1,4 +1,3 @@
-
 import("gis")
 
 farms = Project{
@@ -13,6 +12,7 @@ cells = Layer{
 	clean = true,
 	input = "farms",
 	name = "cells",
-	resolution = 200
+	resolution = 200,
+	progress = false
 }
 

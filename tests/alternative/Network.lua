@@ -187,7 +187,8 @@ return {
 
 			local data = {
 				file = roadsCurrDir,
-				overwrite = true
+				overwrite = true,
+				progress = false
 			}
 
 			roadsLayer:export(data)

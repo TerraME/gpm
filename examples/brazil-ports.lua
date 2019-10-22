@@ -43,7 +43,7 @@ gpm:fill{
 	copy = "NOME_MICRO"
 }
 
-local costs = Map{
+Map{
 	target = cs,
 	select = "cost",
 	min = 5,
@@ -52,7 +52,7 @@ local costs = Map{
 	color = "YlOrRd"
 }
 
-local cluster = Map{
+Map{
 	target = cs,
 	select = "NOME_MICRO",
 	value = {"BELEM", "CARAGUATATUBA", "FORTALEZA", "ITAJAI",
