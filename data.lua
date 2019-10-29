@@ -94,7 +94,7 @@ data{
 		OBS = "Status note.",
 		CODCENTRAN = "Unknow identifier.",
 		objet_id_5 = "Unknow identifier.",
-	},	
+	},
 	summary = "A shapefile with some main sea ports of Brazil.",
 	source = "TerraME team"
 }
@@ -110,7 +110,7 @@ data{
 		JURISDICAO = "Road jurisdiction.",
 		PISTA = "Road lane status.",
 		custo_ajus = "Road cost.",
-	},	
+	},
 	summary = "A shapefile with Brazil main roads describing the transportation cost peer road stretch.",
 	source = "TerraME team"
 }
