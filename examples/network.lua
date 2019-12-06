@@ -28,12 +28,14 @@ network = Network{
 			return distance / 2
 		end
 	end,
-	outside = function(distance) return distance * 4 end
+	outside = function(distance) return distance * 2 end
 }
 
 gpm = GPM{
 	destination = network,
-	origin = cells
+	origin = cells,
+	entrance = "lowest",
+	by = "points",
 }
 
 gpm:fill{

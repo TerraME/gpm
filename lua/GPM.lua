@@ -23,20 +23,20 @@
 -------------------------------------------------------------------------------------------
 
 local function progressMsg(self, relation, progress)
-	return "GPM processing "..relation.." "..progress.." of "..#self.origin.."."
+	return "GPM processing "..relation.." "..progress.." of "..#self.origin
 end
 
 local function updateProgressMsg(self, relation, progress)
 	if self.progress then
 		io.write(progressMsg(self, relation, progress), "\r") -- SKIP
-		io.flush()
+		io.flush() -- SKIP
 	end
 end
 
 local function finalizeProgressMsg(self, relation, progress)
 	if self.progress then
-		io.write("                                               ", "\r")
-		io.flush()
+		io.write("                                               ", "\r") -- SKIP
+		io.flush() -- SKIP
 		print(progressMsg(self, relation, progress))
 	end
 end
@@ -51,7 +51,7 @@ local function buildOpenGPM(self)
 		progress = progress + 1
 		updateProgressMsg(self, "origin", progress)
 
-		local distances = self.network:distances(cell, self.entrance)
+		local distances = self.network:distances(cell, self.entrance, self.by)
 
 		for targetId, distance in pairs(distances) do
 			neighbors[cell:getId()][tostring(targetId)] = distance
@@ -118,7 +118,7 @@ local function saveGPM(self, file)
 
 		forEachOrderedElement(neighbor, function(midx, weight)
 			table.insert(outputText, midx)
-			table.insert(outputText, weight)
+			table.insert(outputText, weight.weight)
 		end)
 
 		file:writeLine(table.concat(outputText, " "))
@@ -145,7 +145,7 @@ local function saveGWT(self, file)
 
 			table.insert(outputText, idx)
 			table.insert(outputText, midx)
-			table.insert(outputText, weight)
+			table.insert(outputText, weight.weight)
 			file:writeLine(table.concat(outputText, " "))
 		end)
 	end)
@@ -169,9 +169,9 @@ local function buildDistanceRelation(self)
 
 		forEachCell(destination, function(polygon)
 			local targetPolygon = polygon.geom:getGeometryN(0)
-			local distance = targetPolygon:distance(geometry:getCentroid())
+			local distance = {weight = targetPolygon:distance(geometry:getCentroid())}
 
-			if --[[targetPolygon:contains(geometry) or]] distance < maxDistance then
+			if --[[targetPolygon:contains(geometry) or]] distance.weight < maxDistance then
 				neighbors[originCell:getId()][polygon:getId()] = distance
 			end
 		end)
@@ -206,8 +206,7 @@ local function buildBorderRelation(self)
 
 			if geometryBorder:getLength() then
 				local lengthBorder = geometryBorder:getLength()
-
-				neighbors[polygon:getId()][neighbor:getId()] = lengthBorder / geometryPerimeter
+				neighbors[polygon:getId()][neighbor:getId()] = {weight = lengthBorder / geometryPerimeter}
 			end
 		end)
 	end)
@@ -235,7 +234,7 @@ local function buildContainsRelation(self)
 			local geometryDestination = dest.geom:getGeometryN(0)
 
 			if geometryOrigin:contains(geometryDestination) then
-				neighbor[polygon:getId()][dest:getId()] = 1
+				neighbor[polygon:getId()][dest:getId()] = {weight = 1}
 			end
 		end)
 	end)
@@ -272,7 +271,7 @@ local function buildAreaRelation(self)
 					return
 				end
 
-				neighbor[polygon:getId()][geometric:getId()] = areaIntersection
+				neighbor[polygon:getId()][geometric:getId()] = {weight = areaIntersection}
 			end
 		end)
 	end)
@@ -309,7 +308,7 @@ local function buildLengthRelation(self)
 					return
 				end
 
-				neighbor[polygon:getId()][geometric:getId()] = lengthIntersection
+				neighbor[polygon:getId()][geometric:getId()] = {weight = lengthIntersection}
 			end
 		end)
 	end)
@@ -425,7 +424,7 @@ GPM_ = {
 							tattr[id] = attribute.."_"..id
 						end
 
-						cell[tattr[id]] = dist
+						cell[tattr[id]] = dist.weight
 					end)
 				end)
 
@@ -459,18 +458,18 @@ GPM_ = {
 				verifyUnnecessaryArguments(data, {"attribute", "missing", "copy", "strategy"})
 
 				forEachCell(self.origin, function(cell)
-					local value = math.huge
+					local value = {weight = math.huge}
 					local mid
 
 					forEachElement(self.neighbor[cell:getId()], function(id, dist)
-						if dist < value then
+						if dist.weight < value.weight then
 							value = dist
 							mid = id
 						end
 					end)
 
-					if value == math.huge then
-						value = data.missing
+					if value.weight == math.huge then
+						value.weight = data.missing
 					end
 
 					if mid ~= nil and data.copy then
@@ -485,7 +484,10 @@ GPM_ = {
 						end)
 					end
 
-					cell[attribute] = value
+					cell[attribute] = value.weight
+					if value.node then
+						cell.node = value.node
+					end
 				end)
 			end,
 			maximum = function()
@@ -494,18 +496,18 @@ GPM_ = {
 				verifyUnnecessaryArguments(data, {"attribute", "missing", "copy", "strategy"})
 
 				forEachCell(self.origin, function(cell)
-					local value = -math.huge
+					local value = {weight = -math.huge}
 					local mid
 
 					forEachElement(self.neighbor[cell:getId()], function(id, dist)
-						if dist > value then
+						if dist.weight > value.weight then
 							value = dist
 							mid = id
 						end
 					end)
 
-					if value == -math.huge then
-						value = data.missing -- SKIP
+					if value.weight == -math.huge then
+						value.weight = data.missing -- SKIP
 					end
 
 					if mid ~= nil and data.copy then
@@ -520,7 +522,7 @@ GPM_ = {
 						end)
 					end
 
-					cell[attribute] = value
+					cell[attribute] = value.weight
 				end)
 			end,
 			sum = function()
@@ -530,7 +532,7 @@ GPM_ = {
 					local sum = 0
 
 					forEachElement(self.neighbor[cell:getId()], function(_, dist)
-						sum = sum + dist
+						sum = sum + dist.weight
 					end)
 
 					cell[attribute] = sum
@@ -544,7 +546,7 @@ GPM_ = {
 					local neighbor = self.neighbor[cell:getId()]
 
 					forEachElement(neighbor, function(_, dist)
-						sum = sum + dist
+						sum = sum + dist.weight
 					end)
 
 					cell[attribute] = sum / getn(neighbor)
@@ -630,9 +632,11 @@ metaTableGPM_ = {
 -- @arg data.progress Optional boolean value indicating whether GPM will print messages
 -- while processing values. The default value is true.
 -- @arg data.strategy An optional string with the strategy to create a GPM.
--- @arg data.entrance Optional string that can used when the destination is a Network.
+-- @arg data.entrance Optional string wich indicates if the cell will enter in the Network by
+-- closest point or line, or by the point with the lowest weight. The default is "closest".
+-- @arg data.by Optional string that can used when the destination is a Network.
 -- Its values can be "points" or "lines" which indicates how the distances will be calculated.
--- The default is "points".
+-- The default is "lines".
 -- See the table below.
 -- @tabular strategy
 -- Strategy & Description & Compulsory Arguments & Optional Arguments \
@@ -649,7 +653,7 @@ metaTableGPM_ = {
 -- "distance" & Connects all objects from the origin to the destination according to their
 -- distances. If the argument distance is used, then only the objects that have distance
 -- less than this value are connected. The weight of the relation will be the distance
--- between the two objects. & origin, destination & distance, progress, entrance \
+-- between the two objects. & origin, destination & distance, progress, entrance, by \
 -- "length" & Create relations between polygons that share borders. The weight
 -- of each relation is the length of the intersection border. &
 -- strategy, origin, destination & progress \
@@ -686,7 +690,8 @@ metaTableGPM_ = {
 -- }
 function GPM(data)
 	verifyNamedTable(data)
-	verifyUnnecessaryArguments(data, {"origin", "distance", "progress", "destination", "strategy", "entrance"})
+	verifyUnnecessaryArguments(data, {"origin", "distance", "progress", "destination",
+									"strategy", "entrance", "by"})
 	mandatoryTableArgument(data, "origin", "CellularSpace")
 
 	if data.origin.geometry == false then
@@ -755,7 +760,8 @@ function GPM(data)
 			buildLengthRelation(data)
 		end,
 		distance = function()
-			defaultTableValue(data, "entrance", "points")
+			defaultTableValue(data, "entrance", "closest")
+			defaultTableValue(data, "by", "lines")
 			if type(data.destination) == "Network" then
 				data.network = data.destination
 				data.destination = data.network.target

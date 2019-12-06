@@ -187,7 +187,8 @@ return {
 
 			local data = {
 				file = roadsCurrDir,
-				overwrite = true
+				overwrite = true,
+				progress = false
 			}
 
 			roadsLayer:export(data)
@@ -259,32 +260,6 @@ return {
 
 		disconnectedNetworkTest()
 
-		local errorArgumentError = function()
-			local roadsSouth = CellularSpace{
-				file = filePath("test/roads_sirgas2000_south3.shp", "gpm")
-			}
-
-			local ports = CellularSpace{
-				file = filePath("test/porto_alegre_sirgas2000.shp", "gpm"),
-				missing = 0
-			}
-
-			Network{
-				lines = roadsSouth,
-				target = ports,
-				progress = false,
-				error = 400,
-				inside = function(distance)
-					return distance
-				end,
-				outside = function(distance)
-					return distance * 4
-				end
-			}
-		end
-
-		unitTest:assertError(errorArgumentError, "Line '47' was added due to the value of argument 'error' (400). Please, remove the argument 'error' and fix the disconnected lines.")
-
 		local lineCrossesError = function()
 			local roads = CellularSpace{
 				file = filePath("test/roads_sirgas2000_south8.shp", "gpm")
@@ -320,6 +295,9 @@ return {
 				file = filePath("communities.shp", "gpm")
 			}
 
+			local customWarningBkp = customWarning
+			customWarning = function() end
+
 			Network{
 				lines = roads,
 				target = communities,
@@ -328,6 +306,8 @@ return {
 				inside = function(distance) return distance end,
 				outside = function(distance) return distance * 2 end
 			}
+
+			customWarning = customWarningBkp
 		end
 
 		unitTest:assertError(unexpecteError, "Unexpected error with lines {2, 3, 7, 13}. If you have already validated your data, report this error to system developers.")
@@ -395,6 +375,23 @@ return {
 		local invalidEntranceError = function()
 			network:distances(port, "rtree")
 		end
-		unitTest:assertError(invalidEntranceError, "Attribute 'entrance' must be 'lines' or 'points', but received 'rtree'.")
+		unitTest:assertError(invalidEntranceError, "Attribute 'entrance' must be 'closest' or 'lowest', but received 'rtree'.")
+
+		local invalidClosestByError = function()
+			network:distances(port, "closest", "square")
+		end
+		unitTest:assertError(invalidClosestByError, "Attribute 'by' must be 'lines' or 'points', but received 'square'.")
+
+		local invalidLowestByError = function()
+			network:distances(port, "lowest", "circle")
+		end
+		unitTest:assertError(invalidLowestByError, "Attribute 'by' must be 'lines' or 'points', but received 'circle'.")
+
+		local portNoGeom = ports:get("0")
+		portNoGeom.geom = nil
+		local cellHasNoGeometry = function()
+			network:distances(portNoGeom)
+		end
+		unitTest:assertError(cellHasNoGeometry, "Argument 'cell' must be associated with a geometry.")
 	end
 }

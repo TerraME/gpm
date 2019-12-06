@@ -22,7 +22,7 @@ forEachOrderedElement(gpm.neighbor, function(idx, neigh)
 	print(states:get(idx).name)
 
 	forEachOrderedElement(neigh, function(midx, weight)
-		print("\t"..states:get(midx).name.." ("..string.format("%.2f", weight)..")")
+		print("\t"..states:get(midx).name.." ("..string.format("%.2f", weight.weight)..")")
 	end)
 end)
 

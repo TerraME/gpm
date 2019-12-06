@@ -69,3 +69,48 @@ data{
 	source = "TerraME team"
 }
 
+data{
+	file = "br_cs_5880_25x25km.shp",
+	summary = "A cellular space created from Brazil territory.",
+	source = "TerraME team"
+}
+
+data{
+	file = "br_ports_5880.shp",
+	attributes = {
+		COD_IBGE = "IBGE code identifier.",
+		NOME_UF = "Federative unit name.",
+		COD_UF = "Federative unit code identifier.",
+		NOME_MUNI = "Port municipality.",
+		COD_MESO = "Region code identifier.",
+		NOMEMESO = "Region name.",
+		COD_MICRO = "Port city.",
+		UF = "Federative unit abbreviation.",
+		NOME_MICRO = "Port city name.",
+		SITUACAOP = "Port status.",
+		ADM = "Port administration.",
+		TIPOCARGA = "Type of cargo.",
+		EMPRESA = "Port administration company.",
+		OBS = "Status note.",
+		CODCENTRAN = "Unknow identifier.",
+		objet_id_5 = "Unknow identifier.",
+	},
+	summary = "A shapefile with some main sea ports of Brazil.",
+	source = "TerraME team"
+}
+
+data{
+	file = "br_roads_5880.shp",
+	attributes = {
+		OBJECTID_1 = "Unknow identifier.",
+		OBJECTID = "Unknow identifier.",
+		RODOVIA = "Road name.",
+		EXTENSAO = "Road extension.",
+		REVESTIMEN = "Road status.",
+		JURISDICAO = "Road jurisdiction.",
+		PISTA = "Road lane status.",
+		custo_ajus = "Road cost.",
+	},
+	summary = "A shapefile with Brazil main roads describing the transportation cost peer road stretch.",
+	source = "TerraME team"
+}
